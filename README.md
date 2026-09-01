@@ -113,17 +113,21 @@ requisição aqui custa uma chamada de LLM mais até 16 chamadas ao TMDB.
 
 ## Design
 
-Preto de projeção, raio zero, sem sombra, um acento guardado. A estrutura vem de
-dois sistemas: **República Pureza** (dessaturação em repouso, acento único,
-título rotacionado) e **MUBI** (calha de 4 px, hierarquia por peso, selos sobre
-véu). O matiz não vem de nenhum dos dois — `#EF4123` e `#001489` são marca
-deles.
+Papel creme `#FDF6E4`, tinta marrom-vinho `#531A0F`, um acento vermelho-sangue
+`#C52E2E` que aparece uma palavra por tela. **Nenhum cinza inventado** — os
+apoios saem da própria tinta com alpha. Display em Big Shoulders, caixa alta e
+condensada; Inter para o que se lê em linha.
 
-O gesto do produto é a **coluna que acorda**: os filmes são colunas em preto e
-branco; sob o cursor uma delas dobra de largura, ganha cor e o trailer sobe.
-Cor é recompensa por atenção.
+Claro não é o oposto de cinematográfico: é a diferença entre a estética de um
+serviço de streaming e a de crítica impressa, e a segunda serve melhor a um
+produto cujo diferencial é texto.
 
-Korolev e Riforma são pagas; **Archivo** as substitui (tem eixo de largura).
+O gesto do produto é a **tira de filme**: os resultados são fotogramas com
+perfuração, cinza em repouso; sob o cursor um deles dobra de largura, ganha cor
+e o trailer sobe. Cor é recompensa por atenção.
+
+Valores e procedência de cada decisão em
+[docs/identidade-visual.md](docs/identidade-visual.md).
 
 ---
 
