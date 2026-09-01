@@ -15,7 +15,7 @@ const eslintConfig = defineConfig([
     // Material do curso e design systems de referência: código de terceiros,
     // boa parte minificada. Sem isto o lint varre bundles alheios e reporta
     // milhares de problemas que não são nossos e que não vamos corrigir.
-    "_curso/**",
+    "referencia/**",
     "docs/design-systems/**",
   ]),
 ]);

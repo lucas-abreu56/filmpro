@@ -30,11 +30,11 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# Material do curso da Asimov (FilmPro em Python, projeto Astro da ArtTools).
-# Fica no disco como referência, fora do repositório: são ~124 MB de vídeo e
-# imagem, e o código não é nosso — os autores são Daniel de Matos Alves e
-# Otávio Cunha. Quando não servir mais para consulta, é só apagar a pasta.
-_curso/
+# Material de consulta: os projetos do curso da Asimov (FilmPro em Python e o
+# projeto Astro da ArtTools). Fica no disco, fora do repositório — são ~124 MB
+# de vídeo e imagem, e o código não é nosso: os autores são Daniel de Matos
+# Alves e Otávio Cunha. Quando não servir mais para consulta, é só apagar.
+referencia/
 
 # env files (can opt-in for committing if needed)
 .env*
