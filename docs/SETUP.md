@@ -50,9 +50,18 @@ no log de execução do n8n, que é visível na interface.
 | Name | `apikey` |
 | Value | a chave ativada |
 
-O OMDB **só** aceita a chave por query string — não tem autenticação por header.
-Usar o tipo `Query Auth` pelo menos mantém a chave fora do campo de URL do nó e
-guardada na credencial, em vez de digitada no workflow.
+O OMDB **só** aceita a chave por query string — não tem autenticação por header,
+e por isso a chave viaja na URL de qualquer jeito. O `Query Auth` não muda o que
+trafega; muda **o que sai do n8n**.
+
+O backup diário para o GitHub (`lucas-abreu56/n8n`) exporta o JSON completo de
+todos os workflows. Os `parameters` de cada nó vão inteiros — inclusive uma URL
+com `?apikey=...` digitada à mão. **Credencial não vai:** o export leva só o id
+e o nome dela. Escrever a chave na URL é commitá-la todo dia; guardá-la na
+credencial não é.
+
+Sempre `https://`, nunca `http://` — sobre http a chave atravessa a rede em
+texto claro, e aí nenhuma credencial adianta.
 
 ### FilmPro Webhook — tipo `Header Auth`
 
