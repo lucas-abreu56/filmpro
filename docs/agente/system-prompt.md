@@ -1,12 +1,27 @@
 # System prompt — FilmPro
 
-Cole no campo `options.systemMessage` do nó **AI Agent**. Versionado aqui porque
-é conteúdo que decide a qualidade do produto, e porque **toda edição neste
-arquivo exige incrementar `prompt_version` no workflow** — o número entra no
-hash do cache, e sem incrementar o cache segue servindo respostas do prompt
-antigo.
+## Como este arquivo se relaciona com o n8n
+
+**Este arquivo é a fonte de verdade. Edite aqui e cole no n8n — nunca o
+contrário.** Alterar o prompt pela textarea da interface do n8n faz este
+arquivo virar mentira, e um handoff desatualizado é pior que nenhum.
+
+O workflow também é salvo diariamente em `lucas-abreu56/n8n` pelo fluxo de
+backup, mas lá o prompt vive dentro do JSON do workflow, como
+`"systemMessage": "<papel>\nVocê é...\n"` — preservado, e ilegível num diff.
+Este arquivo existe para ser revisável, não para ser backup.
+
+**Toda edição aqui exige incrementar `prompt_version` no workflow.** O número
+entra no hash do cache; sem incrementar, o cache segue servindo respostas
+geradas pelo prompt antigo.
 
 `prompt_version` atual: **1**
+
+---
+
+## O prompt
+
+Cole no campo `options.systemMessage` do nó **AI Agent**.
 
 O texto do usuário chega no campo `text` do agente, encapsulado assim (nunca
 concatenado direto nas instruções):

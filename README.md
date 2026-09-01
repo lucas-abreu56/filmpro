@@ -156,7 +156,7 @@ psql "$DATABASE_URL" -f db/schema.sql
 | BFF, rate limit, sanitização | pronto |
 | Tokens de design, tipografia | pronto |
 | Schema do Postgres (`db/schema.sql`) | escrito, **não aplicado** |
-| Prompt e schema do agente (`n8n/`) | escritos, **não aplicados** |
+| Prompt e schema do agente ([docs/agente/](docs/agente/)) | escritos, **não aplicados** |
 | Contas TMDB e OMDB | **não criadas** |
 | Credenciais no n8n | **não criadas** |
 | Workflow do n8n | **não construído** |
