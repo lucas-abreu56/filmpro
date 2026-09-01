@@ -154,7 +154,42 @@ Cada passo só faz sentido depois do anterior.
 
 ---
 
-## 6. O OMDB devolve tudo como string — converter antes de gravar
+## 6. O workflow, e a armadilha da credencial do webhook
+
+O workflow **FilmPro — Recomendações** (`gwKwNLFM2ztGuB8U`) já está publicado.
+A fonte de verdade dele é [`n8n/filmpro-recomendacoes.ts`](../n8n/filmpro-recomendacoes.ts)
+— editar por lá e republicar; editar pela interface faz o arquivo virar mentira.
+
+```
+Webhook → Validar entrada → Curador (Gemini + parser) → Enfileirar titulos
+       → TMDB busca → Escolher correspondencia → TMDB detalhes → OMDB
+       → Montar resposta → Responder
+```
+
+**Ao criar o workflow, o n8n anexou sozinho a credencial `RapidAPI-Key` ao nó
+Webhook.** Ele reaproveita qualquer credencial `httpHeaderAuth` existente
+quando a pedida ainda não existe, e não avisa em vermelho — só no resumo do
+trigger, em letra miúda: *"requires a header with name X-RapidAPI-Key"*.
+
+Isso **falha fechado**, não aberto: o BFF manda `x-api-key`, o webhook espera
+`X-RapidAPI-Key`, e a requisição toma 403. Ninguém entra. Mas parece "o
+workflow não funciona" em vez de "a credencial está errada", que é o tipo de
+pista falsa que custa uma tarde.
+
+Então, ao criar a credencial `FilmPro Webhook`, **troque-a no nó Webhook** —
+não basta criar. E confira de passagem se os três nós HTTP (`TMDB busca`,
+`TMDB detalhes`, `OMDB`) mostram a credencial certa: o MCP não devolve
+credencial de nó na leitura, então isso eu não consigo verificar daqui.
+
+### O que ainda não foi medido
+
+A **latência**. É o número que decide se o fluxo precisa virar assíncrono com
+polling, e nenhuma execução real aconteceu ainda — executar pelo MCP pina os
+nós HTTP e mede simulação, não rede. Rode uma vez pela interface e anote.
+
+---
+
+## 7. O OMDB devolve tudo como string — converter antes de gravar
 
 Medido na execução `1655` (01/09/2026). Os três campos que usamos não chegam
 no tipo que o banco espera:

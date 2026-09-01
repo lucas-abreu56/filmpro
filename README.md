@@ -167,7 +167,8 @@ psql "$DATABASE_URL" -f db/schema.sql
 | Contas TMDB e OMDB | criadas |
 | Credenciais TMDB e OMDB no n8n | criadas e **verificadas** |
 | Credencial Postgres | **a decidir** |
-| Workflow do n8n | **não construído** |
+| Workflow do n8n ([n8n/](n8n/)) | construído, **credencial do webhook pendente** |
+| Latência do agente | **não medida** |
 | Ficha do filme, cache, `/estatisticas` | pendente |
 
 Para ver a interface funcionando sem depender do n8n:
