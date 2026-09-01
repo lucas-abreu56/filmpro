@@ -1,44 +1,48 @@
 @import "tailwindcss";
 
 /* Tokens do FilmPro.
-   Estrutura vinda de dois sistemas: República Pureza (preto de projeção,
-   dessaturação em repouso, acento único, numeral rotacionado) e MUBI (raio
-   zero no conteúdo, calha de 4px, hierarquia por peso, selos sobre véu).
+   Direção "galeria": quase branco, tinta quase preta, um acento discreto.
+   Referência de estrutura: kirlian.io (empresa de cinema, clara e editorial).
 
-   O matiz NÃO vem de nenhum dos dois: #EF4123 é marca da República Pureza e
-   #001489 é da MUBI, e as duas documentações pedem explicitamente que se leve
-   a estrutura e se troque a cor. */
+   O princípio é o mesmo da MUBI, invertido para o claro: a interface é
+   acromática de propósito e a única cor forte da tela vem dos fotogramas.
+   Um acento a mais e o catálogo vira vitrine.
+
+   O tema escuro laranja do material do curso foi descartado: além de genérico
+   em produto de IA, é a paleta do portfólio do Lucas, e o FilmPro precisa de
+   identidade própria. */
 @theme {
-  /* Fontes injetadas pelo next/font no layout.
-     Archivo substitui Korolev (Pureza) e Riforma (MUBI) — as duas são pagas, e
-     as duas docs apontam Archivo como substituta por ter eixo de largura. */
+  /* Duas vozes, e a distinção é intencional:
+     - `sans` (Inter) carrega o que é FATO, vindo do TMDB e do OMDB.
+     - `voz`  (Fraunces) carrega o que é AUTORAL — títulos do produto, o
+       `reason` do agente e o nome da coleção.
+     A tipografia passa a mostrar a tese do projeto antes de o texto ser lido:
+     fato e curadoria não são a mesma voz. */
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-archivo), "Arial Narrow", ui-sans-serif, sans-serif;
+  --font-voz: var(--font-fraunces), ui-serif, Georgia, serif;
 
-  /* Rampa de cinzas com viés quente, para que toda superfície acima do preto
-     pertença à mesma família. Cinza neutro puro sobre preto lê como sujeira. */
-  --color-projecao: #000000; /* fundo de tudo — a imagem é a única luz */
-  --color-carvao: #141312; /* superfície elevada, campos */
-  --color-grafite: #1f1c1a; /* controle secundário */
-  --color-fumaca: #3b3634; /* fios, bordas, desabilitado */
-  --color-cinza: #797674; /* texto de apoio */
-  --color-pedra: #a9a4a1; /* texto secundário */
-  --color-gelo: #e9e5e3; /* corpo de texto sobre preto */
+  /* ⚠ VALORES PROVISÓRIOS — estimados, não medidos.
+     Diferente dos tokens da República Pureza e da MUBI (que foram extraídos do
+     CSS de produção daqueles sites), estes hex foram derivados por olho a
+     partir de descrição e captura de tela da kirlian.io. A DIREÇÃO está certa;
+     os números não são confiáveis.
+     Substituir pelos valores reais quando o design system da kirlian.io for
+     exportado. É trocar seis linhas — o resto do projeto só referencia os
+     nomes. */
+  --color-papel: #faf8f5; /* fundo da página — branco levemente quente */
+  --color-card: #ffffff; /* superfície elevada */
+  --color-fio: #e8e4de; /* filetes, bordas, molduras de imagem */
+  --color-apoio: #7a756e; /* texto de apoio, metadados */
+  --color-tinta: #1a1917; /* texto principal */
+  --color-acento: #c8462f; /* único acento */
+  --color-acento-forte: #a83824; /* hover e pressed */
 
-  /* Um acento, nunca dois. Sem gradiente, sem glow. */
-  --color-chama: #f97316;
-  --color-brasa: #c2410c; /* pressed / hover */
-
-  --color-veu: rgb(255 255 255 / 0.56); /* título rotacionado sobre a imagem */
-  --color-fio: rgb(255 255 255 / 0.13); /* divisores */
-  --color-chip: rgb(255 255 255 / 0.22); /* fundo de selo — valor da MUBI */
-
-  /* Raio: zero é o padrão do sistema. Só controle tem curva, e pílula é
-     sempre metade da altura — nunca "cantinho arredondado". */
+  /* Raio pequeno: a direção galeria é minimal, não fofa. Curva só o
+     suficiente para tirar a aspereza. Controle em pílula continua sendo
+     metade da altura. */
+  --radius-card: 4px;
   --radius-selo: 3px;
 
-  /* Movimento. 260ms na expansão, não os 100ms do original: a própria doc da
-     Pureza registra que 100ms para 33% de largura lê como corte, não câmera. */
   --ease-camera: cubic-bezier(0.2, 0.7, 0.3, 1);
   --animate-entry: entry 700ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
 
@@ -64,23 +68,32 @@
 }
 
 body {
-  background-color: var(--color-projecao);
-  color: var(--color-gelo);
+  background-color: var(--color-papel);
+  color: var(--color-tinta);
 }
 
-/* Scrim que garante leitura do título sobre o fotograma. É a única
-   profundidade do sistema — a MUBI não usa sombra em lugar nenhum. */
+/* Sobre fundo claro, o fotograma flutua sem contorno — no preto ele se fundia
+   à página e dispensava moldura. Um filete resolve, e ainda lê como prancha
+   encartada em publicação impressa. */
+.moldura {
+  border: 1px solid var(--color-fio);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  background-color: var(--color-fio);
+}
+
+/* Scrim para título legível sobre o fotograma. Continua escuro: a imagem é
+   escura, não o fundo da página. */
 .scrim {
   background: linear-gradient(0deg, rgb(0 0 0 / 0.72), transparent 62%);
 }
 
-/* Placeholder enquanto o backdrop carrega. */
 .skeleton {
   background: linear-gradient(
     90deg,
-    var(--color-carvao) 25%,
-    var(--color-grafite) 50%,
-    var(--color-carvao) 75%
+    var(--color-fio) 25%,
+    var(--color-papel) 50%,
+    var(--color-fio) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.6s linear infinite;
@@ -90,18 +103,18 @@ body {
   width: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--color-projecao);
+  background: var(--color-papel);
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-fumaca);
+  background: var(--color-fio);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-cinza);
+  background: var(--color-apoio);
 }
 
-/* O gesto depende de movimento e de vídeo em autoplay. Quem pediu menos
-   movimento recebe o layout parado e o fotograma estático — não uma versão
-   quebrada. A coluna ainda expande, só que sem animar e sem trailer. */
+/* O gesto da tira depende de movimento e de trailer em autoplay. Quem pediu
+   menos movimento recebe o layout parado e o fotograma estático — não uma
+   versão quebrada. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

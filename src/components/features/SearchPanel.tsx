@@ -21,8 +21,8 @@ type Estado =
  * Tela da Fase 1: formulário e JSON cru.
  *
  * O objetivo desta fase é provar que o pôster chega preenchido de verdade —
- * o defeito central do projeto do curso. A pele (coluna que acorda, selos,
- * modal) vem depois, quando a latência já tiver sido medida.
+ * o defeito central do projeto do curso. A pele (tira de colunas, selos,
+ * ficha do filme) vem depois, quando a latência já tiver sido medida.
  */
 export default function SearchPanel() {
   const [texto, setTexto] = useState("");
@@ -98,17 +98,17 @@ export default function SearchPanel() {
           rows={2}
           maxLength={LIMITS.MAX_PREFERENCES}
           placeholder="Um suspense claustrofóbico, poucos personagens, final que incomoda…"
-          className="bg-carvao border-fumaca text-gelo placeholder:text-cinza focus:border-chama w-full resize-none border p-4 text-lg leading-snug outline-none"
+          className="bg-card border-fio text-tinta placeholder:text-apoio focus:border-acento rounded-card w-full resize-none border p-4 text-lg leading-snug outline-none"
         />
 
-        <div className="text-cinza mt-2 flex items-center justify-between text-xs">
+        <div className="text-apoio mt-2 flex items-center justify-between text-xs">
           <span>
             {texto.length} / {LIMITS.MAX_PREFERENCES}
           </span>
           <button
             type="submit"
             disabled={curto || buscando}
-            className="bg-chama text-projecao hover:bg-brasa disabled:bg-grafite disabled:text-cinza px-6 py-3 font-display text-xs font-bold tracking-[2px] uppercase transition-colors disabled:cursor-not-allowed"
+            className="bg-acento hover:bg-acento-forte disabled:bg-fio disabled:text-apoio rounded-card px-6 py-3 text-xs font-medium tracking-[2px] text-white uppercase transition-colors disabled:cursor-not-allowed"
           >
             {buscando ? "Curando…" : "Buscar"}
           </button>
@@ -121,7 +121,7 @@ export default function SearchPanel() {
             key={exemplo}
             type="button"
             onClick={() => usarExemplo(exemplo)}
-            className="border-fumaca text-pedra hover:border-cinza hover:text-gelo border px-3 py-1.5 text-xs transition-colors"
+            className="border-fio text-apoio hover:border-apoio hover:text-tinta rounded-card border px-3 py-1.5 text-xs transition-colors"
           >
             {exemplo}
           </button>
@@ -129,33 +129,34 @@ export default function SearchPanel() {
       </div>
 
       {estado.fase === "erro" && (
-        <p className="border-chama text-gelo mt-8 border-l-2 py-2 pl-4 text-sm">
+        <p className="border-acento text-tinta mt-8 border-l-2 py-2 pl-4 text-sm">
           {estado.mensagem}
         </p>
       )}
 
       {estado.fase === "buscando" && (
-        <p className="text-cinza mt-8 text-sm">
+        <p className="text-apoio mt-8 text-sm">
           O agente está montando a lista e conferindo cada título no TMDB.
         </p>
       )}
 
       {estado.fase === "pronto" && (
         <section className="mt-10">
-          <p className="text-cinza font-display text-xs tracking-[2px] uppercase">
+          <p className="text-apoio font-sans text-xs tracking-[2px] uppercase">
             Coleção
           </p>
-          <h2 className="text-gelo font-display mt-1 text-2xl font-bold uppercase">
+          {/* Nome da coleção é texto autoral do agente — Fraunces, a voz. */}
+          <h2 className="text-tinta font-voz mt-1 text-3xl font-normal">
             {estado.dados.collectionTitle}
           </h2>
-          <p className="text-cinza mt-2 text-xs">
+          <p className="text-apoio mt-2 text-xs">
             {estado.dados.movies.length} filmes
             {estado.dados.cached && " · servido do cache"}
             {estado.dados.notFound.length > 0 &&
               ` · ${estado.dados.notFound.length} sugestão(ões) descartada(s) por não constar no TMDB`}
           </p>
 
-          <pre className="border-fumaca text-pedra mt-6 overflow-x-auto border p-4 text-[11px] leading-relaxed">
+          <pre className="border-fio text-apoio rounded-card mt-6 overflow-x-auto border p-4 text-[11px] leading-relaxed">
             {JSON.stringify(estado.dados, null, 2)}
           </pre>
         </section>

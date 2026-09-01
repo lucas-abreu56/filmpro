@@ -1,15 +1,18 @@
 import type { Metadata } from "next";
-import { Archivo, Inter } from "next/font/google";
+import { Fraunces, Inter } from "next/font/google";
 import "./globals.css";
 
-// Archivo no lugar de Korolev (República Pureza) e Riforma (MUBI) — as duas são
-// pagas, e as duas documentações apontam Archivo como substituta justamente por
-// ter eixo de largura. `axes: ["wdth"]` traz a variável completa, para poder
-// condensar os títulos (font-variation-settings: "wdth" 80) como no original.
-const archivo = Archivo({
-  variable: "--font-archivo",
+// Duas vozes, de propósito. Inter carrega o que é fato (vindo do TMDB e do
+// OMDB); Fraunces carrega o que é autoral — os títulos do produto, o `reason`
+// escrito pelo agente e o nome da coleção.
+//
+// Fraunces é uma serifa variável com eixos de softness e wonk, desenhada para
+// ter calor e caráter. É recomendação, não detecção: as fontes dos sites de
+// referência não foram identificadas — ver a nota em globals.css.
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
   subsets: ["latin"],
-  axes: ["wdth"],
+  axes: ["SOFT", "WONK"],
 });
 
 const inter = Inter({
@@ -28,12 +31,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="pt-BR"
-      className={`${inter.variable} ${archivo.variable} h-full antialiased`}
+      className={`${inter.variable} ${fraunces.variable} h-full antialiased`}
     >
-      {/* Preto de projeção e nada mais no fundo: a imagem do filme é a única
-          fonte de luz da tela. Sem halo, sem gradiente — foi o que motivou
-          descartar o Luminous. */}
-      <body className="bg-projecao text-gelo flex min-h-full flex-col font-sans">
+      {/* Interface acromática de propósito: a única cor forte da tela deve vir
+          dos fotogramas dos filmes. É o princípio da MUBI, invertido para o
+          claro. */}
+      <body className="bg-papel text-tinta flex min-h-full flex-col font-sans">
         {children}
       </body>
     </html>
