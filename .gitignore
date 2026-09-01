@@ -36,6 +36,10 @@ yarn-error.log*
 # Alves e Otávio Cunha. Quando não servir mais para consulta, é só apagar.
 referencia/
 
+# Notas de handoff entre sessões. Estado operacional, não documentação do
+# projeto — o que é documentação vive em docs/ e é versionado.
+*.local.md
+
 # env files (can opt-in for committing if needed)
 .env*
 # ...menos o exemplo, que só serve se for versionado. O padrão `.env*` acima o
