@@ -1,0 +1,114 @@
+@import "tailwindcss";
+
+/* Tokens do FilmPro.
+   Estrutura vinda de dois sistemas: República Pureza (preto de projeção,
+   dessaturação em repouso, acento único, numeral rotacionado) e MUBI (raio
+   zero no conteúdo, calha de 4px, hierarquia por peso, selos sobre véu).
+
+   O matiz NÃO vem de nenhum dos dois: #EF4123 é marca da República Pureza e
+   #001489 é da MUBI, e as duas documentações pedem explicitamente que se leve
+   a estrutura e se troque a cor. */
+@theme {
+  /* Fontes injetadas pelo next/font no layout.
+     Archivo substitui Korolev (Pureza) e Riforma (MUBI) — as duas são pagas, e
+     as duas docs apontam Archivo como substituta por ter eixo de largura. */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-archivo), "Arial Narrow", ui-sans-serif, sans-serif;
+
+  /* Rampa de cinzas com viés quente, para que toda superfície acima do preto
+     pertença à mesma família. Cinza neutro puro sobre preto lê como sujeira. */
+  --color-projecao: #000000; /* fundo de tudo — a imagem é a única luz */
+  --color-carvao: #141312; /* superfície elevada, campos */
+  --color-grafite: #1f1c1a; /* controle secundário */
+  --color-fumaca: #3b3634; /* fios, bordas, desabilitado */
+  --color-cinza: #797674; /* texto de apoio */
+  --color-pedra: #a9a4a1; /* texto secundário */
+  --color-gelo: #e9e5e3; /* corpo de texto sobre preto */
+
+  /* Um acento, nunca dois. Sem gradiente, sem glow. */
+  --color-chama: #f97316;
+  --color-brasa: #c2410c; /* pressed / hover */
+
+  --color-veu: rgb(255 255 255 / 0.56); /* título rotacionado sobre a imagem */
+  --color-fio: rgb(255 255 255 / 0.13); /* divisores */
+  --color-chip: rgb(255 255 255 / 0.22); /* fundo de selo — valor da MUBI */
+
+  /* Raio: zero é o padrão do sistema. Só controle tem curva, e pílula é
+     sempre metade da altura — nunca "cantinho arredondado". */
+  --radius-selo: 3px;
+
+  /* Movimento. 260ms na expansão, não os 100ms do original: a própria doc da
+     Pureza registra que 100ms para 33% de largura lê como corte, não câmera. */
+  --ease-camera: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --animate-entry: entry 700ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+
+  @keyframes entry {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes shimmer {
+    from {
+      background-position: 200% 0;
+    }
+    to {
+      background-position: -200% 0;
+    }
+  }
+}
+
+body {
+  background-color: var(--color-projecao);
+  color: var(--color-gelo);
+}
+
+/* Scrim que garante leitura do título sobre o fotograma. É a única
+   profundidade do sistema — a MUBI não usa sombra em lugar nenhum. */
+.scrim {
+  background: linear-gradient(0deg, rgb(0 0 0 / 0.72), transparent 62%);
+}
+
+/* Placeholder enquanto o backdrop carrega. */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-carvao) 25%,
+    var(--color-grafite) 50%,
+    var(--color-carvao) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-projecao);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-fumaca);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-cinza);
+}
+
+/* O gesto depende de movimento e de vídeo em autoplay. Quem pediu menos
+   movimento recebe o layout parado e o fotograma estático — não uma versão
+   quebrada. A coluna ainda expande, só que sem animar e sem trailer. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

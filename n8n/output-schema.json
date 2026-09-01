@@ -1,0 +1,50 @@
+{
+  "$comment": "Schema entregue ao Structured Output Parser do n8n (schemaType: manual). ESTE ARQUIVO É O GUARDRAIL DE SEGURANÇA DO PROJETO, não apenas um formato. Os campos que o projeto do curso pedia ao modelo — imdb_rating, poster_url, duration_minutes, streaming_platforms — foram removidos de propósito: campo que não existe no schema não pode ser alucinado. additionalProperties:false impede o modelo de devolvê-los mesmo que queira, e os maxLength impedem que uma instrução injetada no texto do usuário vire um parágrafo arbitrário na tela. Alterar este arquivo exige incrementar prompt_version no workflow, senão o cache continua servindo respostas do formato antigo.",
+  "type": "object",
+  "properties": {
+    "collectionTitle": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 60,
+      "description": "Nome curto e evocativo para a coleção que você acabou de montar, em português. Como um curador batizaria uma mostra. Sem aspas, sem dois-pontos, sem a palavra 'coleção'."
+    },
+    "movies": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120,
+            "description": "Título em português brasileiro, se o filme tiver um. Caso contrário, o original."
+          },
+          "originalTitle": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120,
+            "description": "Título no idioma original, exatamente como registrado. É por ele que o filme será localizado na base — 'The Shining' encontra, 'O Iluminado' às vezes não."
+          },
+          "year": {
+            "type": "integer",
+            "minimum": 1890,
+            "maximum": 2030,
+            "description": "Ano de lançamento original, quatro dígitos. Serve para desambiguar refilmagens e homônimos."
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 220,
+            "description": "Por que ESTE filme atende ao que a pessoa pediu. Conecte-se ao pedido dela explicitamente. Português brasileiro, texto corrido, sem markdown, sem links, sem aspas decorativas."
+          }
+        },
+        "required": ["title", "originalTitle", "year", "reason"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["collectionTitle", "movies"],
+  "additionalProperties": false
+}

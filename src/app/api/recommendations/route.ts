@@ -1,0 +1,148 @@
+import { NextResponse } from "next/server";
+
+import { clientIp, overLimit } from "@/lib/rateLimit";
+import { sanitizeAuthoredText } from "@/lib/sanitize";
+import { LIMITS, type Movie, type RecommendationsResponse } from "@/lib/types";
+
+/**
+ * O agente (4–12 s) mais o enriquecimento no TMDB (1–2 s) não cabem no teto
+ * padrão de função serverless. `maxDuration` é config de rota do Next 16; o
+ * valor que a plataforma aceita depende do plano, então confira no painel da
+ * Vercel antes de confiar em 60.
+ */
+export const maxDuration = 60;
+
+/** Aponte para `/webhook-test/...` durante o desenvolvimento do workflow. */
+const N8N_WEBHOOK =
+  process.env.N8N_FILMPRO_WEBHOOK ??
+  "https://<seu-n8n>/webhook/filmpro/recommendations";
+
+/**
+ * Dispara antes do teto da plataforma de propósito: assim quem responde 504
+ * somos nós, com mensagem em português, em vez de a Vercel devolver a página
+ * de erro genérica dela.
+ */
+const N8N_TIMEOUT_MS = 45_000;
+
+/** 5/min, não os 10/min do chat do convite: cada requisição aqui custa uma
+ *  chamada de LLM mais até 16 chamadas ao TMDB. */
+const MAX_POR_MINUTO = 5;
+
+export async function POST(request: Request) {
+  try {
+    if (overLimit(clientIp(request), MAX_POR_MINUTO)) {
+      return NextResponse.json(
+        { error: "Muitas buscas seguidas. Espere um minuto e tente de novo." },
+        { status: 429 },
+      );
+    }
+
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Corpo inválido." }, { status: 400 });
+    }
+
+    const { preferences, limit } = (body ?? {}) as {
+      preferences?: unknown;
+      limit?: unknown;
+    };
+
+    if (typeof preferences !== "string") {
+      return NextResponse.json(
+        { error: "Descreva o que você quer assistir." },
+        { status: 400 },
+      );
+    }
+
+    const texto = preferences.trim();
+
+    // O textarea já limita, mas o textarea é do cliente. Sem teto no servidor,
+    // um texto enorme vira custo de token e latência para todo mundo.
+    if (texto.length < LIMITS.MIN_PREFERENCES) {
+      return NextResponse.json(
+        { error: `Escreva pelo menos ${LIMITS.MIN_PREFERENCES} caracteres.` },
+        { status: 400 },
+      );
+    }
+    if (texto.length > LIMITS.MAX_PREFERENCES) {
+      return NextResponse.json(
+        { error: `Máximo de ${LIMITS.MAX_PREFERENCES} caracteres.` },
+        { status: 400 },
+      );
+    }
+
+    // Limite é sugestão do cliente, decisão do servidor.
+    const quantos =
+      typeof limit === "number" && Number.isInteger(limit)
+        ? Math.min(Math.max(limit, 1), LIMITS.MAX_LIMIT)
+        : LIMITS.DEFAULT_LIMIT;
+
+    const apiKey = process.env.N8N_API_KEY;
+    if (!apiKey) {
+      console.error("N8N_API_KEY não está definida nas variáveis de ambiente");
+      return NextResponse.json({ error: "Erro interno." }, { status: 500 });
+    }
+
+    // Correlaciona o log da Vercel com a execução no n8n. O IP não vai junto:
+    // é PII, e o rate limit já foi resolvido acima.
+    const requestId = crypto.randomUUID();
+
+    const response = await fetch(N8N_WEBHOOK, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": apiKey },
+      body: JSON.stringify({ preferences: texto, limit: quantos, requestId }),
+      signal: AbortSignal.timeout(N8N_TIMEOUT_MS),
+    });
+
+    if (!response.ok) {
+      console.error(`n8n respondeu ${response.status} (requestId ${requestId})`);
+      return NextResponse.json(
+        { error: "O serviço de recomendação falhou. Tente de novo." },
+        { status: 502 },
+      );
+    }
+
+    const data = (await response.json()) as RecommendationsResponse;
+    return NextResponse.json(limparTextoAutoral(data));
+  } catch (error) {
+    if (error instanceof Error && error.name === "TimeoutError") {
+      console.error("n8n estourou o tempo na busca de recomendações");
+      return NextResponse.json(
+        { error: "A busca demorou demais. Tente de novo em instantes." },
+        { status: 504 },
+      );
+    }
+    console.error("Erro ao buscar recomendações:", error);
+    return NextResponse.json({ error: "Erro interno." }, { status: 500 });
+  }
+}
+
+/**
+ * Segunda passagem sobre os dois campos que o modelo escreve.
+ *
+ * O n8n já valida antes de gravar no cache; isto roda de novo antes de a
+ * resposta sair, porque um registro envenenado que tenha entrado no cache
+ * antes desta regra existir continuaria sendo servido.
+ */
+function limparTextoAutoral(
+  data: RecommendationsResponse,
+): RecommendationsResponse {
+  return {
+    ...data,
+    collectionTitle: sanitizeAuthoredText(data.collectionTitle, {
+      maxLength: LIMITS.MAX_COLLECTION_TITLE,
+      fallback: "Recomendações",
+    }),
+    movies: (data.movies ?? []).map(
+      (movie: Movie): Movie => ({
+        ...movie,
+        reason: sanitizeAuthoredText(movie.reason, {
+          maxLength: LIMITS.MAX_REASON,
+          fallback: "Escolhido pela curadoria para esta busca.",
+        }),
+      }),
+    ),
+  };
+}
