@@ -164,8 +164,9 @@ psql "$DATABASE_URL" -f db/schema.sql
 | Interface rodando com dados falsos | pronto |
 | Schema do Postgres (`db/schema.sql`) | escrito, **não aplicado** |
 | Prompt e schema do agente ([docs/agente/](docs/agente/)) | escritos, **não aplicados** |
-| Contas TMDB e OMDB | **não criadas** |
-| Credenciais no n8n | **não criadas** |
+| Contas TMDB e OMDB | criadas |
+| Credenciais TMDB e OMDB no n8n | criadas e **verificadas** |
+| Credencial Postgres | **a decidir** |
 | Workflow do n8n | **não construído** |
 | Ficha do filme, cache, `/estatisticas` | pendente |
 

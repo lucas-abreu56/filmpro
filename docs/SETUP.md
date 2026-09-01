@@ -143,13 +143,51 @@ Cada passo só faz sentido depois do anterior.
 2. **TMDB** — um nó HTTP Request isolado no n8n, `GET`
    `https://api.themoviedb.org/3/movie/550?language=pt-BR`, com a credencial
    `TMDB Bearer`, devolve "Clube da Luta".
-3. **OMDB** — `GET https://www.omdbapi.com/?i=tt0137523` com a credencial
-   `OMDB Key` devolve `imdbRating`.
+3. **OMDB** — `GET https://www.omdbapi.com/` com `i=tt0137523` em query
+   parameter e a credencial `OMDB Key` devolve `imdbRating`.
+   *Verificado em 01/09/2026, execução `1655`: 445 ms, `Response: "True"`.*
 4. **Workflow** — `curl` na URL de teste devolve JSON com `posterUrl`
    preenchido. **Este é o marco que importa:** é a prova de que o defeito
    central do projeto original está morto.
 5. **Latência** — anote quanto demorou. Esse número decide se o fluxo precisa
    virar assíncrono com polling, e é a única forma de decidir isso sem chutar.
+
+---
+
+## 6. O OMDB devolve tudo como string — converter antes de gravar
+
+Medido na execução `1655` (01/09/2026). Os três campos que usamos não chegam
+no tipo que o banco espera:
+
+| Campo | OMDB devolve | Coluna em `db/schema.sql` |
+|---|---|---|
+| `imdbRating` | `"7.6"` | `numeric(3,1)` |
+| `imdbVotes` | `"828,114"` | `integer` |
+| `Awards` | texto livre | `text` — único que já casa |
+
+Duas armadilhas, e a primeira é a pior porque **não levanta erro**:
+
+- `parseInt("828,114")` devolve **828**. Erra por mil vezes, em silêncio, e
+  vira um número plausível na tela. `Number("828,114")` devolve `NaN`. O certo
+  é `Number(v.replace(/,/g, ""))` → `828114`.
+- **`"N/A"` é o valor de ausente do OMDB**, não `null`. Aparece já na resposta
+  de teste, em `DVD` e `Production`, e cai em `imdbRating` para filme obscuro —
+  justamente o caso que a curadoria por IA tende a sugerir. `Number("N/A")` é
+  `NaN` e derruba o cast para `numeric(3,1)`.
+
+Então o nó de conversão trata os dois casos antes do upsert:
+
+```js
+const naoDisponivel = (v) => v == null || v === "N/A";
+const nota  = naoDisponivel(o.imdbRating) ? null : Number(o.imdbRating);
+const votos = naoDisponivel(o.imdbVotes)  ? null : Number(o.imdbVotes.replace(/,/g, ""));
+```
+
+`null` é a resposta honesta para "o IMDB não tem nota deste filme", e o
+contrato em `src/lib/types.ts` já a admite: `imdbRating: number | null`. A
+interface omite o selo em vez de mostrar zero.
+
+---
 
 ```bash
 curl -X POST "https://<seu-n8n>/webhook-test/filmpro/recommendations" \
