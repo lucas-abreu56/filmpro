@@ -1,18 +1,20 @@
 import type { Metadata } from "next";
-import { Fraunces, Inter } from "next/font/google";
+import { Big_Shoulders, Inter } from "next/font/google";
+import Cursor from "@/components/ui/Cursor";
 import "./globals.css";
 
-// Duas vozes, de propósito. Inter carrega o que é fato (vindo do TMDB e do
-// OMDB); Fraunces carrega o que é autoral — os títulos do produto, o `reason`
-// escrito pelo agente e o nome da coleção.
+// Founders Grotesk X-Condensed (kirlian) e Schabo Condensed (Awwwocado) são
+// pagas. A documentação da kirlian aponta Big Shoulders Display como substituta
+// livre; o Google desde então fundiu a variante Display na família "Big
+// Shoulders", que é a que o next/font conhece — `Big_Shoulders_Display` dá
+// "Unknown font".
 //
-// Fraunces é uma serifa variável com eixos de softness e wonk, desenhada para
-// ter calor e caráter. É recomendação, não detecção: as fontes dos sites de
-// referência não foram identificadas — ver a nota em globals.css.
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
+// Duas vozes, e a distinção carrega a tese do projeto: a display é a voz do
+// produto; Inter carrega tudo que se lê em linha, com curadoria e metadado
+// separados por tamanho e peso, não por família.
+const display = Big_Shoulders({
+  variable: "--font-big-shoulders",
   subsets: ["latin"],
-  axes: ["SOFT", "WONK"],
 });
 
 const inter = Inter({
@@ -31,12 +33,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="pt-BR"
-      className={`${inter.variable} ${fraunces.variable} h-full antialiased`}
+      className={`${inter.variable} ${display.variable} h-full antialiased`}
     >
-      {/* Interface acromática de propósito: a única cor forte da tela deve vir
-          dos fotogramas dos filmes. É o princípio da MUBI, invertido para o
-          claro. */}
       <body className="bg-papel text-tinta flex min-h-full flex-col font-sans">
+        {/* Grão de película sobre a página inteira. Não recebe clique e some
+            para quem pediu menos movimento. */}
+        <div className="grao" aria-hidden="true" />
+        <Cursor />
         {children}
       </body>
     </html>

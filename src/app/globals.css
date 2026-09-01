@@ -1,70 +1,41 @@
 @import "tailwindcss";
 
-/* Tokens do FilmPro.
-   Direção "galeria": quase branco, tinta quase preta, um acento discreto.
-   Referência de estrutura: kirlian.io (empresa de cinema, clara e editorial).
+/* Identidade do FilmPro. As decisões e a procedência de cada valor estão em
+   docs/identidade-visual.md.
 
-   O princípio é o mesmo da MUBI, invertido para o claro: a interface é
-   acromática de propósito e a única cor forte da tela vem dos fotogramas.
-   Um acento a mais e o catálogo vira vitrine.
-
-   O tema escuro laranja do material do curso foi descartado: além de genérico
-   em produto de IA, é a paleta do portfólio do Lucas, e o FilmPro precisa de
-   identidade própria. */
+   Todos os hex aqui são MEDIDOS, extraídos do CSS de produção dos sistemas de
+   referência (kirlian.io e Awwwocado 08). A versão anterior deste arquivo
+   trazia valores que eu havia estimado a olho, e eles erravam justamente na
+   temperatura: quase-branco e quase-preto, onde o real é creme e marrom. */
 @theme {
-  /* Duas vozes, e a distinção é intencional:
-     - `sans` (Inter) carrega o que é FATO, vindo do TMDB e do OMDB.
-     - `voz`  (Fraunces) carrega o que é AUTORAL — títulos do produto, o
-       `reason` do agente e o nome da coleção.
-     A tipografia passa a mostrar a tese do projeto antes de o texto ser lido:
-     fato e curadoria não são a mesma voz. */
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-voz: var(--font-fraunces), ui-serif, Georgia, serif;
+  --font-display:
+    var(--font-big-shoulders), "Oswald", "Arial Narrow", ui-sans-serif,
+    sans-serif;
 
-  /* ⚠ VALORES PROVISÓRIOS — estimados, não medidos.
-     Diferente dos tokens da República Pureza e da MUBI (que foram extraídos do
-     CSS de produção daqueles sites), estes hex foram derivados por olho a
-     partir de descrição e captura de tela da kirlian.io. A DIREÇÃO está certa;
-     os números não são confiáveis.
-     Substituir pelos valores reais quando o design system da kirlian.io for
-     exportado. É trocar seis linhas — o resto do projeto só referencia os
-     nomes. */
-  --color-papel: #faf8f5; /* fundo da página — branco levemente quente */
-  --color-card: #ffffff; /* superfície elevada */
-  --color-fio: #e8e4de; /* filetes, bordas, molduras de imagem */
-  --color-apoio: #7a756e; /* texto de apoio, metadados */
-  --color-tinta: #1a1917; /* texto principal */
-  --color-acento: #c8462f; /* único acento */
-  --color-acento-forte: #a83824; /* hover e pressed */
+  --color-papel: #fdf6e4; /* fundo de tudo — creme, nunca branco */
+  --color-tinta: #531a0f; /* marrom-vinho. É daqui que vem o calor */
+  --color-profundo: #250701; /* palco do trailer e do loader. NUNCA em texto */
+  --color-acento: #c52e2e; /* uma palavra por tela, no máximo */
 
-  /* Raio pequeno: a direção galeria é minimal, não fofa. Curva só o
-     suficiente para tirar a aspereza. Controle em pílula continua sendo
-     metade da altura. */
-  --radius-card: 4px;
-  --radius-selo: 3px;
+  /* Não existe escala de cinza neste sistema: a doc da Awwwocado é explícita
+     que hierarquia vem do tamanho do tipo, não da cor. Os apoios saem da
+     própria tinta com alpha, para pertencerem à mesma família. */
+  --color-apoio: rgb(83 26 15 / 0.62);
+  --color-fio: rgb(83 26 15 / 0.18);
+  --color-fio-forte: rgb(83 26 15 / 0.42);
+
+  /* Rotação cromática: cada coleção que o agente batiza recebe um matiz.
+     Dá variedade sem um segundo acento permanente, porque a cor passa a ser
+     dirigida por conteúdo. Uso contido — um bloco por coleção. */
+  --color-teal: #aacbc1;
+  --color-azul: #9bb2cd;
+  --color-verde: #cee56e;
+  --color-roxo: #d1abe3;
+  --color-rosa: #e89ed3;
 
   --ease-camera: cubic-bezier(0.2, 0.7, 0.3, 1);
-  --animate-entry: entry 700ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
-
-  @keyframes entry {
-    from {
-      opacity: 0;
-      transform: translateY(16px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @keyframes shimmer {
-    from {
-      background-position: 200% 0;
-    }
-    to {
-      background-position: -200% 0;
-    }
-  }
+  --ease-cortina: cubic-bezier(0.76, 0, 0.24, 1);
 }
 
 body {
@@ -72,31 +43,101 @@ body {
   color: var(--color-tinta);
 }
 
-/* Sobre fundo claro, o fotograma flutua sem contorno — no preto ele se fundia
-   à página e dispensava moldura. Um filete resolve, e ainda lê como prancha
-   encartada em publicação impressa. */
+/* ── Grão de película ─────────────────────────────────────────────────────
+   Cinco linhas, e a tela inteira ganha textura. Fica acima de tudo e não
+   recebe clique. */
+.grao {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.15;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='250' height='250'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='250' height='250' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 250px 250px;
+}
+
+/* ── Tira de filme ────────────────────────────────────────────────────────
+   As colunas de resultado são fotogramas de uma tira real. A perfuração é o
+   que faz a metáfora funcionar; sem ela são só cartões colados. */
+.perfuracao {
+  height: 26px;
+  background-color: var(--color-profundo);
+  /* Furos de 26x12 repetidos, centrados na altura da fita. Um gradiente
+     repetido em vez de dezenas de divs: escala para qualquer largura e não
+     entra na árvore de acessibilidade. */
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--color-papel) 0 26px,
+    transparent 26px 56px
+  );
+  background-size: 100% 12px;
+  background-position: 0 center;
+  background-repeat: repeat-x;
+}
+
+/* Em repouso a imagem é cinza; a cor é recompensa por atenção. O
+   `flex-basis` é o que faz as colunas vizinhas cederem espaço — largura fixa
+   não produziria o mesmo efeito de o layout inteiro reagir. */
+.fotograma {
+  flex: 1 1 0;
+  filter: grayscale(100%) contrast(1.05);
+  transition:
+    flex-grow 260ms var(--ease-camera),
+    filter 260ms var(--ease-camera);
+}
+.fotograma:hover,
+.fotograma:focus-visible,
+.fotograma[data-aberto="true"] {
+  flex-grow: 2.6;
+  filter: none;
+}
+
+/* ── Carregamento ─────────────────────────────────────────────────────────
+   Colunas de tipo rolando em direções opostas. Preenche os 7 a 16 segundos em
+   que o agente trabalha — é o pior momento do produto, não decoração. */
+@keyframes coluna-sobe {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-50%);
+  }
+}
+.coluna-loader {
+  animation: coluna-sobe 9s linear infinite;
+}
+.coluna-loader[data-invertida="true"] {
+  animation-direction: reverse;
+}
+
+/* ── Utilidades ───────────────────────────────────────────────────────────*/
+.scrim {
+  background: linear-gradient(0deg, rgb(37 7 1 / 0.85), transparent 62%);
+}
+
+/* Sobre fundo claro o fotograma flutua sem contorno — no escuro ele se fundia
+   à página e dispensava moldura. */
 .moldura {
   border: 1px solid var(--color-fio);
-  border-radius: var(--radius-card);
-  overflow: hidden;
-  background-color: var(--color-fio);
 }
 
-/* Scrim para título legível sobre o fotograma. Continua escuro: a imagem é
-   escura, não o fundo da página. */
-.scrim {
-  background: linear-gradient(0deg, rgb(0 0 0 / 0.72), transparent 62%);
+@keyframes cintila {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
 }
-
 .skeleton {
   background: linear-gradient(
     90deg,
     var(--color-fio) 25%,
-    var(--color-papel) 50%,
+    rgb(83 26 15 / 0.06) 50%,
     var(--color-fio) 75%
   );
   background-size: 200% 100%;
-  animation: shimmer 1.6s linear infinite;
+  animation: cintila 1.6s linear infinite;
 }
 
 ::-webkit-scrollbar {
@@ -106,15 +147,11 @@ body {
   background: var(--color-papel);
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-fio);
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-apoio);
+  background: var(--color-fio-forte);
 }
 
-/* O gesto da tira depende de movimento e de trailer em autoplay. Quem pediu
-   menos movimento recebe o layout parado e o fotograma estático — não uma
-   versão quebrada. */
+/* Quem pediu menos movimento recebe o layout parado e o fotograma estático —
+   não uma versão quebrada. A coluna ainda abre, só que sem animar. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -123,5 +160,8 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+  .grao {
+    display: none;
   }
 }

@@ -77,11 +77,18 @@ export function sanitizeAuthoredText(
  * O resultado é gravado em `search_cache.query_norm` para poder ser auditado.
  */
 export function normalizeQuery(raw: string): string {
-  return raw
-    .normalize("NFC")
-    .toLowerCase()
-    .replace(INVISIVEL, "")
-    .replace(/\s+/g, " ")
-    .replace(/[.,;:!?]+$/, "")
-    .trim();
+  return (
+    raw
+      .normalize("NFC")
+      .toLowerCase()
+      .replace(INVISIVEL, "")
+      .replace(/\s+/g, " ")
+      // O `trim` vem ANTES de tirar a pontuação, e a ordem não é detalhe: com
+      // ela invertida, `$` não casa em "anos 90! " porque a string ainda
+      // termina em espaço, e "anos 90!" e "anos 90! " viram hashes
+      // diferentes. O cache erraria em silêncio. Pego por teste.
+      .trim()
+      .replace(/[.,;:!?]+$/, "")
+      .trim()
+  );
 }
