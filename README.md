@@ -154,13 +154,22 @@ psql "$DATABASE_URL" -f db/schema.sql
 |---|---|
 | Contrato (`src/lib/types.ts`) | pronto |
 | BFF, rate limit, sanitização | pronto |
-| Tokens de design, tipografia | pronto |
+| Testes do `sanitize` (`npm test`) | 10 passando |
+| Identidade visual e tipografia | pronto |
+| Tira de filme, carregamento, grão, cursor | pronto |
+| Interface rodando com dados falsos | pronto |
 | Schema do Postgres (`db/schema.sql`) | escrito, **não aplicado** |
 | Prompt e schema do agente ([docs/agente/](docs/agente/)) | escritos, **não aplicados** |
 | Contas TMDB e OMDB | **não criadas** |
 | Credenciais no n8n | **não criadas** |
 | Workflow do n8n | **não construído** |
-| Tira de colunas, ficha do filme | pendente |
+| Ficha do filme, cache, `/estatisticas` | pendente |
+
+Para ver a interface funcionando sem depender do n8n:
+
+```bash
+NEXT_PUBLIC_FILMPRO_MOCK=1 npm run dev
+```
 
 Ver [docs/SETUP.md](docs/SETUP.md) para os passos, na ordem.
 
