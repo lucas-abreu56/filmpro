@@ -189,12 +189,16 @@ OMDB → Postgres → tela. Ainda **não está publicado**.
 | Workflow no n8n | 24 nós, publicado e ativo |
 | Banco | 3 tabelas + 3 views, com 57 filmes gravados |
 | Trailer | presente em 57 dos 57 filmes |
-| Acerto de cache | 75–399 ms, média **151 ms** |
-| Busca inédita | 6,1–73,8 s, média **33,4 s** |
+| Acerto de cache | **0,5–2,5 s** de ponta a ponta (151 ms dentro do workflow) |
+| Busca inédita | 6,1–73,8 s, média **33,4 s**, medida dentro do workflow |
 | Interface | tela inicial e resultados prontos |
 | Ficha do filme, `/estatisticas` | pendentes |
 
-As latências saem da telemetria gravada no próprio banco, não de estimativa.
+As latências vêm de medição, não de estimativa — mas **de duas fronteiras
+diferentes**, e vale saber qual é qual. A telemetria gravada no banco cronometra
+o que acontece *dentro* do workflow. O tempo que o visitante sente inclui ainda a
+rede até o n8n e o salto pelo BFF: num acerto de cache medido do cliente, 0,5 a
+2,5 s.
 
 **O risco aberto é a busca inédita.** O enriquecimento pelas APIs custa 2,7 s
 fixos — dez buscas no TMDB somam 536 ms. Toda a variação restante é o tempo de
@@ -203,8 +207,9 @@ Com o timeout do BFF em 45 s, a busca inédita *média* já consome três quarto
 orçamento.
 
 Isso não se resolve com polling assíncrono — polling move a espera, não a
-encurta. O que resolve é o cache: um acerto responde em 151 ms, e as quatro
-sugestões da tela inicial já ficam quentes com `npm run aquecer`. Para a cauda
+encurta. O que resolve é o cache: um acerto volta em segundos em vez de dezenas
+deles, e as quatro sugestões da tela inicial já ficam quentes com
+`npm run aquecer`. Para a cauda
 que ainda estoura existe um 504 em português — e a decisão de encurtar a saída do
 modelo ou tornar a espera assíncrona continua em aberto, honestamente em aberto.
 
