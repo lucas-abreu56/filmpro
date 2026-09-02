@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS movies (
     -- attemptToConvertTypes. jsonb tira essa classe de bug e fica consistente
     -- com cast_members e providers, que são jsonb de qualquer jeito.
     genres            jsonb        NOT NULL DEFAULT '[]',  -- ["Terror", "Suspense"]
-    keywords          jsonb        NOT NULL DEFAULT '[]',
+    keywords          jsonb        NOT NULL DEFAULT '[]',  -- de append_to_response=keywords
     original_language char(2),
     spoken_languages  jsonb        NOT NULL DEFAULT '[]',  -- selo "🔊 Inglês"
     age_rating        text,                    -- certificação BR: L, 10, 12, 14, 16, 18
@@ -55,9 +55,12 @@ CREATE TABLE IF NOT EXISTS movies (
     cast_members      jsonb        NOT NULL DEFAULT '[]',  -- [{name, character, profilePath}]
     crew_members      jsonb        NOT NULL DEFAULT '[]',  -- [{name, role, profilePath}]
     collection_name   text,                    -- "parte da coleção X", se franquia
-    -- Só os tmdb_id dos semelhantes. Os dados de cada um vêm desta mesma
-    -- tabela quando já estiverem cacheados — não duplica catálogo.
-    similar_ids       jsonb        NOT NULL DEFAULT '[]',
+    -- Objetos completos: [{tmdb_id, title, year, poster_path, backdrop_path}].
+    -- A ideia original era guardar só os ids e buscar os dados nesta mesma
+    -- tabela, mas os semelhantes quase nunca estão cacheados — num acerto de
+    -- cache a fileira viria vazia. Chamava-se `similar_ids`; `similar` sozinho
+    -- não serve, é palavra reservada do Postgres (SIMILAR TO).
+    similar_movies    jsonb        NOT NULL DEFAULT '[]',
     providers         jsonb        NOT NULL DEFAULT '[]',  -- watch/providers da região BR
     -- Chave do YouTube do trailer oficial, de /videos via append_to_response.
     -- Só a chave: a URL de embed e a de thumbnail se montam a partir dela.
@@ -90,6 +93,9 @@ CREATE TABLE IF NOT EXISTS search_cache (
     prompt_version smallint     NOT NULL,
     picks          jsonb        NOT NULL,
     not_found      jsonb        NOT NULL DEFAULT '[]',
+    -- Texto autoral do agente. Sem esta coluna, um acerto de cache perderia o
+    -- nome da coleção — que é metade da curadoria que aparece na tela.
+    collection_title text,
     model_used     text,                       -- 'gemini' | 'groq'
     created_at     timestamptz  NOT NULL DEFAULT now(),
     hit_count      integer      NOT NULL DEFAULT 0,

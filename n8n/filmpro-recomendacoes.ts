@@ -1,8 +1,16 @@
 /**
  * FilmPro — Recomendações · Fase 1 (sem Postgres)
  *
- * Fonte de verdade do workflow. Editar aqui e publicar via MCP; editar pela
- * interface do n8n faz este arquivo virar mentira.
+ * ⚠ ESTE ARQUIVO ESTÁ ATRASADO EM RELAÇÃO AO QUE ESTÁ PUBLICADO (02/09/2026).
+ *
+ * Ele descreve a Fase 1. O cache de duas camadas, a telemetria e o ramo de
+ * acerto/erro foram construídos depois, direto por operações MCP, e ainda não
+ * foram trazidos para cá. Enquanto isso não acontecer, a definição real é a
+ * versão publicada no n8n (workflow `gwKwNLFM2ztGuB8U`), preservada também no
+ * backup diário em `lucas-abreu56/n8n`.
+ *
+ * Dizer isto em voz alta é o ponto: um arquivo que se anuncia como fonte de
+ * verdade e não é vale menos que arquivo nenhum.
  *
  * O princípio do projeto está desenhado no fluxo: o agente escreve quatro
  * campos por filme (title, originalTitle, year, reason) mais o nome da
