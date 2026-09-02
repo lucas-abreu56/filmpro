@@ -15,7 +15,14 @@ Este arquivo existe para ser revisável, não para ser backup.
 entra no hash do cache; sem incrementar, o cache segue servindo respostas
 geradas pelo prompt antigo.
 
-`prompt_version` atual: **1**
+`prompt_version` atual: **2**
+
+> **02/09/2026 — v2.** O prompt encolheu ~45%. O tier gratuito do Groq dá
+> 8.000 tokens por minuto e cada chamada pedia ~3.300; prompt menor é mais
+> requisição por minuto. **Nenhuma regra saiu — saiu repetição.** O texto
+> publicado vive em [`n8n/filmpro-recomendacoes.ts`](../../n8n/filmpro-recomendacoes.ts),
+> em `SYSTEM_MESSAGE`; a versão abaixo é a v1, mantida como registro do que
+> foi cortado.
 
 ---
 
