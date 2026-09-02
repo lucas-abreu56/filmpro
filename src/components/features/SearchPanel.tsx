@@ -5,15 +5,9 @@ import { useRef, useState } from "react";
 
 import FilmStrip from "@/components/features/FilmStrip";
 import Loader from "@/components/features/Loader";
+import { EXEMPLOS } from "@/lib/exemplos";
 import { RESPOSTA_FALSA } from "@/lib/mock";
 import { LIMITS, type RecommendationsResponse } from "@/lib/types";
-
-const EXEMPLOS = [
-  "Suspense psicológico dos anos 90",
-  "Ficção científica que discute o que é ser humano",
-  "Comédia romântica sem clichê",
-  "Animação que funciona para adulto",
-];
 
 /** Sem workflow no n8n, `NEXT_PUBLIC_FILMPRO_MOCK=1` faz a interface rodar com
  *  dados falsos. Não afeta produção: a variável não existe lá. */
@@ -162,8 +156,13 @@ export default function SearchPanel() {
             <p className="text-apoio mt-3 text-xs tabular-nums">
               {estado.dados.movies.length} filmes · {estado.ms} ms
               {estado.dados.cached && " · do cache"}
-              {estado.dados.notFound.length > 0 &&
-                ` · ${estado.dados.notFound.length} sugestão descartada por não constar no TMDB`}
+              {/* Contar a verdade é o ponto deste texto — então ele precisa
+                  concordar em número. "2 sugestão descartada" desmente a
+                  própria frase que está tentando ser honesta. */}
+              {estado.dados.notFound.length === 1 &&
+                " · 1 sugestão descartada por não constar no TMDB"}
+              {estado.dados.notFound.length > 1 &&
+                ` · ${estado.dados.notFound.length} sugestões descartadas por não constarem no TMDB`}
             </p>
           </header>
 

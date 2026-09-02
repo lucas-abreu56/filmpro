@@ -98,9 +98,28 @@ export async function POST(request: Request) {
 
     if (!response.ok) {
       console.error(`n8n respondeu ${response.status} (requestId ${requestId})`);
+
+      // O workflow devolve 503 com `{error}` quando o modelo principal e a
+      // reserva falham juntos — cota estourada, provedor fora. Repassar essa
+      // frase importa: ela diz que é indisponibilidade momentânea e que vale
+      // tentar de novo, enquanto a genérica sugere defeito e não sugere ação.
+      //
+      // Mesmo vindo do nosso workflow, o texto passa pela validação de texto
+      // autoral antes de ser renderizado. É a mesma regra do `reason`: nada
+      // que vá para a tela escapa dela só por vir de dentro de casa.
+      const doN8n = await response
+        .json()
+        .then((corpo: unknown) => (corpo as { error?: unknown })?.error)
+        .catch(() => null);
+
+      const mensagem = sanitizeAuthoredText(doN8n, {
+        maxLength: 160,
+        fallback: "O serviço de recomendação falhou. Tente de novo.",
+      });
+
       return NextResponse.json(
-        { error: "O serviço de recomendação falhou. Tente de novo." },
-        { status: 502 },
+        { error: mensagem },
+        { status: response.status === 503 ? 503 : 502 },
       );
     }
 

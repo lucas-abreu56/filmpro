@@ -1,0 +1,38 @@
+
+{
+  "type": "object",
+  "properties": {
+    "collectionTitle": {
+      "type": "string", "minLength": 3, "maxLength": 60,
+      "description": "Nome curto e evocativo para a colecao que voce acabou de montar, em portugues. Como um curador batizaria uma mostra. Sem aspas, sem dois-pontos, sem a palavra colecao."
+    },
+    "movies": {
+      "type": "array", "minItems": 8, "maxItems": 12,
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string", "minLength": 1, "maxLength": 120,
+            "description": "Titulo em portugues brasileiro, se o filme tiver um. Caso contrario, o original."
+          },
+          "originalTitle": {
+            "type": "string", "minLength": 1, "maxLength": 120,
+            "description": "Titulo no idioma original, exatamente como registrado. E por ele que o filme sera localizado na base."
+          },
+          "year": {
+            "type": "integer", "minimum": 1890, "maximum": 2030,
+            "description": "Ano de lancamento original, quatro digitos. Desambigua refilmagem e homonimo."
+          },
+          "reason": {
+            "type": "string", "minLength": 20, "maxLength": 220,
+            "description": "Por que ESTE filme atende ao que a pessoa pediu. Portugues brasileiro, texto corrido, sem markdown, sem links."
+          }
+        },
+        "required": ["title", "originalTitle", "year", "reason"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["collectionTitle", "movies"],
+  "additionalProperties": false
+}

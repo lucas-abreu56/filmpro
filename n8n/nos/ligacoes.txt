@@ -1,0 +1,24 @@
+Cache L1 -> Tem cache?
+Cache L2 -> Montar resposta
+Curador[0] -> Enfileirar titulos
+Curador[1] -> Responder erro
+Enfileirar titulos -> TMDB busca
+Escolher correspondencia -> TMDB detalhes
+Formato da resposta (ai_outputParser) -> Curador
+Gemini (ai_languageModel) -> Curador
+Gemini (ai_languageModel) -> Formato da resposta
+Gravar L1 -> Telemetria
+Gravar L2 -> Montar resposta
+Groq (reserva) (ai_languageModel) -> Curador
+Hash -> Cache L1
+Montar fatos -> Gravar L2
+Montar resposta -> Responder
+OMDB -> Montar fatos
+Preparar registro -> Gravar L1
+Responder -> Preparar registro
+TMDB busca -> Escolher correspondencia
+TMDB detalhes -> OMDB
+Tem cache?[0] -> Cache L2
+Tem cache?[1] -> Curador
+Validar entrada -> Hash
+Webhook -> Validar entrada

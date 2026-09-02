@@ -168,7 +168,9 @@ psql "$DATABASE_URL" -f db/schema.sql
 | Credenciais TMDB e OMDB no n8n | criadas e **verificadas** |
 | Credencial Postgres | **a decidir** |
 | Workflow do n8n ([n8n/](n8n/)) | **rodando de ponta a ponta** |
-| Latência | medida: 15 s típico, 51 s no pior caso |
+| Cache de duas camadas e telemetria | **no ar** — acerto em ~250 ms |
+| Banco (`db/schema.sql`) | aplicado, recebendo dados |
+| Latência | acerto ~250 ms · busca nova 6–77 s |
 | Ficha do filme, cache, `/estatisticas` | pendente |
 
 Para ver a interface funcionando sem depender do n8n:
@@ -179,13 +181,17 @@ NEXT_PUBLIC_FILMPRO_MOCK=1 npm run dev
 
 Ver [docs/SETUP.md](docs/SETUP.md) para os passos, na ordem.
 
-A latência foi medida em 01/09/2026: **15,1 s numa execução e 51,2 s em
-outra**, cinco minutos depois. O enriquecimento responde por 2,7 s fixos — dez
-buscas no TMDB somam 536 ms. Toda a variação é o tempo de resposta do LLM.
+A latência foi medida. O enriquecimento custa **2,7 s fixos** — dez buscas no
+TMDB somam 536 ms. Toda a variação é o LLM, e ela é grande: entre 6 e **77
+segundos** na mesma consulta em dias diferentes.
 
-Isso descarta o polling assíncrono: ele moveria a espera, não a reduziria. Mas
-deixa os 45 s do timeout apertados na cauda, e a decisão pendente é trocar o
-modelo principal para o Groq.
+Isso descarta o polling assíncrono, que moveria a espera em vez de reduzi-la.
+O que resolve de verdade é o cache: um acerto responde em **~250 ms**, e as
+quatro sugestões da tela inicial já ficam quentes (`npm run aquecer`).
+
+Sobra a cauda para consulta nova, que pode passar dos 45 s do timeout do BFF.
+Quem paga é o primeiro visitante de cada busca inédita — e num portfólio esse
+é justamente quem importa. É o risco aberto antes do deploy.
 
 ---
 
