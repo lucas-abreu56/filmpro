@@ -261,6 +261,83 @@ interface omite o selo em vez de mostrar zero.
 
 ---
 
+
+---
+
+## 8. Deploy na Vercel
+
+O site está em <https://filmpro.lucasschwingel.com>. Projeto `filmpro` na Vercel,
+plano Hobby, uma região só.
+
+### As duas variáveis de ambiente
+
+| | |
+|---|---|
+| `N8N_API_KEY` | **Obrigatória.** A mesma string da credencial *FilmPro Webhook* no n8n. Sem ela o BFF devolve 500 de propósito, em vez de chamar o webhook sem autenticação. |
+| `N8N_FILMPRO_WEBHOOK` | A URL de produção do webhook. Tem fallback no código, mas o fallback usa `??`, que só cobre ausente — uma string **vazia** passa e quebra o `fetch`. Preencha, ou remova a variável; nunca deixe presente e vazia. |
+
+As duas em Production e Preview.
+
+### A região da função: São Paulo, e por quê
+
+Fica em Settings → Functions → Function Region, e **exige um deploy novo para
+valer** — salvar não basta. Está em `gru1` (São Paulo), não no padrão `iad1`
+(Washington).
+
+O motivo não é a proximidade do usuário, é a do dado. O conteúdo estático já sai
+da borda mais perto de quem acessa, independente disso; o que a região decide é
+onde o **código** roda, e a lentidão dele vem das idas e vindas até o n8n, que
+está em Campinas. Medido em 02/09/2026: a resposta em cache caiu de ~870 ms para
+**~490 ms** só com essa troca.
+
+A regra que fica: **a região segue os dados, não o usuário.** Se o n8n um dia
+mudar de país, essa escolha inverte de sinal.
+
+> A região vive só no painel. Se o projeto for recriado na Vercel, ela volta ao
+> padrão `iad1` e ninguém vai lembrar. Para versionar, use
+> `export const preferredRegion = "gru1"` na rota, ou um `vercel.json`.
+
+### Cloudflare na frente, e a ordem que evita erro
+
+O DNS é Cloudflare. O registro `filmpro` é um CNAME para a Vercel, **proxiado**
+(nuvem laranja), com SSL/TLS do domínio em **Full (strict)**.
+
+O proxy não é enfeite. Sem ele, o site não abria em algumas redes — a da
+faculdade, e às vezes 5G. Redes institucionais filtram faixas de hospedagem, e os
+IPs do Cloudflare são impraticáveis de bloquear sem quebrar metade da web.
+
+**A ordem importa, e errar custa uma tarde.** Deixe o registro em *DNS only* até
+a Vercel emitir o certificado dela; só então ligue o proxy. Com Full (strict) e o
+proxy ligado antes da hora, o Cloudflare não consegue validar a origem e a
+resposta vira **erro 526** — que parece problema de DNS, e não é.
+
+Ficam dois certificados na corrente: o do Cloudflare para o visitante, e o da
+Vercel no trecho de trás, que o Full (strict) confere. Os dois renovam sozinhos.
+
+Duas coisas a não fazer: **nenhuma regra de "Cache Everything"** para este host —
+o padrão do Cloudflare só guarda estático, e uma regra agressiva serviria a
+página de resultados de uma pessoa para outra. E, se um dia o abuso incomodar,
+**rate limiting na borda do Cloudflare** é o que resolve de verdade a ressalva do
+limitador em memória, sem Redis e sem mudar código.
+
+### O teto de tempo
+
+O plano Hobby concede **60 s** por execução, e o código pede isso explicitamente
+com `export const maxDuration = 60`. O `AbortSignal.timeout` do BFF dispara
+antes, aos 45 s, para que quem devolve 504 sejamos nós, com mensagem em
+português, em vez da página de erro genérica da plataforma.
+
+Medido em produção em 02/09/2026: uma busca inédita levou 20 s. Isso prova que
+20 s cabem — **não descobre o teto**, que veio do painel, não de medição.
+
+### O que fica no repositório
+
+Só o mínimo, e ignorado pelo git: `.vercel/project.json` (o vínculo — sem ele a
+CLI não sabe qual projeto é este diretório) e `.env.local` (o Next lê variáveis
+da raiz do projeto). Nada mais da Vercel precisa morar aqui.
+
+---
+
 ```bash
 curl -X POST "https://<seu-n8n>/webhook-test/filmpro/recommendations" \
   -H "Content-Type: application/json" \

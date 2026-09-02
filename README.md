@@ -6,6 +6,8 @@ duração, elenco, trailer, onde assistir — vem do TMDB.
 
 Essa divisão é o projeto inteiro: **o modelo cura, a API informa.**
 
+**No ar em [filmpro.lucasschwingel.com](https://filmpro.lucasschwingel.com).**
+
 ---
 
 ## Por que ele existe
@@ -181,30 +183,36 @@ npm run aquecer # deixa quentes as 4 sugestões da tela inicial
 
 ## Onde está hoje
 
-**Funciona de ponta a ponta, rodando localmente.** Browser → BFF → n8n → TMDB e
-OMDB → Postgres → tela. Ainda **não está publicado**.
+**No ar, funcionando de ponta a ponta:** navegador → BFF → n8n → TMDB e OMDB →
+Postgres → tela. Publicado na Vercel, com a função em São Paulo e o Cloudflare na
+frente. O porquê de cada uma dessas escolhas está em
+[docs/SETUP.md](docs/SETUP.md).
 
 | | |
 |---|---|
 | Workflow no n8n | 24 nós, publicado e ativo |
-| Banco | 3 tabelas + 3 views, com 57 filmes gravados |
-| Trailer | presente em 57 dos 57 filmes |
-| Acerto de cache | **0,5–2,5 s** de ponta a ponta (151 ms dentro do workflow) |
-| Busca inédita | 6,1–73,8 s, média **33,4 s**, medida dentro do workflow |
+| Banco | 3 tabelas + 3 views, 68 filmes gravados |
+| Trailer | 57 de 57 na última conferência |
+| Acerto de cache | **~490 ms** em produção (151 ms dentro do workflow) |
+| Busca inédita | **20 s** em produção, amostra de uma; 6,1–73,8 s no workflow |
 | Interface | tela inicial e resultados prontos |
 | Ficha do filme, `/estatisticas` | pendentes |
 
 As latências vêm de medição, não de estimativa — mas **de duas fronteiras
 diferentes**, e vale saber qual é qual. A telemetria gravada no banco cronometra
-o que acontece *dentro* do workflow. O tempo que o visitante sente inclui ainda a
-rede até o n8n e o salto pelo BFF: num acerto de cache medido do cliente, 0,5 a
-2,5 s.
+o que acontece *dentro* do workflow; o tempo que o visitante sente inclui a rede
+até o n8n e o salto pelo BFF.
+
+A fronteira de fora melhorou ao mover a função da Vercel para São Paulo, ao lado
+do n8n: o acerto de cache caiu de ~870 ms para ~490 ms. A região segue o dado,
+não o usuário — o estático já sai da borda mais perto de quem acessa.
 
 **O risco aberto é a busca inédita.** O enriquecimento pelas APIs custa 2,7 s
 fixos — dez buscas no TMDB somam 536 ms. Toda a variação restante é o tempo de
 resposta do LLM, e ela é enorme: entre 6 e 74 segundos para consultas parecidas.
-Com o timeout do BFF em 45 s, a busca inédita *média* já consome três quartos do
-orçamento.
+O plano concede 60 s por execução e o BFF aborta aos 45 s, para que o 504 seja
+nosso e em português. A média medida no workflow, 33,4 s, já come três quartos
+desse orçamento.
 
 Isso não se resolve com polling assíncrono — polling move a espera, não a
 encurta. O que resolve é o cache: um acerto volta em segundos em vez de dezenas
