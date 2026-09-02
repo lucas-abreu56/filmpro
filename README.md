@@ -1,27 +1,30 @@
 # FilmPro
 
-Recomendação de filmes por agente de IA. Você descreve o que quer sentir; um agente
-cura a lista e escreve o motivo de cada escolha. **Pôster, nota, duração,
-classificação e onde assistir vêm do TMDB — nunca do modelo.**
+Você descreve o que quer sentir. Um agente de IA escolhe os filmes e escreve, em
+uma frase, por que cada um responde ao seu pedido. Todo o resto — pôster, nota,
+duração, elenco, trailer, onde assistir — vem do TMDB.
 
-> Estado: em construção. O app Next.js compila e a tela da Fase 1 existe; o
-> workflow do n8n ainda não. Ver [Situação](#situação).
+Essa divisão é o projeto inteiro: **o modelo cura, a API informa.**
 
 ---
 
-## O problema que este projeto resolve
+## Por que ele existe
 
-Este é um FilmPro próprio, construído a partir de um projeto de curso da Asimov
-Academy. O projeto original pedia ao LLM que preenchesse um schema com
-`imdb_rating`, `duration_minutes`, `poster_url` e `streaming_platforms` — dados
-que um modelo de linguagem não tem como saber. A ferramenta de consulta ao OMDB
-buscava um título exato por chamada e nada injetava o resultado dela na resposta
-final, então `poster_url` voltava `null` e a interface caía num placeholder.
+Isto começou como um projeto de curso da Asimov Academy, e o projeto original
+tinha um defeito que vale mais que o exercício.
 
-A correção não é injetar o pôster depois. É **tirar esses campos do schema do
-modelo**: campo que não existe não pode ser alucinado.
+Ele pedia ao LLM que preenchesse um schema com `imdb_rating`,
+`duration_minutes`, `poster_url` e `streaming_platforms`. São coisas que um
+modelo de linguagem não tem como saber: notas mudam, catálogos de streaming
+mudam por país e por semana, e uma URL de imagem ou existe no servidor ou não
+existe. O modelo preenchia mesmo assim, porque é o que modelo de linguagem faz.
+Havia uma ferramenta de consulta ao OMDB, mas ela buscava um título por chamada
+e o resultado não voltava para a resposta final — então `poster_url` chegava
+`null` e a interface caía num placeholder cinza.
 
-### LLM cura, API informa
+A correção intuitiva seria buscar o pôster depois e injetar. A correção real é
+outra: **tirar esses campos do schema do modelo.** Campo que não existe não pode
+ser inventado.
 
 O agente devolve quatro campos por filme, e o schema é fechado
 (`additionalProperties: false`):
@@ -30,38 +33,55 @@ O agente devolve quatro campos por filme, e o schema é fechado
 { "title": "...", "originalTitle": "...", "year": 1999, "reason": "..." }
 ```
 
-Todo o resto é buscado no TMDB por nós determinísticos. Na resposta final,
-**dois campos são autorais** — `reason` e o nome da coleção, ambos curadoria — e
-zero fatos vêm do modelo. Cada card carrega o `tmdbUrl` como prova de que o
-filme existe.
+Título, título original e ano são chaves de busca — servem para achar o filme no
+TMDB, e são conferidos lá. `reason` é a única coisa que o modelo realmente
+produz, e é justamente a que nenhuma API tem.
 
-Consequência: se o agente sugerir um filme que o TMDB não confirma, ele não vira
-card. Entra em `notFound`, e a interface diz quantas sugestões foram descartadas
-em vez de esconder.
+Na resposta final, dois campos são autorais — o `reason` e o nome que o agente dá
+ao conjunto — e **zero fatos vêm do modelo**. Cada card carrega o link do TMDB
+como prova de que o filme existe.
+
+A consequência aparece na tela: se o agente sugere um filme que o TMDB não
+confirma, ele não vira card. Entra em `notFound`, e a interface diz quantas
+sugestões foram descartadas em vez de fingir que a lista veio inteira.
 
 ---
 
-## Arquitetura
+## Para que serve
+
+É um portfólio, e é uma opinião sobre como usar LLM em produto: dar ao modelo
+exatamente a tarefa em que ele é insubstituível — entender "quero algo que doa
+mas termine bem" e justificar uma escolha — e não deixá-lo perto de nenhum dado
+verificável.
+
+Também é uma ferramenta que funciona. Recomendação por catálogo e por gênero é
+busca; recomendação por *estado de espírito* é o que ninguém faz bem, e é onde um
+modelo de linguagem ganha.
+
+---
+
+## Como funciona
 
 ```
 Browser
   │  POST /api/recommendations { preferences, limit }
   ▼
-Next.js route handler (BFF)      ← N8N_API_KEY; rate limit; 10–500 chars
-  │                                 maxDuration 60s · AbortSignal.timeout(45s)
+Next.js route handler (BFF)      ← autentica, limita a 5/min por IP,
+  │                                 valida 10–500 caracteres
   │  POST webhook (header x-api-key)
   ▼
-n8n "FilmPro — Recomendações"
-  ├─ normaliza → SHA256(query | limit | prompt_version)
-  ├─ cache L1 acertou? ── sim ──▶ carrega fatos do L2 ──▶ responde
-  ├─ AI Agent (Gemini, fallback nativo para Groq) + Structured Output Parser
-  ├─ Split Out → TMDB search → details (append_to_response)
-  └─ responde, e só então grava cache e telemetria
+n8n — workflow "FilmPro — Recomendações" (24 nós)
+  ├─ normaliza o texto → SHA256(consulta | limite | versão do prompt)
+  ├─ cache acertou? ── sim ──▶ carrega os fatos ──▶ responde
+  ├─ agente (Gemini, com Groq na reserva) + Structured Output Parser
+  ├─ para cada título: busca no TMDB → detalhes → OMDB
+  └─ responde primeiro; só então grava cache e telemetria
 ```
 
-O Next nunca fala com o TMDB nem com o Postgres. Um cofre só, no n8n.
+O Next nunca fala com o TMDB, com o OMDB nem com o Postgres. Todas as chaves
+vivem num lugar só, no n8n, e o navegador nunca chega perto delas.
 
-### Cache em duas camadas
+### O cache tem duas camadas, e elas guardam coisas diferentes
 
 | | Guarda | Chave | Validade |
 |---|---|---|---|
@@ -69,64 +89,64 @@ O Next nunca fala com o TMDB nem com o Postgres. Um cofre só, no n8n.
 | **L2** `movies` | os fatos, do TMDB | `tmdb_id` | 90 dias |
 
 O L1 **não** guarda a resposta pronta. Ela é sempre remontada juntando as duas
-camadas, porque nota e provedor de streaming mudam — servir "está na Netflix" de
-três meses atrás é um bug visível.
+camadas — porque nota e disponibilidade de streaming mudam, e servir "está na
+Netflix" de três meses atrás é um erro que o usuário vê.
 
-TTL de 90 dias no L2 é deliberado: pôster, sinopse, elenco e duração não mudam
-nunca. Em troca, a interface mostra *"disponibilidade verificada em {data}"*.
+Os 90 dias do L2 são deliberados: pôster, sinopse, elenco e duração não mudam. Em
+troca, a interface mostra *"disponibilidade verificada em {data}"* em vez de
+afirmar o presente.
 
-Invalidação principal: `prompt_version` entra no material hasheado. Editou o
-system prompt, todo hash muda e o cache inteiro invalida sozinho — sem `DELETE`,
-sem migração.
+A invalidação é uma linha: `prompt_version` entra no material que vira hash.
+Editou o prompt do agente, todo hash muda e o cache inteiro se invalida sozinho —
+sem `DELETE`, sem migração.
 
 ---
 
 ## Segurança
 
-`preferences` é texto livre vindo da internet e vai para um LLM. A defesa
-principal **não é um parágrafo no prompt — é o schema**:
+`preferences` é texto livre vindo da internet e vai direto para um LLM. A defesa
+principal não é um parágrafo no prompt pedindo bom comportamento — **é o
+schema**:
 
 - Quatro campos, `additionalProperties: false`, `maxLength` no texto autoral e
   `maxItems` na lista. Injeção não cria campo novo nem resposta gigante.
 - **O agente não tem ferramentas e não tem segredo no contexto.** Não há ação
   para sequestrar nem nada para exfiltrar.
-- **O TMDB é um sumidouro de injeção.** Todo título passa por lá antes de virar
-  card; nem um agente totalmente dominado consegue exibir um filme inventado.
-- Sobra uma superfície: o texto autoral renderizado. Ele é validado em
+- **O TMDB funciona como sumidouro de injeção.** Todo título passa por lá antes
+  de virar card; nem um agente completamente dominado consegue exibir um filme
+  que não existe.
+- Sobra uma superfície: o texto autoral renderizado. Ele passa por
   [`src/lib/sanitize.ts`](src/lib/sanitize.ts) — link, tag HTML e link markdown
-  derrubam o campo inteiro para um texto neutro — **antes de gravar no cache** e
+  derrubam o campo inteiro para um texto neutro — **antes de ir para o cache** e
   de novo antes de renderizar.
-- `dangerouslySetInnerHTML` não é usado em lugar nenhum, e isso é regra.
+- `dangerouslySetInnerHTML` não aparece em lugar nenhum do código, e isso é
+  regra, não coincidência.
 
-### Limite de requisições
+O limite é de 5 requisições por minuto por IP, porque cada uma custa uma chamada
+de LLM mais até 16 chamadas ao TMDB.
 
-5 por minuto por IP, contra 10 do chat do convite-aniversario, porque cada
-requisição aqui custa uma chamada de LLM mais até 16 chamadas ao TMDB.
-
-> O contador vive na memória do módulo. Em serverless cada instância tem o seu,
-> e a plataforma sobe várias sob carga — instâncias recicladas zeram a contagem.
-> Isso atrapalha um script ingênuo, mas **não substitui** um armazenamento
-> compartilhado como Redis. A nota existe para que a promessa caiba no que o
-> código faz.
+> O contador vive na memória do módulo. Em serverless cada instância tem o seu, e
+> a plataforma sobe várias sob carga. Isso atrapalha um script ingênuo, mas **não
+> substitui** um armazenamento compartilhado como Redis. A ressalva existe para
+> que a promessa caiba no que o código faz.
 
 ---
 
 ## Design
 
-Papel creme `#FDF6E4`, tinta marrom-vinho `#531A0F`, um acento vermelho-sangue
-`#C52E2E` que aparece uma palavra por tela. **Nenhum cinza inventado** — os
-apoios saem da própria tinta com alpha. Display em Big Shoulders, caixa alta e
-condensada; Inter para o que se lê em linha.
+Papel creme `#FDF6E4`, tinta marrom-vinho `#531A0F`, e um vermelho-sangue
+`#C52E2E` que aparece uma palavra por tela. **Nenhum cinza inventado** — os tons
+de apoio saem da própria tinta com alpha.
 
-Claro não é o oposto de cinematográfico: é a diferença entre a estética de um
-serviço de streaming e a de crítica impressa, e a segunda serve melhor a um
+Claro não é o oposto de cinematográfico. É a diferença entre a estética de um
+serviço de streaming e a de crítica impressa — e a segunda serve melhor a um
 produto cujo diferencial é texto.
 
 O gesto do produto é a **tira de filme**: os resultados são fotogramas com
-perfuração, cinza em repouso; sob o cursor um deles dobra de largura, ganha cor
-e o trailer sobe. Cor é recompensa por atenção.
+perfuração, cinza em repouso; sob o cursor um deles dobra de largura, ganha cor e
+o trailer sobe. Cor é recompensa por atenção.
 
-Valores e procedência de cada decisão em
+A procedência de cada valor está em
 [docs/identidade-visual.md](docs/identidade-visual.md).
 
 ---
@@ -141,61 +161,61 @@ cp .env.example .env    # preencha N8N_API_KEY
 npm run dev
 ```
 
-Abra <http://localhost:3000>. Sem o workflow do n8n no ar, o formulário
-responde erro — é o esperado nesta fase.
-
-O schema do banco está em [`db/schema.sql`](db/schema.sql):
-
-```bash
-psql "$DATABASE_URL" -f db/schema.sql
-```
-
----
-
-## Situação
-
-| | |
-|---|---|
-| Contrato (`src/lib/types.ts`) | pronto |
-| BFF, rate limit, sanitização | pronto |
-| Testes do `sanitize` (`npm test`) | 10 passando |
-| Identidade visual e tipografia | pronto |
-| Tira de filme, carregamento, grão, cursor | pronto |
-| Interface rodando com dados falsos | pronto |
-| Schema do Postgres (`db/schema.sql`) | escrito, **não aplicado** |
-| Prompt e schema do agente ([docs/agente/](docs/agente/)) | escritos, **não aplicados** |
-| Contas TMDB e OMDB | criadas |
-| Credenciais TMDB e OMDB no n8n | criadas e **verificadas** |
-| Credencial Postgres | **a decidir** |
-| Workflow do n8n ([n8n/](n8n/)) | **rodando de ponta a ponta** |
-| Cache de duas camadas e telemetria | **no ar** — acerto em ~250 ms |
-| Banco (`db/schema.sql`) | aplicado, recebendo dados |
-| Latência | acerto ~250 ms · busca nova 6–77 s |
-| Ficha do filme, cache, `/estatisticas` | pendente |
-
-Para ver a interface funcionando sem depender do n8n:
+Para ver a interface sem depender do n8n:
 
 ```bash
 NEXT_PUBLIC_FILMPRO_MOCK=1 npm run dev
 ```
 
-Ver [docs/SETUP.md](docs/SETUP.md) para os passos, na ordem.
+O schema do banco está em [`db/schema.sql`](db/schema.sql) — 3 tabelas e 3 views.
+O passo a passo das contas e credenciais está em
+[docs/SETUP.md](docs/SETUP.md).
 
-A latência foi medida. O enriquecimento custa **2,7 s fixos** — dez buscas no
-TMDB somam 536 ms. Toda a variação é o LLM, e ela é grande: entre 6 e **77
-segundos** na mesma consulta em dias diferentes.
+```bash
+npm test        # 10 testes do sanitize e da normalização do cache
+npm run lint
+npm run aquecer # deixa quentes as 4 sugestões da tela inicial
+```
 
-Isso descarta o polling assíncrono, que moveria a espera em vez de reduzi-la.
-O que resolve de verdade é o cache: um acerto responde em **~250 ms**, e as
-quatro sugestões da tela inicial já ficam quentes (`npm run aquecer`).
+---
 
-Sobra a cauda para consulta nova, que pode passar dos 45 s do timeout do BFF.
-Quem paga é o primeiro visitante de cada busca inédita — e num portfólio esse
-é justamente quem importa. É o risco aberto antes do deploy.
+## Onde está hoje
+
+**Funciona de ponta a ponta, rodando localmente.** Browser → BFF → n8n → TMDB e
+OMDB → Postgres → tela. Ainda **não está publicado**.
+
+| | |
+|---|---|
+| Workflow no n8n | 24 nós, publicado e ativo |
+| Banco | 3 tabelas + 3 views, com 57 filmes gravados |
+| Trailer | presente em 57 dos 57 filmes |
+| Acerto de cache | 75–399 ms, média **151 ms** |
+| Busca inédita | 6,1–73,8 s, média **33,4 s** |
+| Interface | tela inicial e resultados prontos |
+| Ficha do filme, `/estatisticas` | pendentes |
+
+As latências saem da telemetria gravada no próprio banco, não de estimativa.
+
+**O risco aberto é a busca inédita.** O enriquecimento pelas APIs custa 2,7 s
+fixos — dez buscas no TMDB somam 536 ms. Toda a variação restante é o tempo de
+resposta do LLM, e ela é enorme: entre 6 e 74 segundos para consultas parecidas.
+Com o timeout do BFF em 45 s, a busca inédita *média* já consome três quartos do
+orçamento.
+
+Isso não se resolve com polling assíncrono — polling move a espera, não a
+encurta. O que resolve é o cache: um acerto responde em 151 ms, e as quatro
+sugestões da tela inicial já ficam quentes com `npm run aquecer`. Para a cauda
+que ainda estoura existe um 504 em português — e a decisão de encurtar a saída do
+modelo ou tornar a espera assíncrona continua em aberto, honestamente em aberto.
 
 ---
 
 ## Stack
 
-Next.js 16 · React 19 · Tailwind CSS 4 · n8n (Gemini com fallback Groq) ·
+Next.js 16 · React 19 · Tailwind CSS 4 · n8n (Gemini com reserva Groq) ·
 PostgreSQL · TMDB · OMDB
+
+A definição do workflow é **gerada** a partir do que está publicado no n8n, e
+fica em [n8n/](n8n/) — código de cada nó, SQL, prompt e mapa de conexões, tudo
+legível em diff. Existiu ali um espelho escrito à mão; ele divergiu do que estava
+no ar em um único dia e foi removido. Saída gerada não mente.

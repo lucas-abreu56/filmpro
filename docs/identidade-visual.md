@@ -22,8 +22,8 @@ IFFR, Screen Australia — e é clara, quente e editorial.
 
 ## As quatro referências concordam entre si
 
-Valores medidos, extraídos dos design systems em `docs/design-systems/` e em
-`referencia/python/`.
+Valores medidos sobre levantamentos dos sites de referência. Os arquivos desses
+levantamentos **não fazem parte deste repositório** — ver *Procedência*, no fim.
 
 | | Kirlian | Awwwocado 08 | Crying Glacier |
 |---|---|---|---|
@@ -149,8 +149,12 @@ Expansão em **260ms**, não nos 100ms do original — a doc da Pureza registra 
 
 ## Procedência
 
-Os arquivos em `docs/design-systems/` e as capturas em `referencia/python/` são
-de sites de terceiros. A doc da República Pureza diz explicitamente que o
-`#EF4123` e o logotipo são identidade da produtora, não token reutilizável —
-respeitado: nenhum matiz de marca alheia foi levado. O que foi levado é
-estrutura.
+Os valores acima vieram de levantamentos feitos sobre sites de terceiros —
+kirlian.io, MUBI e República Pureza. **Esses arquivos não são versionados
+aqui**: são material de marca alheia, e ficam só na máquina de quem levantou
+(`docs/design-systems/` e `referencia/python/`, ambos ignorados pelo git).
+
+A doc da República Pureza diz explicitamente que o `#EF4123` e o logotipo são
+identidade da produtora, não token reutilizável — respeitado: **nenhum matiz de
+marca alheia foi levado**. O que foi levado é estrutura, e a paleta do FilmPro é
+própria.

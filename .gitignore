@@ -36,6 +36,11 @@ yarn-error.log*
 # Alves e Otávio Cunha. Quando não servir mais para consulta, é só apagar.
 referencia/
 
+# Levantamentos do sistema visual de sites de terceiros (MUBI, República
+# Pureza). Servem de consulta local; material de marca alheia não vai para
+# repositório público. A procedência está em docs/identidade-visual.md.
+docs/design-systems/
+
 # Notas de handoff entre sessões. Estado operacional, não documentação do
 # projeto — o que é documentação vive em docs/ e é versionado.
 *.local.md

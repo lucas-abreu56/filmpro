@@ -54,8 +54,8 @@ O OMDB **só** aceita a chave por query string — não tem autenticação por h
 e por isso a chave viaja na URL de qualquer jeito. O `Query Auth` não muda o que
 trafega; muda **o que sai do n8n**.
 
-O backup diário para o GitHub (`lucas-abreu56/n8n`) exporta o JSON completo de
-todos os workflows. Os `parameters` de cada nó vão inteiros — inclusive uma URL
+O backup diário dos workflows para o GitHub exporta o JSON completo de todos
+eles. Os `parameters` de cada nó vão inteiros — inclusive uma URL
 com `?apikey=...` digitada à mão. **Credencial não vai:** o export leva só o id
 e o nome dela. Escrever a chave na URL é commitá-la todo dia; guardá-la na
 credencial não é.
@@ -81,16 +81,14 @@ O mesmo valor vai no `.env` do projeto como `N8N_API_KEY`.
 
 ### Postgres — reaproveitar ou criar
 
-Você já tem três credenciais Postgres no n8n (`Atendimento IA`,
-`Registro Vagas RP - pgAdmin`, `Convite Aniversario`). O schema do FilmPro vive
-num schema dedicado chamado `filmpro`, então pode dividir servidor com os outros
-projetos sem colidir. **Decida qual usar** — ou crie uma nova, se preferir
-isolar.
+Crie uma credencial Postgres apontando para o banco que vai hospedar o FilmPro,
+ou reaproveite uma que já exista. O projeto usa um **database dedicado**
+(`filmpro`, schema `public`), então dividir servidor com outros projetos não
+colide.
 
 ### Já existentes, nada a fazer
 
-Gemini (`Gemini N8N`), Groq (`Groq account`) e o webhook do Discord
-(`Notificações Workflows`, para o aviso de erro).
+As credenciais do Gemini e do Groq, e o webhook de notificação de erro.
 
 ---
 
@@ -107,7 +105,7 @@ Verificação — deve devolver 3 tabelas e 3 views:
 ```sql
 SELECT table_name, table_type
   FROM information_schema.tables
- WHERE table_schema = 'filmpro'
+ WHERE table_schema = 'public'
  ORDER BY table_type, table_name;
 ```
 
@@ -157,8 +155,15 @@ Cada passo só faz sentido depois do anterior.
 ## 6. O workflow, e a armadilha da credencial do webhook
 
 O workflow **FilmPro — Recomendações** (`gwKwNLFM2ztGuB8U`) já está publicado.
-A fonte de verdade dele é [`n8n/filmpro-recomendacoes.ts`](../n8n/filmpro-recomendacoes.ts)
-— editar por lá e republicar; editar pela interface faz o arquivo virar mentira.
+A fonte de verdade é o que está no n8n. A documentação em [`n8n/`](../n8n/) é
+**gerada** a partir dele:
+
+```bash
+node scripts/exportar-workflow.mjs n8n/workflow.json
+```
+
+Existiu ali um espelho escrito à mão, declarado fonte de verdade. Ele divergiu do
+publicado em um único dia e foi removido — saída gerada não mente.
 
 ```
 Webhook → Validar entrada → Curador (Gemini + parser) → Enfileirar titulos
@@ -196,13 +201,17 @@ arquitetura de chamadas; é o tempo de resposta do Gemini, que oscilou 4× entre
 duas execuções separadas por cinco minutos. Job com polling não resolveria
 nada disso — só mudaria onde a espera acontece.
 
-**Mas os 45 s do `AbortSignal.timeout` no BFF ficam apertados.** A mediana cabe
-com folga; a cauda não. Na `1660` a resposta chegou aos 51,2 s — o BFF teria
-abortado. Antes do deploy, uma destas:
+**Mas os 45 s do `AbortSignal.timeout` no BFF ficam apertados.** Na `1660` a
+resposta chegou aos 51,2 s — o BFF teria abortado.
 
-- Groq como modelo **principal** e Gemini na reserva. O Groq respondeu bem mais
-  rápido nos testes e a curadoria dele precisa ser comparada lado a lado.
-- Ou aceitar a cauda e devolver 504 em português, que já está implementado.
+O Groq chegou a ser promovido a principal, por ser cerca de 8× mais rápido, e foi
+rebaixado depois: ele falha o schema com frequência, e toda execução mostrava o
+`autoFix` do parser consertando a saída. Hoje o **Gemini é o principal e o Groq é
+a reserva**, via `needsFallback` no nó do agente.
+
+A cauda continua aberta. A telemetria gravada no banco em 02/09/2026 mede **33,4 s
+de média e 73,8 s de pior caso** para busca inédita — contra 45 s de timeout. O
+504 em português já está implementado para quando ela estoura.
 
 ### O modelo de rascunho e publicação — a pegadinha que custou uma rodada
 
