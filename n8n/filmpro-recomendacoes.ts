@@ -219,6 +219,28 @@ const gemini = languageModel({
   },
 });
 
+// Reserva. Medido em 01/09/2026, execução 1659: o Gemini devolveu
+// "503 Service Unavailable — this model is currently experiencing high demand"
+// depois de 11,4 s, e a execução inteira morreu. Modelo `-preview` é
+// justamente o que fica sem capacidade, e um recomendador que cai quando o
+// Google está cheio não é um recomendador.
+//
+// O v3.1 resolve isso nativamente: `needsFallback` mais um segundo modelo na
+// entrada ai_languageModel. Sem IF, sem agente duplicado, sem o prompt escrito
+// em dois lugares — que é como o workflow do convite-aniversario faz, no v1.6.
+const groq = languageModel({
+  type: '@n8n/n8n-nodes-langchain.lmChatGroq',
+  version: 1,
+  config: {
+    name: 'Groq (reserva)',
+    parameters: {
+      model: 'openai/gpt-oss-120b',
+      options: { temperature: 0.7, maxTokensToSample: 4096 },
+    },
+    credentials: { groqApi: { id: 'czpWnTUxULZCgAiI', name: 'Groq account' } },
+  },
+});
+
 const formato = outputParser({
   type: '@n8n/n8n-nodes-langchain.outputParserStructured',
   version: 1.3,
@@ -240,6 +262,9 @@ const curador = node({
         '<pedido_do_usuario>\n{{ $json.preferences }}\n</pedido_do_usuario>\n\nMonte {{ $json.pedir }} recomendações.',
       ),
       hasOutputParser: true,
+      // O primeiro modelo do array é o principal; o segundo só é acionado
+      // quando o primeiro falha.
+      needsFallback: true,
       options: {
         systemMessage: SYSTEM_MESSAGE,
         maxIterations: 3,
@@ -248,7 +273,7 @@ const curador = node({
         enableStreaming: false,
       },
     },
-    subnodes: { model: gemini, outputParser: formato },
+    subnodes: { model: [gemini, groq], outputParser: formato },
   },
 });
 
@@ -319,22 +344,53 @@ const escolher = node({
 // reassociar cada resposta ao pedido que a gerou.
 const pedidos = $('Enfileirar titulos').all();
 const respostas = $input.all();
+
+function normalizar(s) {
+  return String(s == null ? '' : s)
+    .normalize('NFD').replace(/[\\u0300-\\u036f]/g, '')
+    .toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+// Medido na execucao 1660 (01/09/2026). Para 'Cure' (1997) o TMDB devolveu
+// tres candidatos: 'The Cure' (1995), 'Say It, Fight It, Cure It' (1997, UM
+// voto, documentario) e 'キュア' (1997, 856 votos) — o filme do Kurosawa, que
+// era o pedido. Pegar o primeiro com o ano batendo escolhia o documentario.
+//
+// E comparar titulo exato NAO resolveria: o titulo original do filme certo
+// esta em japones. O que separa os dois e a popularidade. Dai a pontuacao:
+// ano e titulo entram, mas votos desempatam, e e o desempate que decide.
+function pontuar(r, pedido) {
+  const alvo = normalizar(pedido.originalTitle);
+  const ano = Number(String(r.release_date || '').slice(0, 4)) || null;
+  const distancia = (pedido.year && ano) ? Math.abs(ano - pedido.year) : 99;
+  const exato = normalizar(r.original_title) === alvo || normalizar(r.title) === alvo;
+
+  let nota = 0;
+  if (exato) nota += 60;
+  if (distancia === 0) nota += 40;
+  else if (distancia <= 1) nota += 20;
+  else if (distancia > 3) nota -= 40;
+  nota += Math.min(Number(r.popularity) || 0, 20) * 2;
+  nota += Math.min(Number(r.vote_count) || 0, 5000) / 250;
+  return { r: r, nota: nota, exato: exato, distancia: distancia };
+}
+
 const saida = [];
 for (let i = 0; i < pedidos.length; i++) {
   const pedido = pedidos[i].json;
   const corpo = (respostas[i] && respostas[i].json) || {};
   const resultados = Array.isArray(corpo.results) ? corpo.results : [];
   if (!resultados.length) continue;
-  // Conferir o ano derruba homonimo e refilmagem — o erro mais comum quando o
-  // modelo acerta o titulo mas erra o filme.
-  let escolhido = null;
-  if (pedido.year) {
-    escolhido = resultados.find(function (r) {
-      return String(r.release_date || '').slice(0, 4) === String(pedido.year);
-    }) || null;
-  }
-  if (!escolhido) escolhido = resultados[0];
-  saida.push({ json: Object.assign({}, pedido, { tmdbId: escolhido.id }) });
+
+  const melhor = resultados
+    .map(function (r) { return pontuar(r, pedido); })
+    .sort(function (a, b) { return b.nota - a.nota; })[0];
+
+  // Sem titulo exato E sem ano proximo, e outro filme. Buraco assumido e
+  // melhor que card errado — a interface conta quantos foram descartados.
+  if (!melhor.exato && melhor.distancia > 1) continue;
+
+  saida.push({ json: Object.assign({}, pedido, { tmdbId: melhor.r.id }) });
 }
 if (!saida.length) {
   throw new Error('Nenhum titulo do agente foi confirmado no TMDB.');
@@ -526,17 +582,21 @@ for (let i = 0; i < casados.length; i++) {
 // A ordem do curador e informacao: o primeiro e o que ele defenderia primeiro.
 // Os nos HTTP nao garantem ordem, entao ela e restaurada aqui.
 filmes.sort(function (a, b) { return a._rank - b._rank; });
-const entregues = filmes.slice(0, entrada.limit);
 
-// Sugestao que o TMDB nao confirmou nao vira card. A interface diz quantas
-// foram descartadas em vez de esconder o buraco.
+// notFound e so o que o TMDB NAO confirmou — calculado ANTES do corte.
+//
+// A versao anterior comparava contra a lista ja cortada, entao os excedentes
+// do limit+2 apareciam como "descartados por nao constar no TMDB". Na
+// execucao 1660 isso acusou 'Estrada Perdida' e 'As Duas Faces de um Crime',
+// que o TMDB tinha achado perfeitamente (ids 638 e 1592) — eram so a folga.
+// A interface estaria dizendo ao usuario uma coisa que nao aconteceu.
 const confirmados = {};
-entregues.forEach(function (f) { confirmados[f._rank] = true; });
+filmes.forEach(function (f) { confirmados[f._rank] = true; });
 const notFound = pedidos
   .filter(function (p) { return !confirmados[p.rank]; })
   .map(function (p) { return limpar(p.title, 120) || 'titulo invalido'; });
 
-const finais = entregues.map(function (f) {
+const finais = filmes.slice(0, entrada.limit).map(function (f) {
   const copia = Object.assign({}, f);
   delete copia._rank;
   return copia;

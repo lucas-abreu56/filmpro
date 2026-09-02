@@ -181,11 +181,39 @@ não basta criar. E confira de passagem se os três nós HTTP (`TMDB busca`,
 `TMDB detalhes`, `OMDB`) mostram a credencial certa: o MCP não devolve
 credencial de nó na leitura, então isso eu não consigo verificar daqui.
 
-### O que ainda não foi medido
+### A latência, medida em 01/09/2026
 
-A **latência**. É o número que decide se o fluxo precisa virar assíncrono com
-polling, e nenhuma execução real aconteceu ainda — executar pelo MCP pina os
-nós HTTP e mede simulação, não rede. Rode uma vez pela interface e anote.
+| Execução | Total | Agente | Enriquecimento |
+|---|---|---|---|
+| `1660` | **51,2 s** | ~48,3 s | 2,7 s |
+| `1663` | **15,1 s** | ~12,4 s | 2,7 s |
+
+**O enriquecimento custa 2,7 s e não varia.** Dez buscas no TMDB levaram 536 ms
+somadas — o nó HTTP processa os itens em lote. Toda a variação está no LLM.
+
+Isso derruba a hipótese que sustentava a Fase 5. O gargalo nunca foi a
+arquitetura de chamadas; é o tempo de resposta do Gemini, que oscilou 4× entre
+duas execuções separadas por cinco minutos. Job com polling não resolveria
+nada disso — só mudaria onde a espera acontece.
+
+**Mas os 45 s do `AbortSignal.timeout` no BFF ficam apertados.** A mediana cabe
+com folga; a cauda não. Na `1660` a resposta chegou aos 51,2 s — o BFF teria
+abortado. Antes do deploy, uma destas:
+
+- Groq como modelo **principal** e Gemini na reserva. O Groq respondeu bem mais
+  rápido nos testes e a curadoria dele precisa ser comparada lado a lado.
+- Ou aceitar a cauda e devolver 504 em português, que já está implementado.
+
+### O modelo de rascunho e publicação — a pegadinha que custou uma rodada
+
+Este n8n separa **rascunho** de **versão publicada**. Editar pelo MCP mexe no
+rascunho; o webhook de produção continua servindo a versão ativa até alguém
+publicar.
+
+Isso não dá erro: a chamada responde 200, com o comportamento antigo. Passei
+uma rodada inteira achando que a correção da correspondência não funcionava,
+quando ela nem estava no ar. **Depois de editar, publique** — `publish_workflow`
+pelo MCP, ou o botão na interface.
 
 ---
 

@@ -167,8 +167,8 @@ psql "$DATABASE_URL" -f db/schema.sql
 | Contas TMDB e OMDB | criadas |
 | Credenciais TMDB e OMDB no n8n | criadas e **verificadas** |
 | Credencial Postgres | **a decidir** |
-| Workflow do n8n ([n8n/](n8n/)) | construído, **credencial do webhook pendente** |
-| Latência do agente | **não medida** |
+| Workflow do n8n ([n8n/](n8n/)) | **rodando de ponta a ponta** |
+| Latência | medida: 15 s típico, 51 s no pior caso |
 | Ficha do filme, cache, `/estatisticas` | pendente |
 
 Para ver a interface funcionando sem depender do n8n:
@@ -179,9 +179,13 @@ NEXT_PUBLIC_FILMPRO_MOCK=1 npm run dev
 
 Ver [docs/SETUP.md](docs/SETUP.md) para os passos, na ordem.
 
-A latência ainda **não foi medida**. Ela decide se o fluxo precisa virar
-assíncrono com polling; até lá, `maxDuration = 60` com timeout de 45 s é a
-aposta, não um fato verificado.
+A latência foi medida em 01/09/2026: **15,1 s numa execução e 51,2 s em
+outra**, cinco minutos depois. O enriquecimento responde por 2,7 s fixos — dez
+buscas no TMDB somam 536 ms. Toda a variação é o tempo de resposta do LLM.
+
+Isso descarta o polling assíncrono: ele moveria a espera, não a reduziria. Mas
+deixa os 45 s do timeout apertados na cauda, e a decisão pendente é trocar o
+modelo principal para o Groq.
 
 ---
 
