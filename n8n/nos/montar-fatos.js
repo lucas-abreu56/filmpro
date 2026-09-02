@@ -41,9 +41,13 @@ for (let i = 0; i < casados.length; i++) {
 
   const onde = ((d['watch/providers'] || {}).results || {}).BR || {};
   const provedores = [];
-  [['assinatura', 'flatrate'], ['aluguel', 'rent'], ['compra', 'buy']].forEach(function (par) {
-    (onde[par[1]] || []).forEach(function (p) {
-      provedores.push({ type: par[0], name: p.provider_name, logo_path: p.logo_path || null });
+  // Os tipos ESPELHAM ProviderType em src/lib/types.ts. Gravar em portugues
+  // aqui quebra todo filtro escrito contra o contrato — e quebra em SILENCIO,
+  // porque o campo existe, so nunca casa. 'free' e 'ads' entram porque filme
+  // gratuito com anuncio tambem e uma resposta valida para 'onde assistir'.
+  ['flatrate', 'free', 'ads', 'rent', 'buy'].forEach(function (tipo) {
+    (onde[tipo] || []).forEach(function (p) {
+      provedores.push({ type: tipo, name: p.provider_name, logo_path: p.logo_path || null });
     });
   });
 
