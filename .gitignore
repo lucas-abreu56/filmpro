@@ -41,6 +41,11 @@ referencia/
 # repositório público. A procedência está em docs/identidade-visual.md.
 docs/design-systems/
 
+# Andaimes do plugin da Vercel no Claude Code: 2,4 MB de skills e docs
+# vendorizados, que já vivem em ~/.claude/plugins. É ferramenta da máquina, não
+# código do produto — e num repositório público seria só ruído.
+.agents/
+
 # Notas de handoff entre sessões. Estado operacional, não documentação do
 # projeto — o que é documentação vive em docs/ e é versionado.
 *.local.md
