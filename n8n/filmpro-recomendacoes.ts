@@ -191,7 +191,7 @@ const gemini = languageModel({
   config: {
     name: 'Gemini (reserva)',
     parameters: {
-      modelName: 'models/gemini-3-flash-preview',
+      modelName: 'models/gemini-3.5-flash',
       options: { temperature: 0.7, maxOutputTokens: 4096 },
     },
     credentials: {
@@ -411,6 +411,11 @@ const detalhes = node({
               'credits,watch/providers,release_dates,videos,images,recommendations,external_ids',
           },
           { name: 'include_image_language', value: 'pt,en,null' },
+          // Sem isto, o `language=pt-BR` acima filtra TAMBÉM os vídeos, e
+          // quase nenhum filme tem trailer cadastrado em português: medido
+          // em 02/09/2026, só 2 de 8 voltavam com trailerKey. Com a linha,
+          // 8 de 8. A tira de filme depende disso — é o gesto do produto.
+          { name: 'include_video_language', value: 'pt,en,null' },
         ],
       },
       options: { timeout: 15000 },
