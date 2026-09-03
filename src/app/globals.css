@@ -80,24 +80,32 @@ body {
    essa propriedade recalcula o layout das oito colunas a cada quadro. Medido
    em 02/09/2026, com CPU estrangulada em 4x e o mouse varrendo a tira:
    7 quadros acima de 33 ms em 283, pior quadro 68 ms. Agora só a cor
-   transiciona, e `filter` não obriga o navegador a refazer posição. */
-.fotograma {
+   transiciona, e `filter` não obriga o navegador a refazer posição.
+
+   O filtro vive no BOTÃO, não no item: o item agora carrega também a legenda
+   sobre o papel, e dessaturar texto marrom sobre creme não faz sentido — só
+   desbotaria a leitura. Cinza é da imagem. */
+.fotograma > button {
   filter: grayscale(100%) contrast(1.05);
   transition: filter 260ms var(--ease-camera);
 }
 /* `focus-within`, e não `focus-visible`: quem recebe o foco é o link dentro
    do item, e o item em si não é focável. A regra antiga nunca disparava. */
-.fotograma:hover,
-.fotograma:focus-within,
-.fotograma[data-aberto="true"] {
+.fotograma:hover > button,
+.fotograma:focus-within > button,
+.fotograma[data-aberto="true"] > button {
   filter: none;
 }
 
 /* A fita rola na horizontal: você percorre o filme, em vez de ver uma grade.
    O encaixe é `proximity` e não `mandatory` — mandatory sequestra a rolagem e
    impede parar entre dois fotogramas, o que irrita em tela larga. */
+@media (min-width: 48rem) {
+  .tira {
+    scroll-snap-type: x proximity;
+  }
+}
 .tira {
-  scroll-snap-type: x proximity;
   scrollbar-width: thin;
   scrollbar-color: var(--color-fio-forte) var(--color-profundo);
 }
