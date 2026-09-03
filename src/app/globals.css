@@ -100,7 +100,7 @@ body {
 /* A fita rola na horizontal: você percorre o filme, em vez de ver uma grade.
    O encaixe é `proximity` e não `mandatory` — mandatory sequestra a rolagem e
    impede parar entre dois fotogramas, o que irrita em tela larga. */
-@media (min-width: 48rem) {
+@media (min-width: 64rem) {
   .tira {
     scroll-snap-type: x proximity;
   }
@@ -111,6 +111,28 @@ body {
 }
 .tira > * {
   scroll-snap-align: start;
+}
+
+/* Os fotogramas pequenos da mesa de montagem. Ficam mais escuros que o cartao
+   empilhado, e nao so dessaturados: eles dividem a tela com uma projecao
+   grande e colorida logo acima, e sem o escurecimento a fita competia com ela
+   em vez de servi-la. O ativo volta ao normal e ganha a marca vermelha — e a
+   unica coisa vermelha da tela, que e a regra do sistema. */
+.fotograma-mini {
+  filter: grayscale(100%) contrast(1.05) brightness(0.68);
+  transition: filter 220ms var(--ease-camera);
+}
+.fotograma-mini:hover,
+.fotograma-mini:focus-visible,
+.fotograma-mini[data-ativo="true"] {
+  filter: none;
+}
+.fotograma-mini[data-ativo="true"]::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background-color: var(--color-acento);
 }
 
 /* ── Carregamento ─────────────────────────────────────────────────────────

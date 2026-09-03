@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 
 
+import AquecerTrailer from "@/components/features/AquecerTrailer";
 import FilmStrip from "@/components/features/FilmStrip";
 import Loader from "@/components/features/Loader";
 import { EXEMPLOS } from "@/lib/exemplos";
@@ -22,6 +23,9 @@ type Estado =
 export default function SearchPanel() {
   const [texto, setTexto] = useState("");
   const [estado, setEstado] = useState<Estado>({ fase: "parado" });
+  /** Primeiro sinal de que esta pessoa vai buscar alguma coisa. Liga o quadro
+   *  quente do trailer e nunca desliga — ver `AquecerTrailer`. */
+  const [pretende, setPretende] = useState(false);
   const areaRef = useRef<HTMLTextAreaElement>(null);
 
   const curto = texto.trim().length < LIMITS.MIN_PREFERENCES;
@@ -33,6 +37,7 @@ export default function SearchPanel() {
   }
 
   function usarExemplo(exemplo: string) {
+    setPretende(true);
     setTexto(exemplo);
     const el = areaRef.current;
     if (el) {
@@ -45,6 +50,7 @@ export default function SearchPanel() {
     e.preventDefault();
     if (curto || buscando) return;
 
+    setPretende(true);
     setEstado({ fase: "buscando" });
     const inicio = performance.now();
 
@@ -88,8 +94,9 @@ export default function SearchPanel() {
   return (
     <>
       <Loader ativo={buscando} />
+      <AquecerTrailer ligado={pretende} />
 
-      <div className="w-full">
+      <div className="w-full max-w-5xl">
         <form onSubmit={buscar}>
           <label htmlFor="preferences" className="sr-only">
             O que você quer assistir?
@@ -102,6 +109,7 @@ export default function SearchPanel() {
               setTexto(e.target.value.slice(0, LIMITS.MAX_PREFERENCES));
               ajustarAltura(e.target);
             }}
+            onFocus={() => setPretende(true)}
             rows={2}
             maxLength={LIMITS.MAX_PREFERENCES}
             placeholder="Um suspense claustrofóbico, poucos personagens, final que incomoda…"
@@ -145,7 +153,7 @@ export default function SearchPanel() {
 
       {estado.fase === "pronto" && (
         <section className="mt-16 w-full">
-          <header className="mb-6">
+          <header className="mb-6 max-w-5xl">
             <p className="text-apoio font-display text-xs tracking-[0.16em] uppercase">
               Coleção
             </p>

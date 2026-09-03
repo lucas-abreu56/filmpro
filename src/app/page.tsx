@@ -2,8 +2,11 @@ import SearchPanel from "@/components/features/SearchPanel";
 
 export default function Home() {
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-6 py-16 sm:py-24">
-      <header className="mb-16 w-full">
+    // A mesa de montagem precisa de largura: em `max-w-5xl` cabiam três
+    // fotogramas de oito. O cabeçalho e a busca continuam estreitos logo
+    // abaixo — texto corrido em 1344 px vira linha longa demais para ler.
+    <main className="mx-auto flex w-full max-w-[84rem] flex-1 flex-col px-6 py-16 sm:py-24">
+      <header className="mb-16 w-full max-w-5xl">
         <p className="text-acento font-display text-xs tracking-[0.16em] uppercase">
           FilmPro
         </p>

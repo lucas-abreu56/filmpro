@@ -40,20 +40,29 @@ export default function Cursor() {
 
   // O cursor nativo só some depois que o substituto já tem posição; do
   // contrário o ponteiro desaparece por um instante ao carregar a página.
+  //
+  // A dependência é o BOOLEANO, não `pos`. Com `[pos]` o efeito refazia
+  // limpeza e escrita a cada mousemove — uma escrita em `document.body` por
+  // movimento do mouse, que invalida o estilo do documento inteiro. O valor
+  // gravado era sempre o mesmo; só o trabalho era novo.
+  const visivel = pos !== null;
   useEffect(() => {
-    if (!pos) return;
+    if (!visivel) return;
     document.body.style.cursor = "none";
     return () => {
       document.body.style.cursor = "";
     };
-  }, [pos]);
+  }, [visivel]);
 
   if (!pos) return null;
 
   return (
+    // `translate3d` em vez de `left`/`top`: posição por `left` é propriedade de
+    // layout, e mover o mouse repaginava o documento a cada quadro. Transform
+    // fica no compositor.
     <div
-      className="pointer-events-none fixed z-[9998]"
-      style={{ left: pos.x, top: pos.y }}
+      className="pointer-events-none fixed top-0 left-0 z-[9998]"
+      style={{ transform: `translate3d(${pos.x}px, ${pos.y}px, 0)` }}
       aria-hidden="true"
     >
       <span className="border-tinta absolute -top-[26px] -left-[26px] block h-[52px] w-[52px] rounded-full border" />
