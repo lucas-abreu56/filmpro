@@ -30,6 +30,17 @@ return [{ json: {
   picks: picks,
   notFound: resp.notFound || [],
   collectionTitle: resp.collectionTitle,
+  // ATENCAO: este null NAO e so telemetria, e contrato.
+  //
+  // O ON CONFLICT do no 'Gravar L1' usa `EXCLUDED.model_used IS NULL` para
+  // saber se a gravacao veio do cache ou do curador. NULL significa "nao
+  // chamei modelo nenhum", e o SQL entao preserva picks, collection_title e
+  // created_at, contando so mais um hit. Preencher isto num acerto de cache
+  // faria toda leitura renovar o created_at, e a curadoria nunca envelheceria.
+  // Trocar o 'gemini' por null faria o contrario: a entrada expirada nunca se
+  // recuperaria, que era exatamente o defeito consertado em 03/09/2026.
+  //
+  // O valor da string em si nao importa para o SQL, so o null-ou-nao.
   modelUsed: doCache ? null : 'gemini',
   cacheHit: !!doCache,
   movieCount: (resp.movies || []).length,

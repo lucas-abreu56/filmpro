@@ -43,7 +43,13 @@ const queryNorm = texto
 // "decada", "nao" — em 4 de 4 filmes conferidos no cache. O prompt pedia
 // portugues mas nunca exigia acentuacao, e o modelo usou a brecha. Num
 // produto cujo diferencial e o texto, isso e defeito de primeira ordem.
-const promptVersion = 5;
+//
+// v6 (03/09/2026): o modelo principal passou de gemini-3.5-flash para
+// gemini-3.1-flash-lite. O curador levava de 58 a 77 s e 24% das buscas vivas
+// estouravam o teto de 45 s do BFF; agora leva de 4 a 15 s. Bumpar aqui e a
+// regra escrita tres paragrafos acima, e nao um extra: o cache guardava
+// curadoria de dois modelos diferentes sob a mesma chave.
+const promptVersion = 6;
 
 return [{ json: {
   preferences: texto,
@@ -51,7 +57,13 @@ return [{ json: {
   promptVersion: promptVersion,
   material: queryNorm + '|' + limit + '|' + promptVersion,
   limit: limit,
-  pedir: limit + 2,
+  // Folga sobre o que o usuario pediu, porque nem todo titulo do curador
+  // sobrevive a verificacao no TMDB. Era +2, e a telemetria de 25 buscas
+  // vivas mostrou onde isso falha: 22 nao descartaram nada, 2 descartaram 1,
+  // e UMA descartou 4 — entregando 6 filmes onde foram pedidos 8. Com +4 essa
+  // mesma busca fecharia a lista. Cada titulo a mais custa ~110 ms de TMDB e
+  // OMDB e uma linha em movies, que fica no cache de fatos para a proxima.
+  pedir: limit + 4,
   requestId: String(body.requestId || ''),
   inicio: Date.now(),
 } }];
