@@ -1,4 +1,5 @@
 // Nó "Montar resposta" — n8n-nodes-base.code
+// Nó "Montar resposta" — n8n-nodes-base.code
 // Apresentacao, e so isso. Recebe linhas da tabela movies — do upsert no
 // caminho vivo, ou do SELECT num acerto de cache — e monta as URLs. Um unico
 // lugar decide como um filme vira JSON, para os dois caminhos.
@@ -10,8 +11,16 @@ const doCache = l1.length > 0 && l1[0].json
 
 // Espelha src/lib/sanitize.ts. O texto autoral e a unica superficie de
 // injecao que sobra, porque e a unica coisa do modelo que e renderizada.
+//
+// A lista de invisiveis vem por NUMERO, e nao escrita como caractere. Em
+// 02/09/2026 alinhei este conjunto entre sanitize.ts e o no Validar entrada,
+// e ESTE arquivo passou batido: ficou sem o U+00AD por mais um dia, com um
+// comentario dizendo que espelhava. Ninguem confere a olho o que nao ve.
 const PROIBIDO = /https?:\/\/|www\.|<[a-z\/]|\[[^\]]*\]\([^)]*\)|javascript:|data:/i;
-const INVISIVEL = /[​-‍﻿⁠]/g;
+const PROIBIDO_INVISIVEL = [0x200b, 0x200c, 0x200d, 0x2060, 0xfeff, 0x00ad];
+const INVISIVEL = new RegExp('[' + PROIBIDO_INVISIVEL.map(function (c) {
+  return String.fromCharCode(c);
+}).join('') + ']', 'g');
 function limpar(t, max) {
   const s = String(t == null ? '' : t).replace(INVISIVEL, '').trim();
   if (!s || PROIBIDO.test(s)) return null;

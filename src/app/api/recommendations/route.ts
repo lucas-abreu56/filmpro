@@ -5,10 +5,16 @@ import { sanitizeAuthoredText } from "@/lib/sanitize";
 import { LIMITS, type Movie, type RecommendationsResponse } from "@/lib/types";
 
 /**
- * O agente (4–12 s) mais o enriquecimento no TMDB (1–2 s) não cabem no teto
- * padrão de função serverless. `maxDuration` é config de rota do Next 16; o
- * valor que a plataforma aceita depende do plano, então confira no painel da
- * Vercel antes de confiar em 60.
+ * O agente mais o enriquecimento no TMDB não cabem no teto padrão de função
+ * serverless. `maxDuration` é config de rota do Next 16; o valor que a
+ * plataforma aceita depende do plano, então confira no painel da Vercel antes
+ * de confiar em 60.
+ *
+ * Este comentário já disse "o agente (4–12 s)". Era falso: medido em
+ * 03/09/2026, o nó do curador levava de 58 a 77 s, e 22% das buscas frias
+ * registradas passavam dos 45 s abaixo — ou seja, falhavam. A causa era o
+ * modelo, trocado para `gemini-3.1-flash-lite` no mesmo dia. Depois da troca,
+ * cinco buscas frias deram 6,4 a 32,6 s, e o TMDB somou 1,7 s.
  */
 export const maxDuration = 60;
 

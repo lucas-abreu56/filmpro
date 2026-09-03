@@ -166,11 +166,16 @@ export default function SearchPanel() {
               {estado.dados.cached && " · do cache"}
               {/* Contar a verdade é o ponto deste texto — então ele precisa
                   concordar em número. "2 sugestão descartada" desmente a
-                  própria frase que está tentando ser honesta. */}
+                  própria frase que está tentando ser honesta.
+
+                  "na verificação", e não mais "por não constar no TMDB": desde
+                  03/09/2026 uma sugestão também cai quando dois títulos do
+                  curador resolvem para o MESMO filme. Nesse caso o filme
+                  existe, e a frase antiga afirmava o contrário. */}
               {estado.dados.notFound.length === 1 &&
-                " · 1 sugestão descartada por não constar no TMDB"}
+                " · 1 sugestão descartada na verificação"}
               {estado.dados.notFound.length > 1 &&
-                ` · ${estado.dados.notFound.length} sugestões descartadas por não constarem no TMDB`}
+                ` · ${estado.dados.notFound.length} sugestões descartadas na verificação`}
             </p>
           </header>
 

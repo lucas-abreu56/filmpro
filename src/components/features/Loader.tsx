@@ -25,8 +25,14 @@ const FASES = [
  *  cobrem folgadamente uma tela de 1080px. */
 const LINHAS_POR_METADE = 18;
 
-/** Estimativa para a curva de progresso. É chute até a Fase 1 medir. */
-const DURACAO_ESPERADA_MS = 14_000;
+/**
+ * Estimativa para a curva de progresso. Deixou de ser chute em 03/09/2026:
+ * cinco buscas frias medidas ponta a ponta pelo webhook deram 6,4 · 10,3 ·
+ * 10,7 · 15,6 · 32,6 s. A mediana fica perto de 11 s, e a barra satura em 95%
+ * de qualquer jeito — subestimar faz a barra encher e esperar, que é honesto;
+ * superestimar faz ela rastejar quando a resposta já veio.
+ */
+const DURACAO_ESPERADA_MS = 11_000;
 
 export default function Loader({ ativo }: { ativo: boolean }) {
   const [pct, setPct] = useState(0);
