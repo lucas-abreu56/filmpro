@@ -45,11 +45,14 @@ export default function Modal({
       }}
       className="bg-tinta/80 veu-entra fixed inset-0 z-50 flex min-h-full min-w-full items-center justify-center p-4 backdrop-blur-sm"
     >
-      <div className="bg-papel text-tinta ficha-entra relative flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded shadow-2xl">
+      {/* Sem sombra, e com fio de 1 px: a separação vem de contraste, que é a
+          regra da referência e já era a do resto do projeto. A cor de fundo é
+          a do palco — a ficha lá dentro é escura. */}
+      <div className="bg-profundo text-papel border-papel/15 ficha-entra relative flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded border">
         <button
           onClick={fechar}
           data-cursor="fechar"
-          className="text-apoio hover:text-acento focus-visible:text-acento font-display absolute top-4 right-4 z-10 text-xs tracking-[0.16em] uppercase transition-colors"
+          className="text-papel/60 hover:text-papel focus-visible:text-papel font-display absolute top-4 right-4 z-20 text-xs tracking-[0.16em] uppercase transition-colors"
         >
           Fechar
         </button>

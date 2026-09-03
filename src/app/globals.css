@@ -75,64 +75,83 @@ body {
   background-repeat: repeat-x;
 }
 
-/* Em repouso a imagem é cinza; a cor é recompensa por atenção.
-   A largura NÃO é mais animada. Antes o hover mexia em `flex-grow`, e animar
-   essa propriedade recalcula o layout das oito colunas a cada quadro. Medido
-   em 02/09/2026, com CPU estrangulada em 4x e o mouse varrendo a tira:
-   7 quadros acima de 33 ms em 283, pior quadro 68 ms. Agora só a cor
-   transiciona, e `filter` não obriga o navegador a refazer posição.
+/* A pilha do celular. Em repouso a imagem é cinza; a cor é recompensa por
+   atenção — a regra que o República Pureza enuncia e que este projeto adotou.
 
-   O filtro vive no BOTÃO, não no item: o item agora carrega também a legenda
-   sobre o papel, e dessaturar texto marrom sobre creme não faz sentido — só
-   desbotaria a leitura. Cinza é da imagem. */
-.fotograma > button {
-  filter: grayscale(100%) contrast(1.05);
-  transition: filter 260ms var(--ease-camera);
-}
-/* `focus-within`, e não `focus-visible`: quem recebe o foco é o link dentro
-   do item, e o item em si não é focável. A regra antiga nunca disparava. */
-.fotograma:hover > button,
-.fotograma:focus-within > button,
-.fotograma[data-aberto="true"] > button {
-  filter: none;
-}
+   Tudo dentro de `@media (hover)` porque no toque não existe gesto de atenção
+   ANTES do toque: dessaturar ali entregaria um catálogo cinza a quem não tem
+   como acordá-lo.
 
-/* A fita rola na horizontal: você percorre o filme, em vez de ver uma grade.
-   O encaixe é `proximity` e não `mandatory` — mandatory sequestra a rolagem e
-   impede parar entre dois fotogramas, o que irrita em tela larga. */
-@media (min-width: 64rem) {
-  .tira {
-    scroll-snap-type: x proximity;
+   (Este bloco já mirou `> button`. Virou `> a` em 03/09/2026, quando o cartão
+   deixou de abrir trailer e passou a levar à ficha.) */
+@media (hover: hover) and (pointer: fine) {
+  .fotograma > a {
+    filter: grayscale(100%) contrast(1.05);
+    transition: filter 260ms var(--ease-camera);
+  }
+  /* `focus-within`, e não `focus-visible`: quem recebe o foco é o link dentro
+     do item, e o item em si não é focável. */
+  .fotograma:hover > a,
+  .fotograma:focus-within > a {
+    filter: none;
   }
 }
-.tira {
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-fio-forte) var(--color-profundo);
-}
-.tira > * {
-  scroll-snap-align: start;
-}
 
-/* Os fotogramas pequenos da mesa de montagem. Ficam mais escuros que o cartao
-   empilhado, e nao so dessaturados: eles dividem a tela com uma projecao
-   grande e colorida logo acima, e sem o escurecimento a fita competia com ela
-   em vez de servi-la. O ativo volta ao normal e ganha a marca vermelha — e a
-   unica coisa vermelha da tela, que e a regra do sistema. */
-.fotograma-mini {
-  filter: grayscale(100%) contrast(1.05) brightness(0.68);
-  transition: filter 220ms var(--ease-camera);
+/* ── A coluna que acorda ──────────────────────────────────────────────────
+   O padrão do República Pureza, adaptado. Duas regras vêm de lá, literais:
+   "em repouso, nenhuma imagem tem cor — cor é recompensa por atenção", e
+   "a largura é o feedback, não uma sombra ou borda".
+
+   Sobre animar a largura: isto já foi removido do projeto uma vez, em
+   02/09/2026, por engasgo medido — 7 quadros acima de 33 ms em 283, pior
+   quadro 68 ms, com CPU estrangulada em 4x. A hipótese registrada na época
+   era que o custo vinha do player do YouTube inicializando DURANTE a
+   transição, e não da transição em si.
+
+   A hipótese estava certa. Com o trailer fora da tira, a mesma bateria em
+   03/09/2026 — CPU 4x, mouse varrendo a tira ida e volta três vezes — deu
+   ZERO quadros acima de 33 ms em 230, pior quadro 18 ms, nenhuma long task.
+   Animar a largura é mais barato hoje do que NÃO animar era ontem.
+
+   Se um dia voltar a engasgar, o recuo é tirar `flex-grow` da lista de
+   transições e deixar só `filter`.
+
+   `flex: 1 1 0` em vez de porcentagem: com oito filmes a conta de 12,5% teria
+   que mudar junto com o `limit`, e `basis: 0` distribui sozinho. */
+.coluna {
+  flex: 1 1 0;
+  min-width: 0;
+  filter: grayscale(100%) contrast(1.04) brightness(0.82);
+  transition:
+    flex-grow 260ms var(--ease-camera),
+    filter 260ms var(--ease-camera);
 }
-.fotograma-mini:hover,
-.fotograma-mini:focus-visible,
-.fotograma-mini[data-ativo="true"] {
+/* `:focus-within` porque quem é focável é o link dentro da coluna, não ela. */
+@media (hover: hover) and (pointer: fine) {
+  .coluna:hover {
+    flex-grow: 2.8;
+    filter: none;
+  }
+}
+.coluna:focus-within {
+  flex-grow: 2.8;
   filter: none;
 }
-.fotograma-mini[data-ativo="true"]::after {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 3px;
-  background-color: var(--color-acento);
+
+/* O ano só aparece com a coluna aberta: na largura de repouso ele disputaria
+   as duas linhas que o título já usa. Opacidade, e não `display`, porque
+   `display` não transiciona — apareceria de estalo. */
+.coluna-ano {
+  opacity: 0;
+  transition: opacity 200ms var(--ease-camera);
+}
+@media (hover: hover) and (pointer: fine) {
+  .coluna:hover .coluna-ano {
+    opacity: 1;
+  }
+}
+.coluna:focus-within .coluna-ano {
+  opacity: 1;
 }
 
 /* ── Carregamento ─────────────────────────────────────────────────────────
@@ -154,6 +173,21 @@ body {
 }
 
 /* ── Utilidades ───────────────────────────────────────────────────────────*/
+
+/* A ficha é a única superfície escura do site, e `OndeAssistir` nasceu para o
+   papel creme: `text-apoio` e `border-fio` saem da tinta marrom e somem no
+   escuro. Em vez de dar uma variante ao componente — e com ela duas versões
+   do mesmo bloco para manter em sincronia — o contêiner redefine os tokens.
+   As utilitárias do Tailwind v4 são `var(--color-…)`, então elas seguem a
+   cascata sozinhas. Os alfas são os mesmos do tema claro, invertidos sobre o
+   papel: a família continua a mesma, só muda de lado. */
+.tema-escuro {
+  --color-tinta: var(--color-papel);
+  --color-apoio: rgb(253 246 228 / 0.62);
+  --color-fio: rgb(253 246 228 / 0.2);
+  --color-fio-forte: rgb(253 246 228 / 0.42);
+}
+
 .scrim {
   background: linear-gradient(0deg, rgb(37 7 1 / 0.85), transparent 62%);
 }

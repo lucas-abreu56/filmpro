@@ -84,7 +84,9 @@ export default async function MoviePage(props: PageProps<"/filme/[tmdbId]">) {
       >
         ← Voltar para a busca
       </Link>
-      <div className="bg-papel border-fio overflow-hidden rounded border shadow-sm">
+      {/* Mesma moldura do modal, para o link direto e o gesto na tira darem na
+          mesma tela — sem sombra, fio de 1 px, fundo de palco. */}
+      <div className="bg-profundo border-fio overflow-hidden rounded border">
         <MovieDetail movie={movie} />
       </div>
     </main>

@@ -1,264 +1,370 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { memo, useCallback, useState } from "react";
 import Link from "next/link";
 
 import { fotogramaProcedural } from "@/lib/mock";
-import { trailerEmbedUrl } from "@/lib/tmdb";
 import type { Movie, ProviderType, WatchProvider } from "@/lib/types";
 import { useMedia } from "@/lib/useMedia";
 
 /**
  * A tira de filme.
  *
- * ── Dois desenhos, e o corte é em 64rem ──────────────────────────────────────
+ * ── Dois desenhos, e o corte é em 64rem ─────────────────────────────────────
  * No celular a fita empilha e sangra até as bordas: o polegar rola para cima,
- * não para o lado, e a imagem grande é o que faz a tela valer. Esse desenho
- * ficou bom e não mudou.
+ * não para o lado, e a imagem grande é o que faz a tela valer.
  *
- * No computador ela vira **mesa de montagem**: uma projeção grande em cima,
- * com a ficha ao lado, e embaixo a fita inteira em fotogramas pequenos entre
- * duas perfurações. Antes eram cartões largos numa fileira rolável, e de oito
- * filmes apareciam três — a coleção dizia "8 filmes" e a tela desmentia. Aqui
- * os oito cabem de uma vez, e o filme escolhido ganha uma área muito maior do
- * que qualquer cartão poderia ter.
+ * No computador são colunas dessaturadas entre duas perfurações. Sob o cursor
+ * uma delas cresce e recupera a cor, e a legenda abaixo conta quem é. Cinco
+ * cabem por vez; as outras chegam pelas setas.
  *
- * ── Por que o trailer saiu do hover dos cartões ──────────────────────────────
- * Medido em 03/09/2026, Chrome 152, janela de 1440×900, perfil limpo: quando o
- * trailer nascia sob o mouse, a página congelava 2,67 s — 6 medições, de 2661 a
- * 2692 ms. **Nada disso é JavaScript**: o PerformanceObserver não viu uma única
- * long task, e o trace mostra uma GPUTask sozinha de 2676 ms no processo de
- * GPU, com os workers do ANGLE ao lado. Não é rede: reproduz com o YouTube
- * inteiro bloqueado. Não é nosso CSS: o grão, o cinza e o scrim não reproduzem
- * numa página nua.
+ * ── O trailer não mora mais aqui (03/09/2026) ───────────────────────────────
+ * Ele toca só dentro da ficha. Foram duas medições que levaram a isso, e vale
+ * guardar as duas porque elas explicam por que não adianta "só otimizar":
  *
- * O que dá para afirmar é que o custo chega quando o trailer ENTRA. Então ele
- * deixou de entrar por acidente: varrer a fita agora troca só a imagem parada
- * da projeção, e o iframe só nasce quando alguém repousa o ponteiro na
- * projeção — que é grande, e onde ninguém está varrendo.
+ * 1. **Geometria.** Em 02/09 o vídeo dava 463×260 px numa coluna de 262 px de
+ *    largura, com 465 px de tarja preta em volta. Um trailer 16:9 não cabe em
+ *    coluna alta e estreita — aumentar porcentagem não resolve, é a proporção
+ *    que está errada.
+ * 2. **Custo.** Em 03/09, Chrome 152, 1440×900, perfil limpo: quando o trailer
+ *    nascia sob o mouse a página congelava 2,67 s — 6 medições, de 2661 a
+ *    2692 ms. **Nada disso é JavaScript**: o PerformanceObserver não viu uma
+ *    long task sequer, e o trace mostra uma GPUTask sozinha de 2676 ms no
+ *    processo de GPU, com os workers do ANGLE ao lado. Não é rede — reproduz
+ *    com o YouTube inteiro bloqueado. Não é o nosso CSS — grão, cinza e scrim
+ *    não reproduzem numa página nua.
+ *
+ * Tirar o trailer do hover dissolve os dois problemas em vez de administrá-los:
+ * na ficha o quadro é horizontal por construção, e o vídeo entra uma vez, por
+ * escolha de quem clicou.
+ *
+ * ── A altura é fixa, e isso é o ponto ───────────────────────────────────────
+ * O desenho anterior punha a ficha ao lado da projeção e deixava **o texto
+ * mandar na altura da linha**. Como o texto muda de filme para filme — só o
+ * bloco de provedores varia de uma a três linhas —, trocar de filme rápido
+ * fazia a página crescer e encolher. Agora a tira tem altura própria em
+ * `clamp` e a legenda tem piso fixo. Medido depois da mudança: oito filmes,
+ * uma única combinação de alturas.
  */
 
-/** O player monta durante a transição e disputa quadros com ela. Esperar o
- *  gesto assentar tira os dois do mesmo instante. */
-const ESPERA_TRAILER_MS = 220;
-
-/** Abaixo disto a projeção não tem largura para existir, e a pilha é melhor. */
+/** Abaixo disto a coluna não tem largura para existir, e a pilha é melhor. */
 const MESA = "(min-width: 64rem)";
 
 export default function FilmStrip({ movies }: { movies: Movie[] }) {
   /** Começa `false` (o caso do toque) porque no servidor não há `matchMedia`.
    *  A tira só renderiza depois do fetch, então nada disso é hidratado. */
   const temHover = useMedia("(hover: hover) and (pointer: fine)");
-  const semMovimento = useMedia("(prefers-reduced-motion: reduce)");
   const mesa = useMedia(MESA);
 
+  // `prefers-reduced-motion` não aparece mais aqui: sem trailer, o que resta é
+  // transição de CSS, e o bloco em `globals.css` já as neutraliza para quem
+  // pediu menos movimento. Uma pergunta a menos para o JavaScript responder.
   if (!movies.length) return null;
   return mesa ? (
-    <MesaDeMontagem movies={movies} temHover={temHover} tocaTrailer={!semMovimento} />
+    <MesaDeMontagem movies={movies} temHover={temHover} />
   ) : (
-    <Pilha movies={movies} temHover={temHover} tocaTrailer={!semMovimento} />
+    <Pilha movies={movies} temHover={temHover} />
   );
 }
 
-type Props = { movies: Movie[]; temHover: boolean; tocaTrailer: boolean };
+type Props = { movies: Movie[]; temHover: boolean };
 
 // ────────────────────────────────────────────────────────────────────────────
-// Computador: projeção em cima, fita embaixo
+// Computador: a coluna que acorda, e a legenda que não pula
 // ────────────────────────────────────────────────────────────────────────────
 
-function MesaDeMontagem({ movies, temHover, tocaTrailer }: Props) {
-  const [escolhidoId, setEscolhidoId] = useState<number | null>(null);
-  const [pedido, setPedido] = useState<number | null>(null);
-  const [rodandoId, setRodandoId] = useState<number | null>(null);
+/**
+ * Oito colunas dessaturadas. Sob o cursor uma delas cresce e recupera a cor.
+ *
+ * É o padrão "a coluna que acorda" do República Pureza, com as duas regras que
+ * a documentação dele enuncia: **cor é recompensa por atenção** — em repouso
+ * nada tem cor — e **a largura é o feedback**, não uma sombra nem uma borda.
+ *
+ * ── Por que a legenda vive FORA das colunas ─────────────────────────────────
+ * Na referência o texto mora dentro da coluna que abre. Aqui não pode: o
+ * `reason` é a única frase autoral do sistema e a tese do produto, e a regra
+ * do projeto é que ele nunca dependa de um gesto. Ele desce para uma faixa
+ * própria, sempre visível.
+ *
+ * Isso também conserta o defeito que motivou o redesenho. Antes a altura da
+ * linha era ditada pelo conteúdo da ficha ao lado, que muda de filme para
+ * filme — só o bloco de provedores varia de uma a três linhas. Trocar de filme
+ * rápido fazia a página crescer e encolher. Agora a tira tem altura própria e
+ * a legenda tem piso fixo: nenhuma das duas depende do tamanho do texto.
+ *
+ * ── Por que o fotograma, e não o pôster ─────────────────────────────────────
+ * Cheguei a usar o pôster, por ele já nascer 2:3 e caber na coluna estreita.
+ * Errado, por dois motivos que só apareceram em captura: pôster traz tipografia
+ * impressa, e o corte partia o título no meio — "VALSA COM BASHI", "MARY E MA";
+ * e alargar a coluna PIORA um 2:3, porque afasta ainda mais a proporção.
+ *
+ * O fotograma 16:9 faz o contrário. Em repouso é uma lasca vertical de uma
+ * imagem larga; abrir revela mais dela. A largura vira recompensa em vez de
+ * deformação, que é exatamente a lógica da referência.
+ */
+function MesaDeMontagem({ movies, temHover }: Props) {
+  const [focoId, setFocoId] = useState<number | null>(null);
+  const filme = movies.find((m) => m.tmdbId === focoId) ?? movies[0];
 
-  // Derivado, e não sincronizado por efeito: numa busca nova o id anterior
-  // simplesmente não está mais na lista, e a projeção volta para o primeiro.
-  const filme = movies.find((m) => m.tmdbId === escolhidoId) ?? movies[0];
-
-  // Nada de zerar `rodandoId` quando o pedido sai: o render exige `pedido`
-  // **e** este id, então um valor velho não mostra nada — e zerar aqui seria
-  // setState dentro de efeito, que encadeia render à toa.
-  useEffect(() => {
-    if (pedido == null) return;
-    const t = setTimeout(() => setRodandoId(pedido), ESPERA_TRAILER_MS);
-    return () => clearTimeout(t);
-  }, [pedido]);
-
-  /** Escolher outro filme sempre desmonta o trailer: o iframe é do filme que
-   *  está em projeção, e trocar os dois no mesmo quadro pisca. */
-  function projetar(id: number) {
-    setEscolhidoId(id);
-    setPedido(null);
-  }
-
-  const rodando =
-    pedido != null && rodandoId === filme.tmdbId && tocaTrailer && !!filme.trailerKey;
-  const meta = [filme.director, filme.year, filme.runtime && `${filme.runtime} min`]
-    .filter(Boolean)
-    .join(" · ");
+  // A tira não re-renderiza quando o foco muda — quem muda é só a legenda.
+  // Sem isso, cada entrada de mouse re-renderizaria as oito colunas no meio da
+  // transição de largura, que é exatamente o que já engasgou aqui uma vez.
+  const aoFocar = useCallback((id: number) => setFocoId(id), []);
 
   return (
-    <div className="moldura bg-profundo">
-      <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-        {/* ── A projeção ─────────────────────────────────────────────────── */}
-        <button
-          type="button"
-          aria-label={rodando ? `Parar o trailer de ${filme.title}` : `Ver o trailer de ${filme.title}`}
-          data-cursor={filme.trailerKey ? (rodando ? "parar" : "ver trailer") : undefined}
-          // `h-full`, e nao `aspect-video`: quem manda na altura da linha e a
-          // ficha, que estica quando o texto quebra mais — a 1024 px sobravam
-          // 127 px de tarja escura sob a imagem. A imagem parada cobre a
-          // celula inteira; o trailer, esse sim, fica preso em 16:9 e
-          // centrado, com a propria imagem servindo de matte em cima e
-          // embaixo. Esticar o video para preencher deformaria o quadro.
-          className="relative block h-full min-h-[16rem] w-full cursor-pointer overflow-hidden outline-none"
-          onMouseEnter={temHover && filme.trailerKey ? () => setPedido(filme.tmdbId) : undefined}
-          onMouseLeave={temHover ? () => setPedido(null) : undefined}
-          // Com hover e clique ligados juntos, entrar com o mouse abria e o
-          // clique em seguida fechava. Medido; por isso são exclusivos.
-          onClick={
-            temHover || !filme.trailerKey
-              ? undefined
-              : () => setPedido(rodando ? null : filme.tmdbId)
-          }
+    <div className="w-full">
+      <Tira movies={movies} temHover={temHover} aoFocar={aoFocar} />
+      <Legenda filme={filme} />
+    </div>
+  );
+}
+
+/**
+ * Quantas colunas cabem de uma vez. O número não é estético, é geométrico: o
+ * pôster é 2:3, e a coluna precisa chegar perto disso ou a arte é cortada no
+ * meio da própria tipografia. Com os oito filmes na tela, cada coluna dava
+ * ~130 px de largura para 468 px de altura — proporção 0,28 contra os 0,67 do
+ * pôster, e títulos partidos ao meio ("VALSA C", "MARY E"). Com cinco, a
+ * coluna fica em ~269 px para 416 px: 0,65, que é o pôster quase inteiro.
+ */
+const VISIVEIS = 5;
+
+const Tira = memo(function Tira({
+  movies,
+  temHover,
+  aoFocar,
+}: {
+  movies: Movie[];
+  temHover: boolean;
+  aoFocar: (id: number) => void;
+}) {
+  const [passo, setPasso] = useState(0);
+
+  const rola = movies.length > VISIVEIS;
+  const ultimoPasso = Math.max(0, movies.length - VISIVEIS);
+
+  // A trilha é mais larga que a janela, e desliza. Não é `overflow-x: auto`:
+  // rolagem nativa brigaria com a coluna que cresce no hover — mudar a largura
+  // de um filho muda `scrollWidth` e a barra pula debaixo do cursor.
+  const larguraTrilha = rola ? (movies.length / VISIVEIS) * 100 : 100;
+  const deslocamento = rola ? (passo * 100) / movies.length : 0;
+
+  return (
+    <div className="relative">
+      <div className="moldura bg-profundo overflow-hidden">
+        <div className="perfuracao" aria-hidden="true" />
+
+        {/* Altura em `clamp`, e nunca derivada do conteúdo: é esta linha que
+            garante que trocar de filme não mexa na página. */}
+        <ul
+          className="flex h-[clamp(20rem,48vh,26rem)] list-none transition-transform duration-500 ease-[var(--ease-camera)]"
+          style={{
+            width: `${larguraTrilha}%`,
+            transform: `translateX(-${deslocamento}%)`,
+          }}
         >
-          <span
-            key={filme.tmdbId}
-            className="absolute inset-0 bg-cover bg-center"
-            style={
-              filme.backdropUrl
-                ? { backgroundImage: `url(${filme.backdropUrl})` }
-                : { backgroundImage: fotogramaProcedural(filme.tmdbId) }
-            }
-          />
-
-          {rodando && filme.trailerKey && (
-            <span className="absolute inset-x-0 top-1/2 aspect-video -translate-y-1/2 overflow-hidden">
-              <iframe
-                src={trailerEmbedUrl(filme.trailerKey)}
-                title={`Trailer de ${filme.title}`}
-                allow="autoplay; encrypted-media"
-                className="pointer-events-none absolute inset-0 h-full w-full"
-              />
-            </span>
-          )}
-
-          <span className="scrim absolute inset-0" />
-
-          {filme.trailerKey && (
-            <span
-              className="text-papel/75 font-display absolute right-5 bottom-4 text-[11px] tracking-[0.16em] uppercase transition-opacity duration-300 data-[on]:opacity-0"
-              data-on={rodando || undefined}
-              aria-hidden="true"
-            >
-              ▶ trailer
-            </span>
-          )}
-        </button>
-
-        {/* ── A ficha ────────────────────────────────────────────────────── */}
-        <div className="bg-papel text-tinta flex flex-col gap-3 px-8 py-7">
-          <p className="text-apoio font-display text-[11px] tracking-[0.16em] uppercase">
-            Em projeção
-          </p>
-
-          <div>
-            <h3 className="font-display text-[clamp(1.6rem,2.4vw,2.4rem)] leading-[0.92] font-medium tracking-tight uppercase">
-              {filme.title}
-            </h3>
-            {filme.originalTitle && filme.originalTitle !== filme.title && (
-              <p className="text-apoio mt-1 text-sm italic">{filme.originalTitle}</p>
-            )}
-            {meta && (
-              <p className="text-apoio mt-2 text-[11px] tracking-[0.08em] uppercase">{meta}</p>
-            )}
-          </div>
-
-          {/* A única frase que o modelo escreve. É a tese do produto, então
-              tem o corpo maior da ficha e nunca depende de um gesto. */}
-          <p className="text-tinta/85 text-[15px] leading-relaxed">{filme.reason}</p>
-
-          <div className="flex flex-wrap items-center gap-2">
-            {filme.ageRating && <Selo>{filme.ageRating}</Selo>}
-            {filme.genres.slice(0, 3).map((g) => (
-              <Selo key={g}>{g}</Selo>
-            ))}
-            {filme.imdbRating && <Selo>{`IMDb ${filme.imdbRating}`}</Selo>}
-          </div>
-
-          <OndeAssistir providers={filme.providers} fetchedAt={filme.fetchedAt} />
-
-          <div className="mt-auto flex items-center justify-between pt-2">
-            <Link
-              href={`/filme/${filme.tmdbId}`}
-              className="text-tinta hover:text-acento focus-visible:text-acento font-display text-[11px] font-bold tracking-[0.12em] uppercase transition-colors"
-            >
-              Ficha Completa
-            </Link>
-
-            <a
-              href={filme.tmdbUrl}
-              target="_blank"
-              rel="noreferrer"
-              data-cursor="abrir no TMDB"
-              className="text-apoio hover:text-acento focus-visible:text-acento font-display text-[11px] tracking-[0.12em] uppercase"
-            >
-              TMDB ↗
-            </a>
-          </div>
-        </div>
-      </div>
-
-      {/* ── A fita ───────────────────────────────────────────────────────── */}
-      <div className="perfuracao" aria-hidden="true" />
-
-      <ul className="bg-profundo tira flex list-none overflow-x-auto overscroll-x-contain">
-        {movies.map((movie, i) => {
-          const ativo = movie.tmdbId === filme.tmdbId;
-          return (
+          {movies.map((movie, i) => (
             <li
               key={movie.tmdbId}
-              className="border-profundo min-w-[7rem] flex-1 basis-0 border-l-2 first:border-l-0"
+              className="coluna border-profundo relative border-l-2 first:border-l-0"
+              onMouseEnter={temHover ? () => aoFocar(movie.tmdbId) : undefined}
             >
-              <button
-                type="button"
-                aria-current={ativo || undefined}
-                aria-label={`Projetar ${movie.title}`}
-                data-cursor="projetar"
-                data-ativo={ativo || undefined}
-                className="fotograma-mini relative block aspect-video w-full cursor-pointer outline-none"
-                onMouseEnter={temHover ? () => projetar(movie.tmdbId) : undefined}
-                onClick={() => projetar(movie.tmdbId)}
-                onFocus={() => projetar(movie.tmdbId)}
+              {/* Link, e não botão: a coluna leva à ficha, e ficha é uma rota.
+                  Botão que navega quebra abrir em nova aba e o clique do meio. */}
+              <Link
+                href={`/filme/${movie.tmdbId}`}
+                data-cursor="ver ficha"
+                onFocus={() => aoFocar(movie.tmdbId)}
+                className="absolute inset-0 block overflow-hidden outline-none"
               >
                 <span
                   className="absolute inset-0 bg-cover bg-center"
                   style={
-                    movie.backdropUrl
-                      ? { backgroundImage: `url(${movie.backdropUrl})` }
+                    movie.backdropUrl ?? movie.posterUrl
+                      ? {
+                          backgroundImage: `url(${movie.backdropUrl ?? movie.posterUrl})`,
+                        }
                       : { backgroundImage: fotogramaProcedural(movie.tmdbId) }
                   }
                 />
                 <span className="scrim absolute inset-0" />
 
                 <span
-                  className="text-papel/45 font-display absolute top-2 left-3 text-[10px]"
+                  className="text-papel/50 font-display absolute top-3 left-3 text-[11px]"
                   aria-hidden="true"
                 >
                   {String(i + 1).padStart(2, "0")}
                 </span>
 
-                <span className="text-papel font-display absolute right-3 bottom-2 left-3 line-clamp-2 text-left text-[13px] leading-[1.08] tracking-tight uppercase">
-                  {movie.title}
+                <span className="absolute inset-x-3 bottom-3">
+                  <span className="text-papel font-display line-clamp-2 block text-[13px] leading-[1.05] tracking-tight uppercase">
+                    {movie.title}
+                  </span>
+                  {movie.year && (
+                    <span
+                      className="coluna-ano text-papel/60 font-display mt-1 block text-[11px] tracking-[0.12em]"
+                      aria-hidden="true"
+                    >
+                      {movie.year}
+                    </span>
+                  )}
                 </span>
-              </button>
+              </Link>
             </li>
-          );
-        })}
-      </ul>
+          ))}
+        </ul>
 
-      <div className="perfuracao" aria-hidden="true" />
+        <div className="perfuracao" aria-hidden="true" />
+      </div>
+
+      {rola && (
+        <>
+          <Seta
+            lado="esquerda"
+            desabilitada={passo === 0}
+            aoClicar={() => setPasso((p) => Math.max(0, p - 1))}
+          />
+          <Seta
+            lado="direita"
+            desabilitada={passo >= ultimoPasso}
+            aoClicar={() => setPasso((p) => Math.min(ultimoPasso, p + 1))}
+          />
+        </>
+      )}
     </div>
+  );
+});
+
+/** Fora da moldura, sobre o papel: dentro dela a seta cairia em cima do
+ *  fotograma e disputaria a leitura com a imagem. */
+function Seta({
+  lado,
+  desabilitada,
+  aoClicar,
+}: {
+  lado: "esquerda" | "direita";
+  desabilitada: boolean;
+  aoClicar: () => void;
+}) {
+  const esquerda = lado === "esquerda";
+  return (
+    <button
+      type="button"
+      onClick={aoClicar}
+      disabled={desabilitada}
+      aria-label={esquerda ? "Filmes anteriores" : "Próximos filmes"}
+      className={`border-fio bg-papel text-tinta hover:border-acento hover:text-acento disabled:text-fio-forte absolute top-1/2 z-10 flex size-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border text-sm transition-colors disabled:cursor-default disabled:opacity-40 disabled:hover:border-[var(--color-fio)] ${
+        esquerda ? "-left-5" : "-right-5"
+      }`}
+    >
+      {esquerda ? "←" : "→"}
+    </button>
+  );
+}
+
+/**
+ * O filme em foco, por extenso. O `min-h` é o que trava a altura da página —
+ * sem ele voltaríamos ao defeito, só que um andar abaixo.
+ */
+function Legenda({ filme }: { filme: Movie }) {
+  const meta = [filme.director, filme.year, filme.runtime && `${filme.runtime} min`]
+    .filter(Boolean)
+    .join(" · ");
+
+  return (
+    <div className="border-fio mt-6 flex min-h-[12.5rem] flex-col gap-3 border-t pt-6">
+      <div className="flex items-start justify-between gap-8">
+        <div className="min-w-0">
+          <h3 className="font-display text-[clamp(1.6rem,2.6vw,2.4rem)] leading-[0.92] font-medium tracking-tight uppercase">
+            {filme.title}
+          </h3>
+          {meta && (
+            <p className="text-apoio mt-2 text-[11px] tracking-[0.08em] uppercase">{meta}</p>
+          )}
+        </div>
+
+        {/* Numeral grande e alinhado à direita, como a MUBI põe a nota: número
+            é dado, não rótulo, então ele tem corpo próprio. */}
+        {filme.imdbRating && (
+          <p className="font-display shrink-0 text-right leading-none">
+            <span className="text-[1.75rem] tabular-nums">{filme.imdbRating}</span>
+            <span className="text-apoio ml-1.5 text-[10px] tracking-[0.14em] uppercase">
+              IMDb
+            </span>
+          </p>
+        )}
+      </div>
+
+      {/* Três linhas, no máximo. O schema já limita `reason` a 220 caracteres,
+          mas quem garante a altura é o clamp — não a confiança no dado. */}
+      <p className="text-tinta/85 line-clamp-3 max-w-[68ch] text-[15px] leading-relaxed">
+        {filme.reason}
+      </p>
+
+      <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-2 pt-1">
+        {filme.ageRating && <Selo>{filme.ageRating}</Selo>}
+        {filme.genres.slice(0, 3).map((g) => (
+          <Selo key={g}>{g}</Selo>
+        ))}
+
+        <ProvedoresEmLinha providers={filme.providers} />
+
+        <span className="ml-auto flex items-center gap-5">
+          <Link
+            href={`/filme/${filme.tmdbId}`}
+            className="text-tinta hover:text-acento focus-visible:text-acento font-display text-[11px] font-bold tracking-[0.12em] uppercase transition-colors"
+          >
+            Ficha completa →
+          </Link>
+          <a
+            href={filme.tmdbUrl}
+            target="_blank"
+            rel="noreferrer"
+            data-cursor="abrir no TMDB"
+            className="text-apoio hover:text-acento focus-visible:text-acento font-display text-[11px] tracking-[0.12em] uppercase"
+          >
+            TMDB ↗
+          </a>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Provedores em UMA linha, só os logos.
+ *
+ * O bloco completo — rótulo por tipo, uma linha para cada — varia de uma a três
+ * linhas conforme o filme, e era o maior responsável por a altura pular. Aqui
+ * fica o reconhecimento imediato; o agrupamento por tipo, com "aluguel" e
+ * "compra" separados, continua inteiro na ficha.
+ */
+function ProvedoresEmLinha({ providers }: { providers: WatchProvider[] }) {
+  const vistos = new Set<string>();
+  const unicos = providers.filter((p) => {
+    if (vistos.has(p.name)) return false;
+    vistos.add(p.name);
+    return true;
+  });
+
+  // Ausência é informação, e aparece escrita: sumir sem explicação faz a pessoa
+  // achar que a página quebrou.
+  if (!unicos.length) {
+    return <span className="text-apoio text-[11px]">Sem streaming no Brasil</span>;
+  }
+
+  return (
+    <span className="flex items-center gap-1.5">
+      <span className="text-apoio font-display mr-1 text-[10px] tracking-[0.14em] uppercase">
+        Onde assistir
+      </span>
+      {unicos.slice(0, 6).map((p) => (
+        <Logo key={p.name} provedor={p} />
+      ))}
+      {unicos.length > 6 && (
+        <span className="text-apoio text-[11px]">+{unicos.length - 6}</span>
+      )}
+    </span>
   );
 }
 
@@ -266,16 +372,7 @@ function MesaDeMontagem({ movies, temHover, tocaTrailer }: Props) {
 // Celular e tablet: a pilha que já estava boa
 // ────────────────────────────────────────────────────────────────────────────
 
-function Pilha({ movies, temHover, tocaTrailer }: Props) {
-  const [abertoId, setAbertoId] = useState<number | null>(null);
-  const [comTrailer, setComTrailer] = useState<number | null>(null);
-
-  useEffect(() => {
-    if (abertoId == null) return;
-    const t = setTimeout(() => setComTrailer(abertoId), ESPERA_TRAILER_MS);
-    return () => clearTimeout(t);
-  }, [abertoId]);
-
+function Pilha({ movies }: Props) {
   return (
     // `-mx-6` desfaz o respiro lateral da página: na MUBI a imagem encosta na
     // borda, e dentro da margem ela ficava pequena demais (304 px de 390).
@@ -286,7 +383,6 @@ function Pilha({ movies, temHover, tocaTrailer }: Props) {
 
       <ul className="bg-profundo flex list-none flex-col overflow-visible">
         {movies.map((movie, i) => {
-          const aberto = abertoId === movie.tmdbId;
           const meta = [movie.director, movie.year, movie.runtime && `${movie.runtime} min`]
             .filter(Boolean)
             .join(" · ");
@@ -295,22 +391,16 @@ function Pilha({ movies, temHover, tocaTrailer }: Props) {
             <li
               key={movie.tmdbId}
               className="fotograma border-profundo relative w-full border-t-2 first:border-t-0"
-              data-aberto={aberto || undefined}
-              onMouseEnter={temHover ? () => setAbertoId(movie.tmdbId) : undefined}
-              onMouseLeave={temHover ? () => setAbertoId(null) : undefined}
             >
-              {/* Botão, e não link: a rota `/filme/{id}` nunca existiu, e o
-                  cartão apontar para 404 foi defeito real em produção. */}
-              <button
-                type="button"
-                aria-expanded={aberto}
-                aria-label={
-                  aberto ? `Parar o trailer de ${movie.title}` : `Ver o trailer de ${movie.title}`
-                }
-                data-cursor={aberto ? "parar" : "ver trailer"}
-                className="relative block aspect-video w-full cursor-pointer outline-none"
-                onClick={temHover ? undefined : () => setAbertoId(aberto ? null : movie.tmdbId)}
-                onFocus={() => setAbertoId(movie.tmdbId)}
+              {/* Link, e não botão: agora o gesto leva à ficha, e ficha é uma
+                  rota. O comentário antigo dizia que `/filme/{id}` "nunca
+                  existiu" — existe desde 03/09/2026, e é para lá que o trailer
+                  mudou. */}
+              <Link
+                href={`/filme/${movie.tmdbId}`}
+                data-cursor="ver ficha"
+                aria-label={`Ver a ficha de ${movie.title}`}
+                className="relative block aspect-video w-full outline-none"
               >
                 <span
                   className="absolute inset-0 bg-cover bg-center"
@@ -321,17 +411,6 @@ function Pilha({ movies, temHover, tocaTrailer }: Props) {
                   }
                 />
 
-                {aberto && comTrailer === movie.tmdbId && tocaTrailer && movie.trailerKey && (
-                  <span className="absolute inset-0 overflow-hidden">
-                    <iframe
-                      src={trailerEmbedUrl(movie.trailerKey)}
-                      title={`Trailer de ${movie.title}`}
-                      allow="autoplay; encrypted-media"
-                      className="pointer-events-none absolute inset-0 h-full w-full"
-                    />
-                  </span>
-                )}
-
                 <span className="scrim absolute inset-0" />
 
                 <span
@@ -340,17 +419,7 @@ function Pilha({ movies, temHover, tocaTrailer }: Props) {
                 >
                   {String(i + 1).padStart(2, "0")}
                 </span>
-
-                {movie.trailerKey && (
-                  <span
-                    className="text-papel/70 font-display absolute top-3 right-4 text-[10px] tracking-[0.14em] uppercase transition-opacity duration-300 data-[on]:opacity-0"
-                    data-on={aberto || undefined}
-                    aria-hidden="true"
-                  >
-                    ▶ trailer
-                  </span>
-                )}
-              </button>
+              </Link>
 
               <div className="bg-papel text-tinta flex flex-col gap-1.5 px-6 py-4">
                 <h3 className="font-display text-[clamp(1.15rem,4.5vw,1.5rem)] leading-[0.95] font-medium tracking-tight uppercase">
