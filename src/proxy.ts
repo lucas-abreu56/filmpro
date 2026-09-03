@@ -41,9 +41,15 @@ let invocacoes = 0;
 export function proxy(request: NextRequest) {
   invocacoes++;
 
-  if (!overLimit(clientIp(request.headers), MAX_POR_MINUTO)) {
+  const chave = clientIp(request.headers);
+  const passou = !overLimit(chave, MAX_POR_MINUTO);
+
+  if (passou) {
     const res = NextResponse.next();
-    res.headers.set("x-freio-inst", String(invocacoes));
+    res.headers.set(
+      "x-freio-inst",
+      `inv=${invocacoes} chave=${chave} xff=${request.headers.get("x-forwarded-for") ?? "(ausente)"}`,
+    );
     return res;
   }
 
