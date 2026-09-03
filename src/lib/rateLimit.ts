@@ -19,9 +19,14 @@ let lastSweep = Date.now();
  * O `x-forwarded-for` chega como lista ("cliente, proxy1, proxy2"). Usar a
  * string inteira como chave faria cada cadeia de proxy virar um balde novo,
  * então só a primeira entrada conta.
+ *
+ * Recebe os headers, e não a `Request`: o `proxy.ts` também precisa disto, e
+ * o tipo estrutural evita arrastar `NextRequest` para dentro de `lib/`.
  */
-export function clientIp(request: Request): string {
-  const forwarded = request.headers.get("x-forwarded-for") ?? "";
+export function clientIp(headers: {
+  get(name: string): string | null;
+}): string {
+  const forwarded = headers.get("x-forwarded-for") ?? "";
   return forwarded.split(",")[0].trim() || "desconhecido";
 }
 

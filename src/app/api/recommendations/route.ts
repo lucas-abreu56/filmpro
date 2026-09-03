@@ -36,7 +36,7 @@ const MAX_POR_MINUTO = 5;
 
 export async function POST(request: Request) {
   try {
-    if (overLimit(clientIp(request), MAX_POR_MINUTO)) {
+    if (overLimit(clientIp(request.headers), MAX_POR_MINUTO)) {
       return NextResponse.json(
         { error: "Muitas buscas seguidas. Espere um minuto e tente de novo." },
         { status: 429 },
