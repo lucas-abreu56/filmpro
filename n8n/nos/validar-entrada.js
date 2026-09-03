@@ -13,7 +13,15 @@ const texto = preferences.slice(0, 500);
 // diferente e um acerto que nunca acontece. A ordem importa — o trim vem
 // ANTES de tirar a pontuacao final, senao 'anos 90!' e 'anos 90! ' geram
 // hashes distintos. Isso ja foi pego por teste uma vez.
-const INVISIVEL = /[​-‍﻿⁠]/g;
+//
+// Os invisiveis sao declarados por NUMERO, nao escritos como caractere. Foi a
+// invisibilidade que deixou o U+00AD existir so do lado do TypeScript sem
+// ninguem notar: ninguem confere a olho o que nao se ve. Por numero, a lista
+// se le, se compara com a do outro lado, e atravessa qualquer serializacao.
+var INVISIVEIS = [0x200b, 0x200c, 0x200d, 0x2060, 0xfeff, 0x00ad];
+var INVISIVEL = new RegExp('[' + INVISIVEIS.map(function (c) {
+  return String.fromCharCode(c);
+}).join('') + ']', 'g');
 const queryNorm = texto
   .normalize('NFC')
   .toLowerCase()
@@ -30,7 +38,12 @@ const queryNorm = texto
 // v4 (02/09/2026): as v2 e v3 gravaram listas genericas porque o agente
 // recebia o pedido VAZIO — o no Postgres do cache substituia o item antes
 // dele. Cache envenenado e pior que cache frio: serve o erro por 30 dias.
-const promptVersion = 4;
+//
+// v5 (02/09/2026): a v4 escrevia reason SEM ACENTO NENHUM — "psicologico",
+// "decada", "nao" — em 4 de 4 filmes conferidos no cache. O prompt pedia
+// portugues mas nunca exigia acentuacao, e o modelo usou a brecha. Num
+// produto cujo diferencial e o texto, isso e defeito de primeira ordem.
+const promptVersion = 5;
 
 return [{ json: {
   preferences: texto,

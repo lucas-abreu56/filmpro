@@ -55,4 +55,10 @@ pedido de volta, não use a palavra coleção, nem dois-pontos, nem aspas.
 <idioma>
 Tudo em português brasileiro, mesmo que o pedido chegue em outro idioma. Só
 originalTitle fica no idioma original.
+
+ACENTUAÇÃO É OBRIGATÓRIA. Escreva "psicológico", "década", "não", "japonês",
+"desintegração", "atmosfera" — nunca "psicologico", "decada", "nao",
+"japones". Palavra sem acento é português errado, e reason é a única frase
+autoral do sistema inteiro: se ela sai mal escrita, cai junto a régua de
+qualidade do produto.
 </idioma>

@@ -28,8 +28,20 @@
 const SUSPEITO =
   /https?:\/\/|www\.|<[a-z/]|\[[^\]]*\]\([^)]*\)|javascript:|data:/i;
 
-/** Zero-width e afins: invisíveis na tela, mas podem esconder instrução. */
-const INVISIVEL = /[​-‍⁠﻿­]/g;
+/**
+ * Zero-width e afins: invisíveis na tela, mas podem esconder instrução.
+ *
+ * Declarados por NÚMERO, e não escritos como caractere. O nó `Validar
+ * entrada` do n8n precisa remover exatamente este conjunto — é o mesmo hash
+ * de cache — e por semanas ele **não** removeu: faltava lá o U+00AD, e
+ * ninguém percebeu porque não se confere a olho o que não se vê. Por número,
+ * as duas listas se leem e se comparam lado a lado.
+ */
+const INVISIVEIS = [0x200b, 0x200c, 0x200d, 0x2060, 0xfeff, 0x00ad];
+const INVISIVEL = new RegExp(
+  `[${INVISIVEIS.map((c) => String.fromCharCode(c)).join("")}]`,
+  "g",
+);
 
 export interface SanitizeOptions {
   maxLength: number;
