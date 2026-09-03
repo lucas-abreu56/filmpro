@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 import { clientIp, overLimit } from "@/lib/rateLimit";
@@ -33,8 +34,18 @@ import { clientIp, overLimit } from "@/lib/rateLimit";
  *  primeira dúzia de ids. */
 const MAX_POR_MINUTO = 30;
 
+// DIAGNÓSTICO TEMPORÁRIO — remover. Conta invocações nesta instância para
+// descobrir se a memória de módulo sobrevive entre requisições na Vercel.
+let invocacoes = 0;
+
 export function proxy(request: NextRequest) {
-  if (!overLimit(clientIp(request.headers), MAX_POR_MINUTO)) return;
+  invocacoes++;
+
+  if (!overLimit(clientIp(request.headers), MAX_POR_MINUTO)) {
+    const res = NextResponse.next();
+    res.headers.set("x-freio-inst", String(invocacoes));
+    return res;
+  }
 
   // `Retry-After` não é enfeite: é o que um robô que se comporta lê para
   // recuar. Texto puro porque, na prática, só robô chega aqui.
