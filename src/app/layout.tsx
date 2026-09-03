@@ -29,7 +29,13 @@ export const metadata: Metadata = {
     "Descreva o que você quer assistir. Um agente de IA cura a lista e explica cada escolha; pôster, nota e onde assistir vêm do TMDB.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+  modal,
+}: {
+  children: React.ReactNode;
+  modal: React.ReactNode;
+}) {
   return (
     <html
       lang="pt-BR"
@@ -41,6 +47,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <div className="grao" aria-hidden="true" />
         <Cursor />
         {children}
+        {modal}
       </body>
     </html>
   );

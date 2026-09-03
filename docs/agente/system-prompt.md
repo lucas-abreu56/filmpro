@@ -15,14 +15,13 @@ Este arquivo existe para ser revisável, não para ser backup.
 entra no hash do cache; sem incrementar, o cache segue servindo respostas
 geradas pelo prompt antigo.
 
-`prompt_version` atual: **2**
+`prompt_version` atual: **6**
 
-> **02/09/2026 — v2.** O prompt encolheu ~45%. O tier gratuito do Groq dá
-> 8.000 tokens por minuto e cada chamada pedia ~3.300; prompt menor é mais
-> requisição por minuto. **Nenhuma regra saiu — saiu repetição.** O texto
-> publicado vive em [`n8n/filmpro-recomendacoes.ts`](../../n8n/filmpro-recomendacoes.ts),
-> em `SYSTEM_MESSAGE`; a versão abaixo é a v1, mantida como registro do que
-> foi cortado.
+> **03/09/2026 — v6.** O modelo principal passou para `gemini-3.1-flash-lite`,
+> cortando a busca fria de ~63 s para ~10 s. A folga subiu de `+2` para `+4`
+> (`pedir: limit + 4`), garantindo a lista completa mesmo com descartes de
+> verificação. Acentuação no português é mandatória. O texto publicado do prompt
+> vive em [`n8n/nos/curador.prompt.md`](../../n8n/nos/curador.prompt.md).
 
 ---
 
@@ -35,10 +34,10 @@ concatenado direto nas instruções):
 
 ```
 <pedido_do_usuario>
-{{ $json.body.preferences }}
+{{ $('Validar entrada').first().json.preferences }}
 </pedido_do_usuario>
 
-Monte {{ $json.body.limit + 2 }} recomendações.
+Monte {{ $('Validar entrada').first().json.pedir }} recomendações.
 ```
 
 ---

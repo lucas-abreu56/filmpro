@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 import { fotogramaProcedural } from "@/lib/mock";
 import { trailerEmbedUrl } from "@/lib/tmdb";
@@ -198,15 +199,24 @@ function MesaDeMontagem({ movies, temHover, tocaTrailer }: Props) {
 
           <OndeAssistir providers={filme.providers} fetchedAt={filme.fetchedAt} />
 
-          <a
-            href={filme.tmdbUrl}
-            target="_blank"
-            rel="noreferrer"
-            data-cursor="abrir no TMDB"
-            className="text-apoio hover:text-acento focus-visible:text-acento font-display mt-auto self-start pt-2 text-[11px] tracking-[0.12em] uppercase"
-          >
-            Ficha no TMDB ↗
-          </a>
+          <div className="mt-auto flex items-center justify-between pt-2">
+            <Link
+              href={`/filme/${filme.tmdbId}`}
+              className="text-tinta hover:text-acento focus-visible:text-acento font-display text-[11px] font-bold tracking-[0.12em] uppercase transition-colors"
+            >
+              Ficha Completa
+            </Link>
+
+            <a
+              href={filme.tmdbUrl}
+              target="_blank"
+              rel="noreferrer"
+              data-cursor="abrir no TMDB"
+              className="text-apoio hover:text-acento focus-visible:text-acento font-display text-[11px] tracking-[0.12em] uppercase"
+            >
+              TMDB ↗
+            </a>
+          </div>
         </div>
       </div>
 
@@ -372,15 +382,24 @@ function Pilha({ movies, temHover, tocaTrailer }: Props) {
                     <Selo key={g}>{g}</Selo>
                   ))}
                   {movie.imdbRating && <Selo>{`IMDb ${movie.imdbRating}`}</Selo>}
-                  <a
-                    href={movie.tmdbUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    data-cursor="abrir no TMDB"
-                    className="text-apoio hover:text-acento focus-visible:text-acento font-display ml-auto text-[11px] tracking-[0.12em] uppercase"
-                  >
-                    TMDB ↗
-                  </a>
+                  
+                  <div className="ml-auto flex items-center gap-4">
+                    <Link
+                      href={`/filme/${movie.tmdbId}`}
+                      className="text-tinta hover:text-acento focus-visible:text-acento font-display text-[11px] font-bold tracking-[0.12em] uppercase transition-colors"
+                    >
+                      Ficha
+                    </Link>
+                    <a
+                      href={movie.tmdbUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      data-cursor="abrir no TMDB"
+                      className="text-apoio hover:text-acento focus-visible:text-acento font-display text-[11px] tracking-[0.12em] uppercase"
+                    >
+                      TMDB ↗
+                    </a>
+                  </div>
                 </div>
               </div>
             </li>
@@ -420,7 +439,7 @@ const TIPOS: { tipo: ProviderType; rotulo: string }[] = [
  * Isso aparece escrito, e não como um espaço vazio: some sem explicação é o
  * tipo de silêncio que faz a pessoa achar que a página quebrou.
  */
-function OndeAssistir({
+export function OndeAssistir({
   providers,
   fetchedAt,
 }: {

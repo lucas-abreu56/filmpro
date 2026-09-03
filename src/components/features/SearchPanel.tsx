@@ -1,7 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
-
+import { useRef, useState, useEffect } from "react";
 
 import AquecerTrailer from "@/components/features/AquecerTrailer";
 import FilmStrip from "@/components/features/FilmStrip";
@@ -9,6 +8,7 @@ import Loader from "@/components/features/Loader";
 import { EXEMPLOS } from "@/lib/exemplos";
 import { RESPOSTA_FALSA } from "@/lib/mock";
 import { LIMITS, type RecommendationsResponse } from "@/lib/types";
+import { useMovieStore } from "@/lib/store";
 
 /** Sem workflow no n8n, `NEXT_PUBLIC_FILMPRO_MOCK=1` faz a interface rodar com
  *  dados falsos. Não afeta produção: a variável não existe lá. */
@@ -27,6 +27,16 @@ export default function SearchPanel() {
    *  quente do trailer e nunca desliga — ver `AquecerTrailer`. */
   const [pretende, setPretende] = useState(false);
   const areaRef = useRef<HTMLTextAreaElement>(null);
+
+  const setMovies = useMovieStore((state) => state.setMovies);
+
+  // Guarda no store global sempre que os dados ficam prontos,
+  // permitindo que o Modal de ficha do filme seja instantâneo.
+  useEffect(() => {
+    if (estado.fase === "pronto") {
+      setMovies(estado.dados.movies);
+    }
+  }, [estado, setMovies]);
 
   const curto = texto.trim().length < LIMITS.MIN_PREFERENCES;
   const buscando = estado.fase === "buscando";
