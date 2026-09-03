@@ -6,6 +6,7 @@ import Link from "next/link";
 import { fotogramaProcedural } from "@/lib/mock";
 import { trailerEmbedUrl } from "@/lib/tmdb";
 import type { Movie, ProviderType, WatchProvider } from "@/lib/types";
+import { useMedia } from "@/lib/useMedia";
 
 /**
  * A tira de filme.
@@ -43,18 +44,6 @@ const ESPERA_TRAILER_MS = 220;
 
 /** Abaixo disto a projeção não tem largura para existir, e a pilha é melhor. */
 const MESA = "(min-width: 64rem)";
-
-function useMedia(consulta: string) {
-  const [bate, setBate] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia(consulta);
-    const aplica = () => setBate(mq.matches);
-    aplica();
-    mq.addEventListener("change", aplica);
-    return () => mq.removeEventListener("change", aplica);
-  }, [consulta]);
-  return bate;
-}
 
 export default function FilmStrip({ movies }: { movies: Movie[] }) {
   /** Começa `false` (o caso do toque) porque no servidor não há `matchMedia`.

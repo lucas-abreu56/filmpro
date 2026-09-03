@@ -183,6 +183,29 @@ body {
   animation: cintila 1.6s linear infinite;
 }
 
+/* A ficha entra por cima da tira. A animação vive aqui e não em classe do
+   Tailwind: `animate-in`/`fade-in-0` vêm do plugin tailwindcss-animate, que
+   este projeto não instala — escritas no JSX elas não davam erro, só não
+   faziam nada. O bloco de prefers-reduced-motion logo abaixo já as neutraliza
+   para quem pediu menos movimento. */
+@keyframes veu-entra {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes ficha-entra {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.99);
+  }
+}
+.veu-entra {
+  animation: veu-entra 180ms ease-out;
+}
+.ficha-entra {
+  animation: ficha-entra 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 ::-webkit-scrollbar {
   width: 10px;
 }

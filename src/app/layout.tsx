@@ -29,13 +29,11 @@ export const metadata: Metadata = {
     "Descreva o que você quer assistir. Um agente de IA cura a lista e explica cada escolha; pôster, nota e onde assistir vêm do TMDB.",
 };
 
-export default function RootLayout({
-  children,
-  modal,
-}: {
-  children: React.ReactNode;
-  modal: React.ReactNode;
-}) {
+// `LayoutProps<"/">` é gerado pelo Next a partir das rotas que existem de
+// verdade: o slot `@modal` entra ali sozinho (ver `LayoutSlots` em
+// `.next/types/routes.d.ts`). Escrever o tipo à mão compila igual hoje e
+// mente amanhã — renomear a pasta do slot passaria batido pelo TypeScript.
+export default function RootLayout({ children, modal }: LayoutProps<"/">) {
   return (
     <html
       lang="pt-BR"

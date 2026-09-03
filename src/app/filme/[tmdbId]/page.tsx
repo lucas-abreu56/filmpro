@@ -1,66 +1,90 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
+
 import MovieDetail from "@/components/features/MovieDetail";
 import { type Movie } from "@/lib/types";
-import Link from "next/link";
 
 /**
- * Este webhook será chamado quando o usuário acessar a URL /filme/123 diretamente.
- * Como o Next.js não fala com o Postgres, o n8n vai servir como ponte (leitura rápida).
+ * A ficha por link direto — sem modal e sem store: refresh em cima do modal,
+ * URL colada no WhatsApp, robô de indexação.
+ *
+ * O Next não fala com o Postgres (regra do projeto: credencial de banco vive
+ * só no n8n), então quem lê a tabela é um webhook dedicado, sem LLM e sem
+ * TMDB. Contrato de saída idêntico ao de `/api/recommendations`: o mapeamento
+ * de coluna para `Movie` acontece lá, no nó `Montar filme`.
  */
-const WEBHOOK_URL = process.env.N8N_FILMPRO_MOVIE_WEBHOOK ?? "https://<seu-n8n>/webhook/filmpro/movie";
+const WEBHOOK_URL =
+  process.env.N8N_FILMPRO_MOVIE_WEBHOOK ??
+  "https://<seu-n8n>/webhook/filmpro/movie";
 
-async function getMovieFromN8n(tmdbId: string): Promise<Movie | null> {
-  // Se estivermos em dev mock, ou se o n8n ainda não estiver pronto,
-  // vamos falhar de forma gracefully.
-  const isMock = process.env.NEXT_PUBLIC_FILMPRO_MOCK === "1";
-  if (isMock) {
-    // Retorna do mock falso para testar a interface
+/** Os fatos de um filme mudam pouco — a tabela `movies` já tem TTL de 90 dias
+ *  do lado do n8n. Uma semana aqui na frente evita ida ao VPS a cada visita. */
+const REVALIDA_S = 604_800;
+
+async function buscarFilme(tmdbId: string): Promise<Movie | null> {
+  if (process.env.NEXT_PUBLIC_FILMPRO_MOCK === "1") {
     const { RESPOSTA_FALSA } = await import("@/lib/mock");
-    return RESPOSTA_FALSA.movies.find((m) => m.tmdbId === Number(tmdbId)) || null;
+    return (
+      RESPOSTA_FALSA.movies.find((m) => m.tmdbId === Number(tmdbId)) ?? null
+    );
+  }
+
+  // Mesma postura do route handler: sem chave, reclame no log em vez de
+  // mandar header vazio e receber um 403 que parece problema do n8n.
+  const apiKey = process.env.N8N_API_KEY;
+  if (!apiKey) {
+    console.error("N8N_API_KEY não está definida nas variáveis de ambiente");
+    return null;
   }
 
   try {
-    const apiKey = process.env.N8N_API_KEY || "";
-    const res = await fetch(`${WEBHOOK_URL}?id=${tmdbId}`, {
-      headers: { "x-api-key": apiKey },
-      // Cache de 7 dias. Na arquitetura sem DB, cacheamos pesado para anular 
-      // a latência natural de ~200ms do n8n.
-      next: { revalidate: 604800 },
-    });
+    const res = await fetch(
+      `${WEBHOOK_URL}?id=${encodeURIComponent(tmdbId)}`,
+      {
+        headers: { "x-api-key": apiKey },
+        next: { revalidate: REVALIDA_S },
+      },
+    );
 
+    // 404 é resposta legítima do webhook (id que não existe, ou id torto que
+    // ele normalizou para zero) — não é falha, e não vai para o log.
+    if (res.status === 404) return null;
     if (!res.ok) {
-      if (res.status === 404) return null;
-      console.error(`Erro no webhook standalone do n8n: ${res.status}`);
+      console.error(`Webhook de filme respondeu ${res.status}`);
       return null;
     }
-
-    const data = await res.json();
-    return data as Movie;
+    return (await res.json()) as Movie;
   } catch (err) {
-    console.error("Erro de fetch standalone:", err);
+    console.error("Falha ao buscar filme no webhook:", err);
     return null;
   }
 }
 
-export default async function MoviePage(props: {
-  params: Promise<{ tmdbId: string }>;
-}) {
-  const params = await props.params;
-  const movie = await getMovieFromN8n(params.tmdbId);
+export async function generateMetadata(props: PageProps<"/filme/[tmdbId]">) {
+  const { tmdbId } = await props.params;
+  const movie = await buscarFilme(tmdbId);
+  if (!movie) return { title: "Filme não encontrado — FilmPro" };
+  return {
+    title: `${movie.title} — FilmPro`,
+    description: movie.overview ?? undefined,
+  };
+}
 
-  if (!movie) {
-    return notFound();
-  }
+export default async function MoviePage(props: PageProps<"/filme/[tmdbId]">) {
+  const { tmdbId } = await props.params;
+  const movie = await buscarFilme(tmdbId);
+
+  if (!movie) notFound();
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col py-16 px-6 sm:py-24">
+    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-6 py-16 sm:py-24">
       <Link
         href="/"
-        className="text-apoio hover:text-acento font-display mb-8 text-xs tracking-[0.16em] uppercase transition-colors"
+        className="text-apoio hover:text-acento focus-visible:text-acento font-display mb-8 text-xs tracking-[0.16em] uppercase transition-colors"
       >
         ← Voltar para a busca
       </Link>
-      <div className="bg-papel rounded shadow-sm border border-fio overflow-hidden">
+      <div className="bg-papel border-fio overflow-hidden rounded border shadow-sm">
         <MovieDetail movie={movie} />
       </div>
     </main>

@@ -1,40 +1,49 @@
 "use client";
 
-import { type Movie } from "@/lib/types";
-import { trailerEmbedUrl } from "@/lib/tmdb";
 import { OndeAssistir } from "@/components/features/FilmStrip";
+import { trailerEmbedUrl } from "@/lib/tmdb";
+import { type Movie } from "@/lib/types";
+import { useMedia } from "@/lib/useMedia";
 
+/**
+ * A ficha do filme. Serve os dois caminhos sem saber em qual está: dentro do
+ * modal interceptado (dados do store) e na página `/filme/[tmdbId]` (dados do
+ * webhook standalone). O contrato `Movie` é o mesmo nos dois, e é por isso que
+ * este componente não precisa de variante.
+ */
 export default function MovieDetail({ movie }: { movie: Movie }) {
+  // A tira já respeita isto para o trailer, e a ficha precisa respeitar
+  // igual — senão o mesmo trailer que a home se recusa a tocar começa
+  // sozinho, com som mudo mas em loop, a um clique de distância.
+  const semMovimento = useMedia("(prefers-reduced-motion: reduce)");
+
   return (
     <div className="flex max-h-full min-h-0 flex-col overflow-y-auto sm:flex-row">
-      {/* Coluna da Esquerda: Pôster ou Trailer (se houver) */}
-      <div className="bg-tinta flex-shrink-0 sm:w-1/3 md:w-2/5">
-        {movie.trailerKey ? (
-          <div className="aspect-video w-full sm:aspect-[2/3] sm:h-full sm:w-auto relative">
-            {/* O iframe do trailer pode ficar como um recorte ou ocupar a área.
-                Para ficar elegante, vamos colocar o poster como fallback, mas 
-                se tiver trailerKey, renderizamos o iframe no topo (mobile) ou
-                na metade de cima (desktop). */}
-            <iframe
-              src={trailerEmbedUrl(movie.trailerKey, { autoplay: true, loop: true })}
-              title={`Trailer de ${movie.title}`}
-              allow="autoplay; encrypted-media"
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-          </div>
-        ) : (
-          <div
-            className="aspect-[2/3] w-full bg-cover bg-center"
-            style={
-              movie.posterUrl
-                ? { backgroundImage: `url(${movie.posterUrl})` }
-                : { backgroundColor: "#1c1c1c" }
-            }
+      {/* Pôster, com o trailer por cima quando há um e o movimento é bem-vindo.
+          O pôster fica montado por baixo nos dois casos: é o que preenche a
+          coluna enquanto o player do YouTube ainda não pintou nada. */}
+      <div className="bg-tinta relative flex-shrink-0 sm:w-1/3 md:w-2/5">
+        <div
+          className="aspect-[2/3] w-full bg-cover bg-center sm:h-full"
+          style={
+            movie.posterUrl
+              ? { backgroundImage: `url(${movie.posterUrl})` }
+              : undefined
+          }
+        />
+        {!semMovimento && movie.trailerKey && (
+          <iframe
+            src={trailerEmbedUrl(movie.trailerKey, {
+              autoplay: true,
+              loop: true,
+            })}
+            title={`Trailer de ${movie.title}`}
+            allow="autoplay; encrypted-media"
+            className="absolute inset-0 h-full w-full"
           />
         )}
       </div>
 
-      {/* Coluna da Direita: Informações */}
       <div className="flex flex-col gap-6 p-6 sm:p-10 md:p-12">
         <header>
           <h2 className="font-display text-[clamp(2rem,6vw,3.5rem)] leading-[0.9] font-medium tracking-tight uppercase">
@@ -60,13 +69,21 @@ export default function MovieDetail({ movie }: { movie: Movie }) {
         </header>
 
         <div className="grid gap-8 md:grid-cols-2">
-          {/* A tese do projeto: Por que este filme vs Sinopse */}
-          <section>
-            <h3 className="text-acento font-display mb-2 text-[11px] tracking-[0.16em] uppercase">
-              Por que este filme
-            </h3>
-            <p className="text-tinta/90 text-sm leading-relaxed">{movie.reason}</p>
-          </section>
+          {/* A tese do projeto fica aqui — mas só quando existe curadoria de
+              verdade. `reason` é escrito para UMA busca e vem do L1; num link
+              direto para um filme cuja busca já expirou não há texto nenhum, e
+              a seção some. Inventar frase de curador seria mentir justamente
+              no campo que o produto vende. */}
+          {movie.reason && (
+            <section>
+              <h3 className="text-acento font-display mb-2 text-[11px] tracking-[0.16em] uppercase">
+                Por que este filme
+              </h3>
+              <p className="text-tinta/90 text-sm leading-relaxed">
+                {movie.reason}
+              </p>
+            </section>
+          )}
 
           <section>
             <h3 className="text-apoio font-display mb-2 text-[11px] tracking-[0.16em] uppercase">

@@ -1,0 +1,80 @@
+{
+  "id": "H494wB7YvKU25gOq",
+  "name": "FilmPro — Filme Standalone",
+  "active": true,
+  "versionId": "1a3af423-8328-41d2-bff4-a0a17fc389ea",
+  "activeVersionId": "1a3af423-8328-41d2-bff4-a0a17fc389ea",
+  "description": "Serve UM filme ja no banco para a rota /filme/[tmdbId] do Next quando nao ha modal (link direto, refresh, indexacao). Sem LLM e sem TMDB: le movies, e pega o reason mais recente em search_cache.picks. Contrato de saida = Movie de src/lib/types.ts.",
+  "settings": { "executionOrder": "v1", "availableInMCP": true },
+  "connections": {
+    "Webhook": { "main": [[{ "node": "Validar id", "type": "main", "index": 0 }]] },
+    "Validar id": { "main": [[{ "node": "Buscar filme", "type": "main", "index": 0 }]] },
+    "Buscar filme": { "main": [[{ "node": "Montar filme", "type": "main", "index": 0 }]] },
+    "Montar filme": { "main": [[{ "node": "Responder", "type": "main", "index": 0 }]] }
+  },
+  "nodes": [
+    {
+      "id": "ba0075a8-d0fb-4417-bae7-f14c7f15c4e8",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [0, 0],
+      "webhookId": "573c8c5c-49b3-407d-8281-a67624ce6289",
+      "parameters": {
+        "authentication": "headerAuth",
+        "httpMethod": "GET",
+        "options": {},
+        "path": "filmpro/movie",
+        "responseMode": "responseNode"
+      }
+    },
+    {
+      "id": "a9350d6f-df99-40d6-afbd-219dfe0a15b1",
+      "name": "Validar id",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [224, 0],
+      "parameters": {
+        "jsCode": "// O id chega da query string de um webhook PUBLICO. So pode ser inteiro\n// positivo; qualquer outra coisa vira 0, que nao casa com linha nenhuma e\n// termina em 404 honesto. A defesa de verdade contra injecao e o $1\n// parametrizado no no seguinte — isto aqui e o cinto de seguranca.\n//\n// Ate 03/09/2026 este workflow concatenava o valor cru dentro do SELECT.\nconst bruto = ($input.first().json.query || {}).id;\nconst n = Number(bruto);\nconst tmdbId = Number.isInteger(n) && n > 0 && n <= 2147483647 ? n : 0;\n\nreturn [{ json: { tmdbId: tmdbId } }];"
+      }
+    },
+    {
+      "id": "f8edb7a0-8b30-45d1-a02a-867fcc9e942b",
+      "name": "Buscar filme",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [448, 0],
+      "alwaysOutputData": true,
+      "parameters": {
+        "operation": "executeQuery",
+        "options": { "queryReplacement": "={{ $json.tmdbId }}" },
+        "query": "-- Rota standalone: /filme/[tmdbId] quando nao ha modal — link direto, refresh\n-- em cima do modal, robo de indexacao.\n--\n-- O id entra por $1. NUNCA por concatenacao: este webhook e publico e o valor\n-- vem da query string. A versao de 03/09/2026 montava a string na mao, o que\n-- era injecao de SQL direta.\n--\n-- Os nomes aqui sao os da TABELA, nao os do contrato TypeScript. A versao\n-- anterior pedia tmdb_url, year, poster_url, backdrop_url, logo_url, crew,\n-- collection, similar e reason — nenhuma dessas colunas existe, e por isso o\n-- webhook devolvia 500 em toda chamada. `similar` ainda por cima e palavra\n-- reservada (SIMILAR TO). Traduzir para camelCase e montar URL e apresentacao,\n-- e vive no no 'Montar filme'.\nSELECT\n  m.tmdb_id, m.imdb_id, m.title, m.original_title, m.release_year,\n  m.tagline, m.overview, m.poster_path, m.backdrop_path, m.logo_path,\n  m.rating, m.vote_count, m.imdb_rating, m.imdb_votes, m.awards, m.runtime,\n  m.genres, m.keywords, m.original_language, m.spoken_languages,\n  m.age_rating, m.director, m.cast_members, m.crew_members,\n  m.collection_name, m.similar_movies, m.providers, m.trailer_key,\n  m.fetched_at,\n  -- `reason` NAO e fato do filme e nao existe em movies: e curadoria escrita\n  -- para UMA busca, e mora em search_cache.picks. Pegamos a mais recente que\n  -- citou este filme. Pode nao haver nenhuma (filme que entrou no L2 mas cuja\n  -- busca ja saiu do L1) — ai volta NULL, e a ficha esconde a secao em vez de\n  -- inventar texto de curador.\n  c.reason\nFROM movies m\nLEFT JOIN LATERAL (\n  SELECT p->>'reason' AS reason\n    FROM search_cache sc,\n         LATERAL jsonb_array_elements(sc.picks) AS p\n   -- Comparacao como texto, e nao ::int: picks e jsonb escrito por outro no, e\n   -- um valor torto ali derrubaria a consulta inteira com erro de cast.\n   WHERE p->>'tmdb_id' = m.tmdb_id::text\n     AND nullif(btrim(coalesce(p->>'reason', '')), '') IS NOT NULL\n   ORDER BY sc.created_at DESC\n   LIMIT 1\n) c ON true\nWHERE m.tmdb_id = $1"
+      }
+    },
+    {
+      "id": "ba288908-838d-42b9-a715-1bd34c4bb8f4",
+      "name": "Montar filme",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [672, 0],
+      "parameters": {
+        "jsCode": "// Apresentacao, e so isso — o gemeo de 'Montar resposta' do workflow\n// principal, para um filme so. Recebe UMA linha de movies (mais o reason do\n// LATERAL) e devolve exatamente o contrato `Movie` de src/lib/types.ts.\n//\n// Se os dois divergirem, a ficha standalone quebra EM SILENCIO: o React\n// renderiza undefined sem reclamar, e `genres.map` de undefined derruba a\n// pagina inteira. A versao de 03/09/2026 nao tinha este no — devolvia a linha\n// crua, com poster_path onde a UI esperava posterUrl.\nconst IMG = 'https://image.tmdb.org/t/p/';\n\n// Espelha src/lib/sanitize.ts e o 'Montar resposta'. O reason e a unica coisa\n// escrita por modelo que chega a ser renderizada, entao e a unica superficie\n// de injecao que sobra. Invisiveis por NUMERO, nunca escritos como caractere.\nconst PROIBIDO = /https?:\\/\\/|www\\.|<[a-z\\/]|\\[[^\\]]*\\]\\([^)]*\\)|javascript:|data:/i;\nconst PROIBIDO_INVISIVEL = [0x200b, 0x200c, 0x200d, 0x2060, 0xfeff, 0x00ad];\nconst INVISIVEL = new RegExp('[' + PROIBIDO_INVISIVEL.map(function (c) {\n  return String.fromCharCode(c);\n}).join('') + ']', 'g');\nfunction limpar(t, max) {\n  const s = String(t == null ? '' : t).replace(INVISIVEL, '').trim();\n  if (!s || PROIBIDO.test(s)) return null;\n  return s.slice(0, max);\n}\n\nfunction url(base, caminho) { return caminho ? IMG + base + caminho : null; }\n// NUMERIC volta como string do no Postgres (largeNumbersOutput = text por\n// padrao). Sem o Number(), rating viraria \"8.3\" e a UI compararia string.\nfunction num(v) { return v == null ? null : Number(v); }\n\n// 'Buscar filme' tem alwaysOutputData ligado. Sem isso, zero linhas fariam o\n// n8n pular este no E o Responder junto, e o webhook ficaria pendurado ate o\n// timeout em vez de devolver 404.\nconst d = $input.first().json || {};\nif (d.tmdb_id == null) {\n  return [{ json: { encontrado: false } }];\n}\n\nreturn [{ json: { encontrado: true, filme: {\n  tmdbId: d.tmdb_id,\n  tmdbUrl: 'https://www.themoviedb.org/movie/' + d.tmdb_id,\n  imdbId: d.imdb_id || null,\n  title: d.title,\n  originalTitle: d.original_title || null,\n  year: num(d.release_year),\n  tagline: d.tagline || null,\n  overview: d.overview || null,\n  posterUrl: url('w500', d.poster_path),\n  backdropUrl: url('w1280', d.backdrop_path),\n  logoUrl: url('w300', d.logo_path),\n  trailerKey: d.trailer_key || null,\n  rating: num(d.rating),\n  voteCount: num(d.vote_count),\n  imdbRating: num(d.imdb_rating),\n  imdbVotes: num(d.imdb_votes),\n  awards: d.awards || null,\n  runtime: num(d.runtime),\n  genres: d.genres || [],\n  keywords: d.keywords || [],\n  originalLanguage: d.original_language || null,\n  spokenLanguages: d.spoken_languages || [],\n  ageRating: d.age_rating || null,\n  director: d.director || null,\n  cast: (d.cast_members || []).map(function (a) {\n    return { name: a.name, character: a.character || null, profileUrl: url('w185', a.profile_path) };\n  }),\n  crew: (d.crew_members || []).map(function (c) {\n    return { name: c.name, role: c.role, profileUrl: url('w185', c.profile_path) };\n  }),\n  collection: d.collection_name || null,\n  similar: (d.similar_movies || []).map(function (r) {\n    return {\n      tmdbId: r.tmdb_id, title: r.title, year: num(r.year),\n      backdropUrl: url('w780', r.backdrop_path),\n      posterUrl: url('w342', r.poster_path),\n      director: null,\n    };\n  }),\n  providers: (d.providers || []).map(function (p) {\n    return { type: p.type, name: p.name, logoUrl: url('w92', p.logo_path) };\n  }),\n  fetchedAt: d.fetched_at ? new Date(d.fetched_at).toISOString() : new Date().toISOString(),\n  // Sem fallback generico, ao contrario de 'Montar resposta'. La sempre houve\n  // um pedido do usuario para justificar; aqui pode nao haver curadoria\n  // nenhuma, e a ficha esconde a secao. Texto inventado seria pior que secao\n  // ausente num produto cujo diferencial e justamente o texto.\n  reason: limpar(d.reason, 220),\n} } }];"
+      }
+    },
+    {
+      "id": "b788d7e5-132b-4889-b13d-439cd14e1d4d",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [896, 0],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json.encontrado ? $json.filme : { error: 'Filme não encontrado.' }) }}",
+        "options": {
+          "enableStreaming": false,
+          "responseCode": "={{ $json.encontrado ? 200 : 404 }}"
+        }
+      }
+    }
+  ]
+}

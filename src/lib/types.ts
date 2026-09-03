@@ -165,8 +165,19 @@ export interface Movie {
    */
   fetchedAt: string;
 
-  /** ── Único campo escrito pelo modelo. ── */
-  reason: string;
+  /**
+   * ── Único campo escrito pelo modelo. ──
+   *
+   * `null` é possível, e não é descuido. `reason` é curadoria escrita para
+   * UMA busca e mora em `search_cache.picks`, nunca na tabela `movies`. Na
+   * resposta de `/api/recommendations` ele sempre existe. Já a ficha aberta
+   * por link direto (`/filme/[tmdbId]`) pega o texto mais recente que citou
+   * aquele filme — e pode não haver nenhum, se o L1 daquela busca já expirou.
+   *
+   * Marcar como `string` e devolver `null` foi exatamente o que deixaria a
+   * tela renderizar vazio sem ninguém saber por quê.
+   */
+  reason: string | null;
 }
 
 // ────────────────────────────────────────────────────────────────────────────
