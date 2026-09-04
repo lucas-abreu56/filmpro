@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import MovieDetail from "@/components/features/MovieDetail";
+import { sanitizeReasonOrNull } from "@/lib/sanitize";
 import { type Movie } from "@/lib/types";
 
 /**
@@ -53,7 +54,12 @@ async function buscarFilme(tmdbId: string): Promise<Movie | null> {
       console.error(`Webhook de filme respondeu ${res.status}`);
       return null;
     }
-    return (await res.json()) as Movie;
+    // Segunda passagem sobre o único campo autoral, pelo mesmo motivo que
+    // `/api/recommendations` faz a dela: esta rota lê o MESMO
+    // `search_cache.picks`, e a defesa existia só de um dos dois lados da
+    // mesma tabela. O porquê do `null` está no docblock de `sanitizeReasonOrNull`.
+    const filme = (await res.json()) as Movie;
+    return { ...filme, reason: sanitizeReasonOrNull(filme.reason) };
   } catch (err) {
     console.error("Falha ao buscar filme no webhook:", err);
     return null;

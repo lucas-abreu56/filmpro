@@ -19,6 +19,11 @@
  * projeto — e é regra, não preferência.
  */
 
+// Extensão explícita: `npm test` roda no ESM do Node (`--experimental-strip-types`),
+// que não resolve caminho sem extensão como o bundler do Next resolve. É a
+// mesma forma que os arquivos de teste já usam.
+import { LIMITS } from "./types.ts";
+
 /**
  * Link (markdown ou cru), tag HTML e esquemas perigosos.
  *
@@ -76,6 +81,34 @@ export function sanitizeAuthoredText(
   return texto.length > maxLength
     ? `${texto.slice(0, maxLength - 1).trimEnd()}…`
     : texto;
+}
+
+/**
+ * O mesmo filtro, com a outra política de rejeição: descarta em vez de
+ * substituir.
+ *
+ * `search_cache.picks` é lido por dois caminhos. `/api/recommendations` limpa
+ * o `reason` e, se rejeitar, põe "Escolhido pela curadoria para esta busca." —
+ * ali sempre houve uma busca, então sempre há curadoria a anunciar.
+ * `/filme/[tmdbId]` lê a MESMA tabela por um LATERAL join, e ali `null` é
+ * estado legítimo: um link direto para um filme cuja busca já saiu do cache
+ * não tem curadoria nenhuma, e a ficha some com a seção.
+ *
+ * Por isso a rota de link direto não pode usar o fallback da outra. Trocar
+ * texto suspeito por uma frase de curador assinaria como curadoria justamente
+ * o que acabou de ser descartado — e no campo que o produto vende.
+ *
+ * (Esta função nasceu em 04/09/2026, quando se percebeu que a rota standalone
+ * entregava o texto do cache direto ao componente. A segunda passagem existia
+ * só de um lado da mesma tabela.)
+ */
+export function sanitizeReasonOrNull(raw: unknown): string | null {
+  if (typeof raw !== "string" || !raw.trim()) return null;
+  const limpo = sanitizeAuthoredText(raw, {
+    maxLength: LIMITS.MAX_REASON,
+    fallback: "",
+  });
+  return limpo || null;
 }
 
 /**
