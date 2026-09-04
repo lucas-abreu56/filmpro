@@ -114,7 +114,11 @@ function MesaDeMontagem({ movies, temHover }: Props) {
   return (
     <div className="w-full">
       <Tira movies={movies} temHover={temHover} aoFocar={aoFocar} />
-      <Legenda filme={filme} />
+      {/* A `key` não é organização de lista — é o gatilho da animação. Uma
+          animação CSS só recomeça quando o elemento nasce de novo, e trocar a
+          chave é o que faz o React remontar a legenda em vez de reaproveitá-la
+          com texto diferente dentro. */}
+      <Legenda key={filme.tmdbId} filme={filme} />
     </div>
   );
 }
@@ -265,6 +269,18 @@ function Seta({
 /**
  * O filme em foco, por extenso. O `min-h` é o que trava a altura da página —
  * sem ele voltaríamos ao defeito, só que um andar abaixo.
+ *
+ * ── Por que ela entra, em vez de só trocar ──────────────────────────────────
+ * A coluna lá em cima responde ao mouse abrindo; aqui embaixo o texto trocava
+ * no mesmo quadro, no mesmo pixel. Duas respostas ao mesmo gesto, e só uma
+ * parecia intencional — a outra parecia a página se corrigindo.
+ *
+ * Entram escalonados, na ordem em que se lê: título, motivo do curador, selos.
+ * Os dois links do rodapé ficam de fora de propósito: eles apontam para o filme
+ * em foco, mas o rótulo nunca muda, e piscar texto que não mudou é ruído.
+ *
+ * Quem pediu `prefers-reduced-motion: reduce` não vê nada disso — o bloco no
+ * fim do `globals.css` zera a duração de toda animação da página.
  */
 function Legenda({ filme }: { filme: Movie }) {
   const meta = [filme.director, filme.year, filme.runtime && `${filme.runtime} min`]
@@ -272,8 +288,8 @@ function Legenda({ filme }: { filme: Movie }) {
     .join(" · ");
 
   return (
-    <div className="border-fio mt-6 flex min-h-[12.5rem] flex-col gap-3 border-t pt-6">
-      <div className="flex items-start justify-between gap-8">
+    <div className="legenda-entra border-fio mt-6 flex min-h-[12.5rem] flex-col gap-3 border-t pt-6">
+      <div className="surge flex items-start justify-between gap-8">
         <div className="min-w-0">
           <h3 className="font-display text-[clamp(1.6rem,2.6vw,2.4rem)] leading-[0.92] font-medium tracking-tight uppercase">
             {filme.title}
@@ -297,17 +313,19 @@ function Legenda({ filme }: { filme: Movie }) {
 
       {/* Três linhas, no máximo. O schema já limita `reason` a 220 caracteres,
           mas quem garante a altura é o clamp — não a confiança no dado. */}
-      <p className="text-tinta/85 line-clamp-3 max-w-[68ch] text-[15px] leading-relaxed">
+      <p className="surge surge-2 text-tinta/85 line-clamp-3 max-w-[68ch] text-[15px] leading-relaxed">
         {filme.reason}
       </p>
 
       <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-2 pt-1">
-        {filme.ageRating && <Selo>{filme.ageRating}</Selo>}
-        {filme.genres.slice(0, 3).map((g) => (
-          <Selo key={g}>{g}</Selo>
-        ))}
+        <span className="surge surge-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+          {filme.ageRating && <Selo>{filme.ageRating}</Selo>}
+          {filme.genres.slice(0, 3).map((g) => (
+            <Selo key={g}>{g}</Selo>
+          ))}
 
-        <ProvedoresEmLinha providers={filme.providers} />
+          <ProvedoresEmLinha providers={filme.providers} />
+        </span>
 
         <span className="ml-auto flex items-center gap-5">
           <Link

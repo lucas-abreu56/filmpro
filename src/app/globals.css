@@ -240,6 +240,38 @@ body {
   animation: ficha-entra 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* ── A legenda que chega ──────────────────────────────────────────────────
+   A legenda troca de filme a cada passagem do mouse. Sem entrada, a troca
+   acontece dentro do mesmo pixel: uma frase some e outra ocupa o lugar no
+   mesmo quadro, e o olho lê isso como falha de renderização, não como
+   resposta ao gesto. Com a entrada, a troca vira consequência do hover.
+
+   O escalonamento tem ordem de leitura, e não é enfeite: título, motivo do
+   curador, e só então os selos. Quem varre a tira rápido lê o nome; quem
+   para lê o resto.
+
+   260ms é o mesmo tempo da coluna que abre — as duas metades do gesto
+   terminam juntas, em vez de uma esperar a outra. O total com o último
+   atraso dá 370ms, ainda dentro do que se lê como imediato.
+
+   `backwards` importa: sem ele o elemento pisca no estado final durante o
+   atraso, antes de voltar para o começo da animação. */
+@keyframes legenda-entra {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.legenda-entra .surge {
+  animation: legenda-entra 260ms var(--ease-camera) backwards;
+}
+.legenda-entra .surge-2 {
+  animation-delay: 55ms;
+}
+.legenda-entra .surge-3 {
+  animation-delay: 110ms;
+}
+
 ::-webkit-scrollbar {
   width: 10px;
 }
