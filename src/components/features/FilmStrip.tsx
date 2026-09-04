@@ -532,11 +532,17 @@ export function OndeAssistir({
     ? null
     : dia.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 
+  // Mesmo fio do caso cheio: quem chama não desenha separador nenhum, então o
+  // bloco precisa ter a mesma silhueta nos dois estados. Sem isto, um filme
+  // sem provedor perderia a linha que os outros têm, e a diferença leria como
+  // desalinho em vez de ausência de dado.
   if (!grupos.length) {
     return (
-      <p className="text-apoio mt-1 text-xs">
-        Sem streaming no Brasil segundo o TMDB{data && ` em ${data}`}.
-      </p>
+      <div className="border-fio mt-1 border-t pt-3">
+        <p className="text-apoio text-xs">
+          Sem streaming no Brasil segundo o TMDB{data && ` em ${data}`}.
+        </p>
+      </div>
     );
   }
 

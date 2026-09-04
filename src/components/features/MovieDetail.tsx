@@ -138,12 +138,12 @@ export default function MovieDetail({ movie }: { movie: Movie }) {
           </section>
         </div>
 
-        {/* Fio de 1 px em vez de sombra ou caixa: a MUBI separa por contraste
-            e filete, e o projeto inteiro já segue isso. */}
-        <div className="border-papel/15 border-t pt-6">
-          <div className="tema-escuro">
-            <OndeAssistir providers={movie.providers} fetchedAt={movie.fetchedAt} />
-          </div>
+        {/* Sem `border-t` aqui de propósito: o fio é do próprio `OndeAssistir`,
+            que se separa sozinho nos dois lugares onde vive. Envolver o bloco
+            num segundo `border-t` empilhava duas linhas de 1 px com o padding
+            entre elas — visível em captura no celular, em 04/09/2026. */}
+        <div className="tema-escuro">
+          <OndeAssistir providers={movie.providers} fetchedAt={movie.fetchedAt} />
         </div>
 
         <div className="border-papel/15 flex flex-wrap items-center gap-4 border-t pt-6">
