@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
+
 import { OndeAssistir } from "@/components/features/FilmStrip";
 import { trailerEmbedUrl } from "@/lib/tmdb";
 import { type Movie } from "@/lib/types";
@@ -50,12 +52,7 @@ export default function MovieDetail({ movie }: { movie: Movie }) {
         />
 
         {!semMovimento && movie.trailerKey && (
-          <iframe
-            src={trailerEmbedUrl(movie.trailerKey, { autoplay: true, loop: true })}
-            title={`Trailer de ${movie.title}`}
-            allow="autoplay; encrypted-media"
-            className="absolute inset-0 h-full w-full"
-          />
+          <Trailer chave={movie.trailerKey} titulo={movie.title} />
         )}
 
         {/* O gradiente de legibilidade da MUBI: texto sobre still nunca
@@ -171,6 +168,138 @@ export default function MovieDetail({ movie }: { movie: Movie }) {
         </div>
       </div>
     </article>
+  );
+}
+
+/** Origem do embed. Fixa, e usada nas duas pontas: para onde a mensagem vai e
+ *  de onde ela é aceita. Comparar a origem é o que impede qualquer outro
+ *  quadro da página de fingir ser o player. */
+const ORIGEM_YT = "https://www.youtube-nocookie.com";
+
+const TOCANDO = 1;
+/** Pronto com o pôster à mostra. É o que sobra quando o navegador recusa o
+ *  autoplay, e aí a pessoa precisa ver o botão para poder tocar. */
+const PRONTO_SEM_TOCAR = 5;
+
+/**
+ * Quanto vídeo precisa ter sido decodificado antes de revelar.
+ *
+ * "Tocando" não basta, e isso foi medido: o player anuncia `playerState: 1`
+ * aos 810 ms e o quadro **ainda é preto**, com a barra de título do YouTube em
+ * cima. Revelar ali só antecipava o mesmo defeito.
+ *
+ * O que separa preto de imagem não é o estado, é o relógio do vídeo. Na mesma
+ * medição, em 04/09/2026: `currentTime` 0,48 s → preto; 1,04 s → imagem. Um
+ * segundo decodificado é prova de que o player passou do próprio boot, e não
+ * depende de qual trailer é — se o filme abre em preto, aí é o filme, e é
+ * exatamente o que se quer mostrar.
+ */
+const LIMIAR_S = 1;
+
+/** Depois disto o vídeo aparece de qualquer jeito. */
+const DESISTE_MS = 8000;
+
+/**
+ * O trailer, que só aparece quando tem o que mostrar.
+ *
+ * ── O defeito ───────────────────────────────────────────────────────────────
+ * O iframe cobria o backdrop no instante em que montava, e o YouTube pinta
+ * preto enquanto carrega — com a própria barra de título por cima. Medido em
+ * 04/09/2026, num Chrome com janela e perfil limpo: **preto às 6 s, tocando
+ * às 12 s**. Ou seja, o still do filme ficava escondido exatamente no momento
+ * em que ele era a única coisa que havia para ver.
+ *
+ * ── Por que não dá para "só esperar um pouco" ───────────────────────────────
+ * O iframe é cross-origin: nada dentro dele é observável daqui, nem o
+ * `readyState`, nem o `<video>`. Cronômetro fixo é chute, e chute erra para o
+ * lado ruim quando a rede está lenta.
+ *
+ * O player fala, porém, se a gente falar primeiro: com `enablejsapi=1` ele
+ * responde ao handshake `listening` e passa a mandar mudança de estado por
+ * `postMessage`. É o mesmo protocolo que o `iframe_api` oficial usa por baixo
+ * — e usá-lo direto evita carregar um script de `www.youtube.com`, que
+ * desfaria a escolha de embutir por `youtube-nocookie.com`.
+ *
+ * ── O que acontece se o protocolo mudar ─────────────────────────────────────
+ * Nada de novo: o `DESISTE_MS` revela o vídeo assim mesmo. O pior caso volta a
+ * ser o comportamento de antes desta correção, nunca um player invisível para
+ * sempre. Foi por isso que valeu depender de um protocolo não documentado.
+ */
+function Trailer({ chave, titulo }: { chave: string; titulo: string }) {
+  const [visivel, setVisivel] = useState(false);
+  const ref = useRef<HTMLIFrameElement>(null);
+  /** O estado vem uma vez; o `currentTime` vem a cada ~260 ms, e quase sempre
+   *  sozinho. Guardar o último estado é o que permite ler os dois juntos. */
+  const estadoRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    // O player só começa a ouvir depois de montar o próprio JavaScript, e essa
+    // hora não é observável daqui. Repetir o handshake é mais barato que
+    // adivinhá-la; ele para junto com o resto no cleanup.
+    const bater = () =>
+      ref.current?.contentWindow?.postMessage(
+        JSON.stringify({ event: "listening", id: 1, channel: "widget" }),
+        ORIGEM_YT,
+      );
+    bater();
+    const pulso = setInterval(bater, 400);
+    const desistir = setTimeout(() => setVisivel(true), DESISTE_MS);
+
+    function aoReceber(e: MessageEvent) {
+      if (e.origin !== ORIGEM_YT) return;
+      let dados: unknown;
+      try {
+        dados = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
+      } catch {
+        return; // Mensagem que não é JSON não é deste protocolo.
+      }
+      // Duas formas na mesma conversa: `onStateChange` traz o número solto em
+      // `info`, e `infoDelivery` traz um objeto com `playerState` e
+      // `currentTime` dentro.
+      const info = (dados as { info?: unknown })?.info;
+      const solto = typeof info === "number" ? info : undefined;
+      const objeto = (typeof info === "object" ? info : null) as {
+        playerState?: number;
+        currentTime?: number;
+      } | null;
+
+      const estado = solto ?? objeto?.playerState;
+      if (typeof estado === "number") estadoRef.current = estado;
+
+      // Autoplay recusado: não vem quadro nenhum, e esconder o botão deixaria
+      // a pessoa sem como tocar.
+      if (estadoRef.current === PRONTO_SEM_TOCAR) return setVisivel(true);
+
+      const tempo = objeto?.currentTime;
+      if (
+        estadoRef.current === TOCANDO &&
+        typeof tempo === "number" &&
+        tempo >= LIMIAR_S
+      ) {
+        setVisivel(true);
+      }
+    }
+    window.addEventListener("message", aoReceber);
+
+    return () => {
+      clearInterval(pulso);
+      clearTimeout(desistir);
+      window.removeEventListener("message", aoReceber);
+    };
+  }, []);
+
+  return (
+    <iframe
+      ref={ref}
+      src={trailerEmbedUrl(chave, { autoplay: true, loop: true, jsapi: true })}
+      title={`Trailer de ${titulo}`}
+      allow="autoplay; encrypted-media"
+      // Invisível, ele continua na frente: sem `pointer-events-none` o clique
+      // cairia num player que não está lá.
+      className={`absolute inset-0 h-full w-full transition-opacity duration-500 ${
+        visivel ? "opacity-100" : "pointer-events-none opacity-0"
+      }`}
+    />
   );
 }
 

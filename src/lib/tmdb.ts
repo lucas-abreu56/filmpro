@@ -70,7 +70,7 @@ export function tmdbMovieUrl(tmdbId: number) {
  */
 export function trailerEmbedUrl(
   key: string,
-  { autoplay = true, loop = true } = {},
+  { autoplay = true, loop = true, jsapi = false } = {},
 ) {
   const params = new URLSearchParams({
     autoplay: autoplay ? "1" : "0",
@@ -79,6 +79,11 @@ export function trailerEmbedUrl(
     modestbranding: "1",
     playsinline: "1",
     rel: "0",
+    // Com `enablejsapi`, o player passa a responder ao handshake `listening`
+    // por `postMessage` e a avisar mudança de estado. É o único jeito de saber
+    // daqui de fora que o vídeo começou — o iframe é cross-origin, e sem esse
+    // aviso a página não distingue "carregando" de "tocando".
+    ...(jsapi ? { enablejsapi: "1" } : {}),
     // `loop` exige `playlist` com a própria chave; sem isso o vídeo para no fim.
     ...(loop ? { loop: "1", playlist: key } : {}),
   });
