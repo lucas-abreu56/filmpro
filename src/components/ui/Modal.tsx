@@ -49,26 +49,40 @@ export default function Modal({
           regra da referência e já era a do resto do projeto. A cor de fundo é
           a do palco — a ficha lá dentro é escura. */}
       <div className="bg-profundo text-papel border-papel/15 ficha-entra relative flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded border">
-        {/* Pílula, e não texto solto. Dois motivos, os dois medidos em
-            04/09/2026 numa tela de 390 px:
+        {/* Pílula, e não texto solto. Dois motivos, medidos numa tela de
+            390 px em 04/09/2026:
 
-            1. Como texto puro ele media 40 × 16 px. É menos da metade do alvo
-               de toque confortável; `min-h-11` (44 px) e o respiro lateral
+            1. Como texto puro ele media 40 × 16 px — menos da metade do alvo
+               de toque confortável. `min-h-11` (44 px) e o respiro lateral
                resolvem sem mudar o tamanho da letra.
             2. Ele repousa sobre o palco, e enquanto o trailer carrega o
-               YouTube desenha a própria barra de título ali — em captura, os
-               dois se sobrepunham e a palavra sumia. O fundo do palco com
-               desfoque devolve o contraste sem inventar sombra.
+               YouTube desenha a própria barra de título ali. O fundo do palco
+               com desfoque devolve o contraste sem inventar sombra.
 
-            Pílula com fio é a forma que o sistema já reserva para ação (é a
-            mesma do "Ficha no TMDB"); fechar é ação. */}
-        <button
-          onClick={fechar}
-          data-cursor="fechar"
-          className="text-papel/70 hover:text-papel focus-visible:text-papel border-papel/25 hover:border-papel/60 bg-profundo/70 font-display absolute top-3 right-3 z-20 flex min-h-11 items-center rounded-full border px-4 text-xs tracking-[0.16em] uppercase backdrop-blur-sm transition-colors sm:top-4 sm:right-4"
-        >
-          Fechar
-        </button>
+            Pílula com fio é a forma que o sistema já reserva para ação (a
+            mesma do "Ficha no TMDB"); fechar é ação.
+
+            ── Por que a faixa no celular ─────────────────────────────────────
+            Flutuando sobre um conteúdo que rola, ele cobre **alguma** coisa,
+            sempre — numa captura do telefone do Lucas era o "POR QUE ESTE
+            FILME", e nenhum ajuste de padding conserta isso, porque qualquer
+            posição de rolagem é possível. No computador o quadro é largo e ele
+            só encosta no palco; no celular a ficha ocupa a tela inteira e não
+            existe canto livre.
+
+            Então no celular ele sai da frente e vira uma faixa própria no topo
+            do cartão, fora da área que rola. Custa ~68 px de altura, e é o que
+            se paga para nunca esconder texto. O elemento é UM só: muda o
+            arranjo, não o botão. */}
+        <div className="z-20 flex shrink-0 justify-end p-3 sm:pointer-events-none sm:absolute sm:inset-x-0 sm:top-0 sm:p-4">
+          <button
+            onClick={fechar}
+            data-cursor="fechar"
+            className="text-papel/70 hover:text-papel focus-visible:text-papel border-papel/25 hover:border-papel/60 bg-profundo/70 font-display pointer-events-auto flex min-h-11 items-center rounded-full border px-4 text-xs tracking-[0.16em] uppercase backdrop-blur-sm transition-colors"
+          >
+            Fechar
+          </button>
+        </div>
         {children}
       </div>
     </dialog>

@@ -42,41 +42,60 @@ export default function MovieDetail({ movie }: { movie: Movie }) {
 
   return (
     <article className="bg-profundo text-papel flex max-h-full min-h-0 flex-col overflow-y-auto">
-      {/* ── O palco ────────────────────────────────────────────────────────
-          16:9 fixo. A altura da ficha nunca depende do texto — foi o defeito
-          que motivou este redesenho, e ele não vai se mudar para cá. */}
-      <div className="relative aspect-video w-full shrink-0 overflow-hidden">
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={fundo ? { backgroundImage: `url(${fundo})` } : undefined}
-        />
+      {/* ── O palco e o cabeçalho ──────────────────────────────────────────
+          Um contêiner para dois arranjos do MESMO markup — nunca duas cópias,
+          porque duas cópias divergem, e neste projeto já divergiram.
 
-        {!semMovimento && movie.trailerKey && (
-          <Trailer chave={movie.trailerKey} titulo={movie.title} />
-        )}
+          **No computador** o título repousa sobre o fotograma, como na MUBI:
+          há 575 px de palco e sobra imagem embaixo do texto.
 
-        {/* O gradiente de legibilidade da MUBI: texto sobre still nunca
-            repousa direto na imagem. `pointer-events-none` para não roubar o
-            clique do player embaixo. */}
-        <div
-          className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#250701] via-[#250701]/55 to-transparent"
-          aria-hidden="true"
-        />
+          **No celular não há esse luxo.** Num aparelho de 390 px o palco 16:9
+          tem ~200 px de altura, e o cabeçalho — título de duas linhas, título
+          original, ficha técnica em duas linhas, nota — é mais alto que isso.
+          Ele transbordava para cima e caía sobre o vídeo e sobre a barra de
+          título do YouTube. Visto no telefone do Lucas em 04/09/2026, com
+          "Seven — Os Sete Crimes Capitais"; nenhuma emulação minha pegou,
+          porque eu vinha testando com "Anomalisa", que cabe em uma linha.
 
-        {/* Título e nota fecham a mesma linha, em pontas opostas.
-            A nota já esteve no alto à direita, como na MUBI — mas a MUBI não
-            tem um "Fechar" ali, e no modal os dois se sobrepunham. Visto em
-            captura, não deduzido. */}
-        <header className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-6 p-6 sm:p-10">
+          Então no celular o cabeçalho desce para o fluxo, abaixo do palco.
+          Sobrepor texto a uma imagem só funciona quando há imagem sobrando. */}
+      <div className="relative shrink-0">
+        <div className="relative aspect-video w-full overflow-hidden">
+          <div
+            className="absolute inset-0 bg-cover bg-center"
+            style={fundo ? { backgroundImage: `url(${fundo})` } : undefined}
+          />
+
+          {!semMovimento && movie.trailerKey && (
+            <Trailer chave={movie.trailerKey} titulo={movie.title} />
+          )}
+
+          {/* O gradiente de legibilidade da MUBI: texto sobre still nunca
+              repousa direto na imagem. Só existe onde há texto por cima — no
+              celular ele escureceria o vídeo à toa. `pointer-events-none`
+              para não roubar o clique do player embaixo. */}
+          <div
+            className="pointer-events-none absolute inset-0 hidden bg-gradient-to-t from-[#250701] via-[#250701]/55 to-transparent sm:block"
+            aria-hidden="true"
+          />
+        </div>
+
+        {/* Empilhado no celular, e nas duas pontas da mesma linha no
+            computador. A nota já esteve no alto à direita, como na MUBI — mas
+            a MUBI não tem um "Fechar" ali. Visto em captura, não deduzido. */}
+        <header className="flex flex-col gap-3 px-6 pt-6 sm:pointer-events-none sm:absolute sm:inset-x-0 sm:bottom-0 sm:flex-row sm:items-end sm:justify-between sm:gap-6 sm:p-10">
           <div className="min-w-0">
-            <h2 className="font-display text-[clamp(2rem,5.5vw,4rem)] leading-[0.9] font-medium tracking-tight uppercase">
+            <h2 className="font-display text-[clamp(1.75rem,5.5vw,4rem)] leading-[0.9] font-medium tracking-tight uppercase">
               {movie.title}
             </h2>
             {movie.originalTitle && movie.originalTitle !== movie.title && (
               <p className="text-papel/55 mt-1 text-sm italic">{movie.originalTitle}</p>
             )}
+            {/* Entreletra menor no celular: com 0.14em, "DIRIGIDO POR DUKE
+                JOHNSON · 2015 · 90 MIN" quebrava deixando "MIN" sozinho na
+                segunda linha. O espaçamento largo é da versão grande. */}
             {meta && (
-              <p className="text-papel/70 mt-3 text-[11px] tracking-[0.14em] uppercase">
+              <p className="text-papel/70 mt-3 text-[11px] tracking-[0.08em] uppercase sm:tracking-[0.14em]">
                 {meta}
               </p>
             )}
@@ -84,7 +103,7 @@ export default function MovieDetail({ movie }: { movie: Movie }) {
 
           {/* Número, e não rótulo: dado tem corpo próprio. */}
           {movie.imdbRating && (
-            <p className="shrink-0 text-right leading-none">
+            <p className="shrink-0 leading-none sm:text-right">
               <span className="font-display text-[1.75rem] tabular-nums">
                 {movie.imdbRating}
               </span>
