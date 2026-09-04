@@ -89,9 +89,3 @@ export function trailerEmbedUrl(
   });
   return `https://www.youtube-nocookie.com/embed/${key}?${params}`;
 }
-
-/** Miniatura do trailer sem embutir nada — útil como imagem de repouso quando
- *  o filme não tem backdrop, e como poster do <video> antes do play. */
-export function trailerThumbUrl(key: string) {
-  return `https://img.youtube.com/vi/${key}/hqdefault.jpg`;
-}

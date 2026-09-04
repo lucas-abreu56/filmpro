@@ -60,14 +60,17 @@ export default function FilmStrip({ movies }: { movies: Movie[] }) {
   // transição de CSS, e o bloco em `globals.css` já as neutraliza para quem
   // pediu menos movimento. Uma pergunta a menos para o JavaScript responder.
   if (!movies.length) return null;
+  // A pilha não recebe `temHover`: no toque não existe gesto de atenção
+  // antes do toque, e quem cuida do cinza dela é o `@media (hover)` do CSS.
+  // Ela recebia e ignorava desde que o cartão do celular deixou de abrir
+  // trailer — prop que ninguém lê é promessa que o tipo faz e o código não
+  // cumpre.
   return mesa ? (
     <MesaDeMontagem movies={movies} temHover={temHover} />
   ) : (
-    <Pilha movies={movies} temHover={temHover} />
+    <Pilha movies={movies} />
   );
 }
-
-type Props = { movies: Movie[]; temHover: boolean };
 
 // ────────────────────────────────────────────────────────────────────────────
 // Computador: a coluna que acorda, e a legenda que não pula
@@ -102,7 +105,13 @@ type Props = { movies: Movie[]; temHover: boolean };
  * imagem larga; abrir revela mais dela. A largura vira recompensa em vez de
  * deformação, que é exatamente a lógica da referência.
  */
-function MesaDeMontagem({ movies, temHover }: Props) {
+function MesaDeMontagem({
+  movies,
+  temHover,
+}: {
+  movies: Movie[];
+  temHover: boolean;
+}) {
   const [focoId, setFocoId] = useState<number | null>(null);
   const filme = movies.find((m) => m.tmdbId === focoId) ?? movies[0];
 
@@ -390,7 +399,7 @@ function ProvedoresEmLinha({ providers }: { providers: WatchProvider[] }) {
 // Celular e tablet: a pilha que já estava boa
 // ────────────────────────────────────────────────────────────────────────────
 
-function Pilha({ movies }: Props) {
+function Pilha({ movies }: { movies: Movie[] }) {
   return (
     // `-mx-6` desfaz o respiro lateral da página: na MUBI a imagem encosta na
     // borda, e dentro da margem ela ficava pequena demais (304 px de 390).

@@ -114,12 +114,21 @@ export function sanitizeReasonOrNull(raw: unknown): string | null {
 /**
  * Normalização da consulta antes do hash de cache.
  *
- * Sem isto, "Terror anos 90" e "terror anos 90 " são hashes diferentes e o
- * cache quase nunca acerta. Precisa bater exatamente com a normalização feita
- * no n8n — se as duas divergirem, o cache silenciosamente para de funcionar,
- * sem erro nenhum.
+ * ── Esta função NÃO roda em nenhuma requisição ──────────────────────────────
+ * Quem normaliza de verdade é o n8n. A rota manda `preferences` como o
+ * usuário digitou (só com `trim`), e o resultado é gravado em
+ * `search_cache.query_norm` do lado de lá. Verificado em 04/09/2026: fora dos
+ * próprios testes, não há uma chamada a `normalizeQuery` no projeto.
  *
- * O resultado é gravado em `search_cache.query_norm` para poder ser auditado.
+ * Ela existe como **espelho executável** daquela normalização, e os testes ao
+ * lado são o que trava o formato. Sem isto, "Terror anos 90" e
+ * "terror anos 90 " viram hashes diferentes e o cache quase nunca acerta — e o
+ * modo de falhar é o pior que existe: silencioso, sem erro, só uma conta de
+ * LLM subindo.
+ *
+ * Se um dia o Next passar a montar o hash, é daqui que sai. Até lá, mudar esta
+ * função sem mudar o nó do n8n **não quebra teste nenhum e quebra o cache** —
+ * o teste garante o formato, não a paridade entre os dois lados.
  */
 export function normalizeQuery(raw: string): string {
   return (
