@@ -115,11 +115,26 @@ function montar(d, reason) {
 const ordenados = picks.slice().sort(function (a, b) {
   return Number(a.rank || 0) - Number(b.rank || 0);
 });
-const filmes = [];
+// Disponibilidade decide a ORDEM, nunca o tamanho da lista.
+//
+// O pedido era descartar quem nao tem onde ser assistido no Brasil. Descarte
+// puro acontece DEPOIS do slice(limit) la embaixo: sobrando menos que o
+// pedido, a colecao encolhe em silencio — e a colecao de teste do projeto tem
+// 3 de 8 filmes sem provedor no BR. Aqui o indisponivel so ocupa vaga que
+// nenhum disponivel reclamou, e chega rotulado: a UI escreve "Sem streaming
+// no Brasil segundo o TMDB em {data}" em vez de sumir com o filme.
+//
+// Dentro de cada grupo o rank do curador continua mandando.
+const disponiveis = [];
+const indisponiveis = [];
 ordenados.forEach(function (p) {
   const d = fatos[p.tmdb_id];
-  if (d) filmes.push(montar(d, p.reason));
+  if (!d) return;
+  const filme = montar(d, p.reason);
+  if (filme.providers.length > 0) disponiveis.push(filme);
+  else indisponiveis.push(filme);
 });
+const filmes = disponiveis.concat(indisponiveis);
 
 return [{ json: {
   requestId: entrada.requestId,

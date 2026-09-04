@@ -7,8 +7,8 @@
       "description": "Nome curto e evocativo para a colecao que voce acabou de montar, em portugues. Como um curador batizaria uma mostra. Sem aspas, sem dois-pontos, sem a palavra colecao."
     },
     "movies": {
-      "type": "array", "minItems": 3, "maxItems": 16,
-      "description": "Exatamente a quantidade pedida na mensagem. Os limites aqui sao a faixa que o sistema aceita (limit+4, com limit de 1 a 12), nao a quantidade desta resposta. Uma versao anterior fixava 8 a 12 e tornava IMPOSSIVEL atender limit fora da faixa de 6 a 10: o modelo obedecia o prompt, o schema recusava, e a correcao gastava outra chamada.",
+      "type": "array", "minItems": 3, "maxItems": 19,
+      "description": "Exatamente a quantidade pedida na mensagem. Os limites aqui sao a faixa que o sistema aceita (limit+7, com limit de 1 a 12), nao a quantidade desta resposta. Uma versao anterior fixava 8 a 12 e tornava IMPOSSIVEL atender limit fora da faixa de 6 a 10: o modelo obedecia o prompt, o schema recusava, e a correcao gastava outra chamada.",
       "items": {
         "type": "object",
         "properties": {
