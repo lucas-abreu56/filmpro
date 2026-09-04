@@ -66,13 +66,31 @@ async function buscarFilme(tmdbId: string): Promise<Movie | null> {
   }
 }
 
+/**
+ * `index: false` porque o que esta página tem de original é UMA frase — o
+ * `reason` do curador — e ela é curadoria escrita para uma busca, não fato do
+ * filme: mora em `search_cache.picks`, e o `LEFT JOIN LATERAL` de
+ * `buscar-filme.sql` devolve NULL quando nenhuma entrada do L1 cita mais este
+ * filme. A seção some, e sobra sinopse do TMDB — o mesmo texto de centenas de
+ * sites. Entrar no índice assim é entrar na versão em que a página tem menos
+ * a dizer.
+ *
+ * `follow: true` porque o link "Voltar para a busca" deve continuar valendo:
+ * o que não se quer é esta URL no índice, não que o rastreador pare aqui.
+ *
+ * O par disto é `src/app/robots.ts`, que permite baixar `/filme/`. Bloquear
+ * ali impediria o rastreador de LER este noindex — e uma URL bloqueada ainda
+ * pode ser listada, nua, sem jeito de sair.
+ */
 export async function generateMetadata(props: PageProps<"/filme/[tmdbId]">) {
   const { tmdbId } = await props.params;
   const movie = await buscarFilme(tmdbId);
-  if (!movie) return { title: "Filme não encontrado — FilmPro" };
+  const robots = { index: false, follow: true };
+  if (!movie) return { title: "Filme não encontrado — FilmPro", robots };
   return {
     title: `${movie.title} — FilmPro`,
     description: movie.overview ?? undefined,
+    robots,
   };
 }
 
