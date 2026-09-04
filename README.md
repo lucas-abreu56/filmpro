@@ -72,12 +72,15 @@ Next.js route handler (BFF)      ← autentica, limita a 5/min por IP,
   │                                 valida 10–500 caracteres
   │  POST webhook (header x-api-key)
   ▼
-n8n — workflow "FilmPro — Recomendações" (24 nós)
-  ├─ normaliza o texto → SHA256(consulta | limite | versão do prompt)
-  ├─ cache acertou? ── sim ──▶ carrega os fatos ──▶ responde
-  ├─ agente (Gemini, com Groq na reserva) + Structured Output Parser
-  ├─ para cada título: busca no TMDB → detalhes → OMDB
-  └─ responde primeiro; só então grava cache e telemetria
+n8n — 2 workflows publicados
+  ├─ "FilmPro — Recomendações" (24 nós):
+  │    ├─ normaliza o texto → SHA256(consulta | limite | versão do prompt)
+  │    ├─ cache acertou? ── sim ──▶ carrega os fatos ──▶ responde
+  │    ├─ agente (Gemini 3.1 Flash Lite, reserva Groq) + Structured Output Parser
+  │    ├─ para cada título: busca no TMDB → detalhes → OMDB
+  │    └─ responde primeiro; só então grava cache e telemetria
+  └─ "FilmPro — Filme Standalone" (6 nós):
+       └─ consulta direta por tmdb_id na tabela movies (rota /filme/[tmdbId])
 ```
 
 O Next nunca fala com o TMDB, com o OMDB nem com o Postgres. Todas as chaves
@@ -145,8 +148,9 @@ serviço de streaming e a de crítica impressa — e a segunda serve melhor a um
 produto cujo diferencial é texto.
 
 O gesto do produto é a **tira de filme**: os resultados são fotogramas com
-perfuração, cinza em repouso; sob o cursor um deles dobra de largura, ganha cor e
-o trailer sobe. Cor é recompensa por atenção.
+perfuração, cinza em repouso; sob o cursor um deles dobra de largura e recupera a cor
+(cor é recompensa por atenção). Ao clicar, a **ficha do filme** abre com o trailer
+em 16:9, sinopse, ficha técnica e onde assistir.
 
 A procedência de cada valor está em
 [docs/identidade-visual.md](docs/identidade-visual.md).
@@ -174,7 +178,7 @@ O passo a passo das contas e credenciais está em
 [docs/SETUP.md](docs/SETUP.md).
 
 ```bash
-npm test        # 10 testes do sanitize e da normalização do cache
+npm test        # 21 testes (rate limiting, sanitização e normalização de cache)
 npm run lint
 npm run aquecer # deixa quentes as 4 sugestões da tela inicial
 ```
@@ -190,13 +194,14 @@ frente. O porquê de cada uma dessas escolhas está em
 
 | | |
 |---|---|
-| Workflow no n8n | 24 nós, publicado e ativo |
-| Banco | 3 tabelas + 3 views, 68 filmes gravados |
-| Trailer | 57 de 57 na última conferência |
+| Workflows no n8n | 2 publicados: Recomendações (24 nós) e Standalone (6 nós) |
+| Banco | 3 tabelas + 3 views, 68+ filmes gravados |
+| Trailer | 57 de 57 na última conferência (reproduz na ficha técnica) |
 | Acerto de cache | **~490 ms** em produção (151 ms dentro do workflow) |
-| Busca inédita | **20 s** em produção, amostra de uma; 6,1–73,8 s no workflow |
-| Interface | tela inicial e resultados prontos |
-| Ficha do filme, `/estatisticas` | pendentes |
+| Busca inédita | **~10–20 s** em produção (Gemini 3.1 Flash Lite) |
+| Interface | tela inicial, tira de filme e ficha completa no ar |
+| Ficha do filme | **Pronta** (modal interceptado `@modal` + rota standalone `/filme/[tmdbId]`) |
+| `/estatisticas` | pendente |
 
 As latências vêm de medição, não de estimativa — mas **de duas fronteiras
 diferentes**, e vale saber qual é qual. A telemetria gravada no banco cronometra

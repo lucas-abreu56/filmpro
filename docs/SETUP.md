@@ -152,18 +152,18 @@ Cada passo só faz sentido depois do anterior.
 
 ---
 
-## 6. O workflow, e a armadilha da credencial do webhook
+## 6. Os workflows, e a armadilha da credencial do webhook
+ 
+O FilmPro utiliza **dois workflows** no n8n:
+1. **FilmPro — Recomendações** (`gwKwNLFM2ztGuB8U`) — curadoria completa por IA, enriquecimento via TMDB e OMDB, cache em duas camadas (L1/L2).
+2. **FilmPro — Filme Standalone** (`H494wB7YvKU25gOq`) — leitura direta e autenticada da tabela `movies` no Postgres para a rota `/filme/[tmdbId]`, sem invocar LLM nem TMDB.
 
-O workflow **FilmPro — Recomendações** (`gwKwNLFM2ztGuB8U`) já está publicado.
 A fonte de verdade é o que está no n8n. A documentação em [`n8n/`](../n8n/) é
-**gerada** a partir dele:
+**gerada** a partir deles (com subpasta dedicada `n8n/standalone/` para o segundo fluxo):
 
 ```bash
 node scripts/exportar-workflow.mjs n8n/workflow.json
 ```
-
-Existiu ali um espelho escrito à mão, declarado fonte de verdade. Ele divergiu do
-publicado em um único dia e foi removido — saída gerada não mente.
 
 ```
 Webhook → Validar entrada → Curador (Gemini + parser) → Enfileirar titulos
@@ -269,14 +269,15 @@ interface omite o selo em vez de mostrar zero.
 O site está em <https://filmpro.lucasschwingel.com>. Projeto `filmpro` na Vercel,
 plano Hobby, uma região só.
 
-### As duas variáveis de ambiente
+### As variáveis de ambiente
 
 | | |
 |---|---|
-| `N8N_API_KEY` | **Obrigatória.** A mesma string da credencial *FilmPro Webhook* no n8n. Sem ela o BFF devolve 500 de propósito, em vez de chamar o webhook sem autenticação. |
-| `N8N_FILMPRO_WEBHOOK` | A URL de produção do webhook. Tem fallback no código, mas o fallback usa `??`, que só cobre ausente — uma string **vazia** passa e quebra o `fetch`. Preencha, ou remova a variável; nunca deixe presente e vazia. |
+| `N8N_API_KEY` | **Obrigatória.** A mesma string da credencial *FilmPro Webhook* no n8n. Sem ela o BFF e a rota de filme devolvem erro de propósito, em vez de chamar os webhooks sem autenticação. |
+| `N8N_FILMPRO_WEBHOOK` | A URL de produção do webhook de recomendações (`/webhook/filmpro/recommendations`). Tem fallback no código, mas o fallback usa `??`, que só cobre ausente — uma string **vazia** passa e quebra o `fetch`. Preencha, ou remova a variável; nunca deixe presente e vazia. |
+| `N8N_FILMPRO_MOVIE_WEBHOOK` | A URL de produção do webhook standalone de filme (`/webhook/filmpro/movie`). Usada em `/filme/[tmdbId]` para acessos diretos. Possui fallback para a URL de produção oficial. |
 
-As duas em Production e Preview.
+As três em Production e Preview.
 
 ### A região da função: São Paulo, e por quê
 

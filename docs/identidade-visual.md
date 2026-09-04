@@ -125,10 +125,15 @@ hero da ficha, invertendo conforme a imagem passa.
 
 A **coluna que acorda** continua sendo o gesto do produto, agora dentro de um
 fotograma com perfurações: em repouso `grayscale(100%)` sobre o backdrop do
-TMDB; sob foco a coluna vai de 12,5% para ~28% de largura, a cor volta e o
-trailer do YouTube sobe de `opacity 0` para `1` em `320ms cubic-bezier(.2,.7,.3,1)`.
-Expansão em **260ms**, não nos 100ms do original — a doc da Pureza registra que
-100ms para 33% de largura lê como corte, não como câmera.
+TMDB; sob foco a coluna vai de 12,5% para ~28% de largura e a cor volta
+(expansão em **260ms**, não nos 100ms do original — a doc da Pureza registra que
+100ms para 33% de largura lê como corte, não como câmera).
+
+> **Atualização (03/09/2026):** O trailer do YouTube não toca mais sob o hover
+> da coluna. Foi movido exclusivamente para dentro da ficha do filme
+> (`MovieDetail`), eliminando um congelamento de GPU de 2,67 s no Chrome e a
+> distorção geométrica de encaixar vídeo 16:9 numa coluna vertical. Na ficha, o
+> palco é 16:9 por construção.
 
 ### Descartadas
 

@@ -73,3 +73,21 @@ descarta respostas ruins já gravadas. Feito isso, reaqueça:
 ```bash
 npm run aquecer
 ```
+
+---
+
+## O workflow standalone (`n8n/standalone/`)
+
+Para acessos diretos à ficha do filme (`/filme/[tmdbId]`) — compartilhamento de link, refresh no navegador ou robôs de busca —, existe o workflow **FilmPro — Filme Standalone** (`H494wB7YvKU25gOq`).
+
+Ele não passa por LLM nem pelo TMDB. Lê diretamente a tabela `movies` no Postgres e devolve o filme formatado no mesmo contrato do frontend:
+
+```
+Webhook (/webhook/filmpro/movie) → Validar id → Buscar filme (Postgres) → Montar filme → Responder
+```
+
+Os arquivos gerados desse fluxo vivem em `n8n/standalone/`:
+- `workflow.json`: definição do fluxo no n8n.
+- `nos/buscar-filme.sql`: query no Postgres pela chave `tmdb_id`.
+- `nos/montar-filme.js`: mapeamento de colunas para o contrato `Movie` do Next.js.
+- `nos/validar-id.js`: sanitização do parâmetro `id`.
