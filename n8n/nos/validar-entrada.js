@@ -49,7 +49,14 @@ const queryNorm = texto
 // estouravam o teto de 45 s do BFF; agora leva de 4 a 15 s. Bumpar aqui e a
 // regra escrita tres paragrafos acima, e nao um extra: o cache guardava
 // curadoria de dois modelos diferentes sob a mesma chave.
-const promptVersion = 6;
+//
+// v7 (04/09/2026): a regra 4 do prompt mandava NUNCA incluir o filme citado
+// pela pessoa. Medido em producao numa bateria de 11 buscas: 'Vingadores' nao
+// trazia nenhum filme dos Vingadores, e 'O Poderoso Chefao' nenhum Poderoso
+// Chefao — a curadoria era boa, mas quem digita o titulo costuma querer o
+// titulo. Agora o citado abre a lista. Sem este bump, toda busca ja gravada
+// continuaria sem o titulo pedido por ate 30 dias.
+const promptVersion = 7;
 
 return [{ json: {
   preferences: texto,
@@ -72,7 +79,8 @@ return [{ json: {
   // Cada titulo a mais custa ~110 ms de TMDB e OMDB e uma linha em movies,
   // que fica no cache de fatos para a proxima. E o teto do schema do curador
   // (formato-da-resposta.schema.json, maxItems) TEM de acompanhar: 12+7=19.
-  // Sem isso o parser recusa a resposta no limit maximo.
+  // Sem isso o parser recusa a resposta no limit maximo — verificado na
+  // execucao 2092, em que o curador devolveu 19 titulos.
   pedir: limit + 7,
   requestId: String(body.requestId || ''),
   inicio: Date.now(),
