@@ -113,7 +113,15 @@ export default function MovieDetail({ movie }: { movie: Movie }) {
           ))}
         </div>
 
-        <div className="grid gap-8 md:grid-cols-2">
+        {/* Duas colunas só quando há duas coisas para ler.
+            Com `md:grid-cols-2` fixo e `reason` ausente, a sinopse ficava na
+            esquerda e sobravam 450 px de buraco à direita — medido em
+            04/09/2026, forçando o caso pela rede.
+
+            Sozinha, a sinopse não se estica até os 900 px do quadro: a medida
+            que já funcionava na coluna dupla continua funcionando, e linha
+            longa demais é cansaço de leitura, não generosidade. */}
+        <div className={`grid gap-8 ${movie.reason ? "md:grid-cols-2" : "max-w-[62ch]"}`}>
           {/* A tese do projeto — mas só quando existe curadoria de verdade.
               `reason` é escrito para UMA busca e vem do L1; num link direto
               para um filme cuja busca já expirou não há texto nenhum, e a
