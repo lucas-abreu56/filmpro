@@ -49,10 +49,23 @@ export default function Modal({
           regra da referência e já era a do resto do projeto. A cor de fundo é
           a do palco — a ficha lá dentro é escura. */}
       <div className="bg-profundo text-papel border-papel/15 ficha-entra relative flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded border">
+        {/* Pílula, e não texto solto. Dois motivos, os dois medidos em
+            04/09/2026 numa tela de 390 px:
+
+            1. Como texto puro ele media 40 × 16 px. É menos da metade do alvo
+               de toque confortável; `min-h-11` (44 px) e o respiro lateral
+               resolvem sem mudar o tamanho da letra.
+            2. Ele repousa sobre o palco, e enquanto o trailer carrega o
+               YouTube desenha a própria barra de título ali — em captura, os
+               dois se sobrepunham e a palavra sumia. O fundo do palco com
+               desfoque devolve o contraste sem inventar sombra.
+
+            Pílula com fio é a forma que o sistema já reserva para ação (é a
+            mesma do "Ficha no TMDB"); fechar é ação. */}
         <button
           onClick={fechar}
           data-cursor="fechar"
-          className="text-papel/60 hover:text-papel focus-visible:text-papel font-display absolute top-4 right-4 z-20 text-xs tracking-[0.16em] uppercase transition-colors"
+          className="text-papel/70 hover:text-papel focus-visible:text-papel border-papel/25 hover:border-papel/60 bg-profundo/70 font-display absolute top-3 right-3 z-20 flex min-h-11 items-center rounded-full border px-4 text-xs tracking-[0.16em] uppercase backdrop-blur-sm transition-colors sm:top-4 sm:right-4"
         >
           Fechar
         </button>
