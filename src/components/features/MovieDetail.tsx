@@ -167,7 +167,11 @@ export default function MovieDetail({ movie }: { movie: Movie }) {
             num segundo `border-t` empilhava duas linhas de 1 px com o padding
             entre elas — visível em captura no celular, em 04/09/2026. */}
         <div className="tema-escuro">
-          <OndeAssistir providers={movie.providers} fetchedAt={movie.fetchedAt} />
+          <OndeAssistir
+            providers={movie.providers}
+            fetchedAt={movie.fetchedAt}
+            tmdbId={movie.tmdbId}
+          />
         </div>
 
         <div className="border-papel/15 flex flex-wrap items-center gap-4 border-t pt-6">

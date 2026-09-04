@@ -4,6 +4,7 @@ import { memo, useCallback, useState } from "react";
 import Link from "next/link";
 
 import { fotogramaProcedural } from "@/lib/mock";
+import { tmdbWatchUrl } from "@/lib/tmdb";
 import type { Movie, ProviderType, WatchProvider } from "@/lib/types";
 import { useMedia } from "@/lib/useMedia";
 
@@ -333,7 +334,7 @@ function Legenda({ filme }: { filme: Movie }) {
             <Selo key={g}>{g}</Selo>
           ))}
 
-          <ProvedoresEmLinha providers={filme.providers} />
+          <ProvedoresEmLinha providers={filme.providers} tmdbId={filme.tmdbId} />
         </span>
 
         <span className="ml-auto flex items-center gap-5">
@@ -366,7 +367,13 @@ function Legenda({ filme }: { filme: Movie }) {
  * fica o reconhecimento imediato; o agrupamento por tipo, com "aluguel" e
  * "compra" separados, continua inteiro na ficha.
  */
-function ProvedoresEmLinha({ providers }: { providers: WatchProvider[] }) {
+function ProvedoresEmLinha({
+  providers,
+  tmdbId,
+}: {
+  providers: WatchProvider[];
+  tmdbId: number;
+}) {
   const vistos = new Set<string>();
   const unicos = providers.filter((p) => {
     if (vistos.has(p.name)) return false;
@@ -380,16 +387,26 @@ function ProvedoresEmLinha({ providers }: { providers: WatchProvider[] }) {
     return <span className="text-apoio text-[11px]">Sem streaming no Brasil</span>;
   }
 
+  const ondeAssistir = tmdbWatchUrl(tmdbId);
+
   return (
-    <span className="flex items-center gap-1.5">
+    <span className="flex items-center">
       <span className="text-apoio font-display mr-1 text-[10px] tracking-[0.14em] uppercase">
         Onde assistir
       </span>
       {unicos.slice(0, 6).map((p) => (
-        <Logo key={p.name} provedor={p} />
+        <Logo key={p.name} provedor={p} href={ondeAssistir} />
       ))}
       {unicos.length > 6 && (
-        <span className="text-apoio text-[11px]">+{unicos.length - 6}</span>
+        <a
+          href={ondeAssistir}
+          target="_blank"
+          rel="noreferrer"
+          data-cursor="onde assistir"
+          className="text-apoio hover:text-acento focus-visible:text-acento p-2 text-[11px]"
+        >
+          +{unicos.length - 6}
+        </a>
       )}
     </span>
   );
@@ -459,7 +476,11 @@ function Pilha({ movies }: { movies: Movie[] }) {
 
                 <p className="text-tinta/85 mt-1 text-sm leading-relaxed">{movie.reason}</p>
 
-                <OndeAssistir providers={movie.providers} fetchedAt={movie.fetchedAt} />
+                <OndeAssistir
+                  providers={movie.providers}
+                  fetchedAt={movie.fetchedAt}
+                  tmdbId={movie.tmdbId}
+                />
 
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   {movie.ageRating && <Selo>{movie.ageRating}</Selo>}
@@ -527,9 +548,11 @@ const TIPOS: { tipo: ProviderType; rotulo: string }[] = [
 export function OndeAssistir({
   providers,
   fetchedAt,
+  tmdbId,
 }: {
   providers: WatchProvider[];
   fetchedAt: string;
+  tmdbId: number;
 }) {
   const grupos = TIPOS.map(({ tipo, rotulo }) => ({
     rotulo,
@@ -555,19 +578,30 @@ export function OndeAssistir({
     );
   }
 
+  const ondeAssistir = tmdbWatchUrl(tmdbId);
+
   return (
     <div className="border-fio mt-1 border-t pt-3">
-      <p className="text-apoio font-display text-[11px] tracking-[0.16em] uppercase">
-        Onde assistir
-      </p>
+      {/* O rótulo também abre: quem quer a lista inteira não precisa acertar um
+          logo de 24 px, e quem não tem o serviço que quer tem por onde ver os
+          outros. */}
+      <a
+        href={ondeAssistir}
+        target="_blank"
+        rel="noreferrer"
+        data-cursor="onde assistir"
+        className="text-apoio hover:text-acento focus-visible:text-acento font-display inline-flex items-center gap-1 text-[11px] tracking-[0.16em] uppercase transition-colors"
+      >
+        Onde assistir ↗
+      </a>
 
       <ul className="mt-2 flex list-none flex-col gap-1.5">
         {grupos.map(({ rotulo, lista }) => (
           <li key={rotulo} className="flex items-center gap-2">
             <span className="text-apoio w-[9.5rem] shrink-0 text-[11px]">{rotulo}</span>
-            <span className="flex flex-wrap items-center gap-1">
+            <span className="flex flex-wrap items-center">
               {lista.slice(0, 5).map((p) => (
-                <Logo key={`${rotulo}-${p.name}`} provedor={p} />
+                <Logo key={`${rotulo}-${p.name}`} provedor={p} href={ondeAssistir} />
               ))}
               {lista.length > 5 && (
                 <span className="text-apoio text-[11px]">+{lista.length - 5}</span>
@@ -582,24 +616,61 @@ export function OndeAssistir({
   );
 }
 
-/** O logo é o reconhecimento imediato; o nome fica no `title` e no leitor de
- *  tela. Sem logo — acontece — o nome vira o próprio selo. */
-function Logo({ provedor }: { provedor: WatchProvider }) {
-  if (!provedor.logoUrl) return <Selo>{provedor.name}</Selo>;
+/**
+ * O logo é o reconhecimento imediato; o nome fica no `title` e no leitor de
+ * tela. Sem logo — acontece — o nome vira o próprio selo.
+ *
+ * ── Por que 24 px, e por que não adianta pedir maior ────────────────────────
+ * Os logos de provedor do TMDB **nascem com 100 × 100**. Medido em 04/09/2026
+ * nos quatro provedores de uma ficha: `original` devolve 100 px, e `w154`,
+ * `w185` e `w300` são o mesmo original ampliado — `w300` triplica os bytes
+ * (3,7 KB → 11,3 KB) sem um pixel de detalhe a mais.
+ *
+ * A 24 px CSS, uma tela de 3× pede 72 px e o `w92` entrega 92. Já estamos
+ * acima do que a tela mostra; não há alta definição a ganhar porque a fonte
+ * não tem. **O teto é ~33 px CSS a 3×** — daí para cima o original de 100 px
+ * acaba e a imagem começa a borrar de verdade.
+ *
+ * Passar isso pelo otimizador da Vercel gastaria invocação de função para
+ * economizar quilobyte nenhum.
+ */
+function Logo({ provedor, href }: { provedor: WatchProvider; href: string }) {
   return (
-    // Logo de 24 px vindo do CDN do TMDB, com o tamanho já pedido na URL
-    // (`w92`). Passar isso pelo otimizador da Vercel gastaria invocação de
-    // função para economizar quilobyte nenhum.
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={provedor.logoUrl}
-      alt={provedor.name}
-      title={provedor.name}
-      width={24}
-      height={24}
-      loading="lazy"
-      className="border-fio h-6 w-6 rounded-[4px] border object-cover"
-    />
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      // Diz para onde vai de verdade. "Assistir na Netflix" seria mentira: o
+      // destino é a central do TMDB, que lista todas as plataformas.
+      title={`${provedor.name} — onde assistir, no TMDB`}
+      data-cursor="onde assistir"
+      // `p-2` não é respiro, é alvo: 24 + 16 = 40 px de área de toque, contra
+      // os 24 do logo cru. O espaçamento entre logos passa a vir do próprio
+      // padding, e por isso o contêiner não tem `gap` — assim as áreas se
+      // encostam sem se sobrepor, e não existe faixa morta entre elas.
+      //
+      // `-my-2` cancela só a altura: a área continua com 40 px, mas o layout
+      // volta a contar 24. Sem isso a legenda da tira ficava 1 px mais alta
+      // nos filmes COM provedor do que nos sem, e a página passava a ter duas
+      // alturas — 1777 e 1776. Um pixel não se vê, mas "uma combinação só" é a
+      // garantia que este redesenho inteiro existe para manter, e ela vale
+      // enquanto ninguém a afrouxa "porque é pouco".
+      className="hover:opacity-100 focus-visible:opacity-100 -my-2 flex items-center p-2 opacity-90 transition-opacity"
+    >
+      {provedor.logoUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={provedor.logoUrl}
+          alt={provedor.name}
+          width={24}
+          height={24}
+          loading="lazy"
+          className="border-fio h-6 w-6 rounded-[4px] border object-cover"
+        />
+      ) : (
+        <Selo>{provedor.name}</Selo>
+      )}
+    </a>
   );
 }
 

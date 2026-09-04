@@ -89,3 +89,28 @@ export function trailerEmbedUrl(
   });
   return `https://www.youtube-nocookie.com/embed/${key}?${params}`;
 }
+
+/**
+ * A página "onde assistir" do filme, no Brasil.
+ *
+ * É a central que o TMDB monta com dados da JustWatch: lista as plataformas
+ * ativas no país e traz o botão de reprodução de cada uma. Linkar para ela não
+ * é só conveniência — os termos de uso dos dados de provedor pedem que se
+ * atribua a fonte e se aponte para a página deles.
+ *
+ * ── Por que não um link por streaming ───────────────────────────────────────
+ * Porque esse link não existe no dado. O TMDB entrega, por país, UMA página
+ * com todos os serviços; não há URL por serviço na API. Montar
+ * "netflix.com/search?q=…" seria inventar um destino e acertar às vezes. Esta
+ * página é onde os botões de reprodução realmente estão — um toque a mais, e
+ * nenhum chute.
+ *
+ * A URL é a rota do próprio site do TMDB. O campo `link` que a API devolve em
+ * `watch/providers.results.BR` diria o mesmo e seria a fonte mais correta, mas
+ * ele **não é persistido em `movies`**: usá-lo custaria coluna nova no schema,
+ * mudança nos nós do n8n e sincronia com o VPS. Fica como refinamento, não
+ * como pré-requisito. (Verificado em 04/09/2026.)
+ */
+export function tmdbWatchUrl(tmdbId: number) {
+  return `https://www.themoviedb.org/movie/${tmdbId}/watch?locale=BR`;
+}
