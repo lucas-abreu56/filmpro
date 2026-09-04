@@ -3,11 +3,11 @@
   "name": "FilmPro — Recomendações",
   "active": true,
   "isArchived": false,
-  "versionId": "c100c2a8-f2cd-4773-a113-a64ae7ccdd56",
-  "activeVersionId": "c100c2a8-f2cd-4773-a113-a64ae7ccdd56",
+  "versionId": "b521da32-3a02-41c7-973b-d2c7aedb0ae2",
+  "activeVersionId": "b521da32-3a02-41c7-973b-d2c7aedb0ae2",
   "triggerCount": 1,
   "createdAt": "2026-09-01T21:57:23.029Z",
-  "updatedAt": "2026-09-04T17:30:10.519Z",
+  "updatedAt": "2026-09-04T17:42:51.783Z",
   "settings": {
     "executionOrder": "v1",
     "availableInMCP": true,
@@ -532,31 +532,6 @@
       ]
     },
     {
-      "parameters": {
-        "operation": "select",
-        "schema": {
-          "__rl": true,
-          "mode": "list",
-          "value": "public",
-          "cachedResultName": "public",
-          "cachedResultUrl": ""
-        },
-        "table": {
-          "__rl": true,
-          "mode": "list",
-          "value": ""
-        }
-      },
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.7,
-      "position": [
-        2544,
-        -112
-      ],
-      "id": "fc72f263-db00-4acf-a55a-738da62da86d",
-      "name": "Select rows from a table"
-    },
-    {
       "id": "7baa4ced-ca27-4e11-a7df-7af1bf5cda63",
       "name": "Responder erro",
       "type": "n8n-nodes-base.respondToWebhook",
@@ -1016,31 +991,6 @@
           464,
           336
         ]
-      },
-      {
-        "parameters": {
-          "operation": "select",
-          "schema": {
-            "__rl": true,
-            "mode": "list",
-            "value": "public",
-            "cachedResultName": "public",
-            "cachedResultUrl": ""
-          },
-          "table": {
-            "__rl": true,
-            "mode": "list",
-            "value": ""
-          }
-        },
-        "type": "n8n-nodes-base.postgres",
-        "typeVersion": 2.7,
-        "position": [
-          2544,
-          -112
-        ],
-        "id": "fc72f263-db00-4acf-a55a-738da62da86d",
-        "name": "Select rows from a table"
       },
       {
         "id": "7baa4ced-ca27-4e11-a7df-7af1bf5cda63",
