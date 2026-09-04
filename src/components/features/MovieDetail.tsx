@@ -215,8 +215,27 @@ const PRONTO_SEM_TOCAR = 5;
  */
 const LIMIAR_S = 1;
 
-/** Depois disto o vídeo aparece de qualquer jeito. */
-const DESISTE_MS = 8000;
+/**
+ * Dois prazos, porque há dois motivos diferentes para o vídeo demorar.
+ *
+ * **`MUDO_MS` — o player nunca falou.** Protocolo mudou, mensagem bloqueada,
+ * iframe que não subiu: não vai chegar sinal, e esperar mais é esperar à toa.
+ *
+ * **`TETO_MS` — o player falou, mas ainda não chegou lá.** Aqui esperar é o
+ * certo: sabemos que o aviso vem. Só existe teto para o caso de ele travar
+ * bufferizando para sempre.
+ *
+ * A diferença entre os dois foi o Lucas quem achou, testando num iPhone em
+ * 04/09/2026: o trailer levou vários segundos numa rede de celular, e o prazo
+ * único de 8 s — calibrado em `localhost` — disparava **antes** do sinal real
+ * e revelava justamente a tela de carregamento que ele existe para esconder.
+ * Aumentar o número seria chute; separar os casos é o conserto.
+ *
+ * O custo de esperar é baixo: o que fica na tela é o fotograma do filme, com
+ * título, nota e a ficha inteira embaixo. Não é uma tela vazia.
+ */
+const MUDO_MS = 8000;
+const TETO_MS = 30000;
 
 /**
  * O trailer, que só aparece quando tem o que mostrar.
@@ -240,9 +259,10 @@ const DESISTE_MS = 8000;
  * desfaria a escolha de embutir por `youtube-nocookie.com`.
  *
  * ── O que acontece se o protocolo mudar ─────────────────────────────────────
- * Nada de novo: o `DESISTE_MS` revela o vídeo assim mesmo. O pior caso volta a
- * ser o comportamento de antes desta correção, nunca um player invisível para
- * sempre. Foi por isso que valeu depender de um protocolo não documentado.
+ * Nada de novo: em silêncio total o `MUDO_MS` revela o vídeo assim mesmo. O
+ * pior caso volta a ser o comportamento de antes desta correção, nunca um
+ * player invisível para sempre. Foi por isso que valeu depender de um
+ * protocolo não documentado.
  */
 function Trailer({ chave, titulo }: { chave: string; titulo: string }) {
   const [visivel, setVisivel] = useState(false);
@@ -250,6 +270,9 @@ function Trailer({ chave, titulo }: { chave: string; titulo: string }) {
   /** O estado vem uma vez; o `currentTime` vem a cada ~260 ms, e quase sempre
    *  sozinho. Guardar o último estado é o que permite ler os dois juntos. */
   const estadoRef = useRef<number | null>(null);
+  /** O player chegou a responder alguma coisa? É o que separa "protocolo
+   *  quebrado" de "rede lenta" — os dois demoram, e o remédio é oposto. */
+  const ouviuRef = useRef(false);
 
   useEffect(() => {
     // O player só começa a ouvir depois de montar o próprio JavaScript, e essa
@@ -262,7 +285,12 @@ function Trailer({ chave, titulo }: { chave: string; titulo: string }) {
       );
     bater();
     const pulso = setInterval(bater, 400);
-    const desistir = setTimeout(() => setVisivel(true), DESISTE_MS);
+    // Silêncio total: não vem sinal, revela. Se o player já respondeu alguma
+    // coisa, este prazo não vale — ali é rede lenta, e o aviso está a caminho.
+    const semResposta = setTimeout(() => {
+      if (!ouviuRef.current) setVisivel(true);
+    }, MUDO_MS);
+    const teto = setTimeout(() => setVisivel(true), TETO_MS);
 
     function aoReceber(e: MessageEvent) {
       if (e.origin !== ORIGEM_YT) return;
@@ -283,13 +311,18 @@ function Trailer({ chave, titulo }: { chave: string; titulo: string }) {
       } | null;
 
       const estado = solto ?? objeto?.playerState;
+      const tempo = objeto?.currentTime;
+      // Qualquer coisa reconhecível já prova que o canal está de pé, e é isso
+      // que desarma o prazo curto: daqui em diante a demora é rede, não falha.
+      if (typeof estado === "number" || typeof tempo === "number") {
+        ouviuRef.current = true;
+      }
       if (typeof estado === "number") estadoRef.current = estado;
 
       // Autoplay recusado: não vem quadro nenhum, e esconder o botão deixaria
       // a pessoa sem como tocar.
       if (estadoRef.current === PRONTO_SEM_TOCAR) return setVisivel(true);
 
-      const tempo = objeto?.currentTime;
       if (
         estadoRef.current === TOCANDO &&
         typeof tempo === "number" &&
@@ -302,7 +335,8 @@ function Trailer({ chave, titulo }: { chave: string; titulo: string }) {
 
     return () => {
       clearInterval(pulso);
-      clearTimeout(desistir);
+      clearTimeout(semResposta);
+      clearTimeout(teto);
       window.removeEventListener("message", aoReceber);
     };
   }, []);
