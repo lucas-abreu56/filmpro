@@ -216,6 +216,39 @@ export interface RecommendationsResponse {
   notFound: string[];
 }
 
+// ────────────────────────────────────────────────────────────────────────────
+// As fileiras semanais da home
+// ────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Uma fileira da home: um recorte de cinema que um agente inventa toda
+ * segunda, curado pelo mesmo webhook que atende buscas reais — mesmo
+ * curador, mesmo prompt, mesma verificação no TMDB. `theme` é o pedido que
+ * gerou a coleção ("um faroeste sujo e desesperançado"), guardado para não
+ * repetir recorte de uma semana para outra; a UI mostra `collectionTitle`.
+ */
+export interface HomeSection {
+  position: number;
+  collectionTitle: string;
+  theme: string;
+  movies: Movie[];
+}
+
+/**
+ * `GET /webhook/filmpro/home`. Sem LLM nem TMDB do lado do Next — o webhook
+ * lê `home_sections` e junta com `movies`, terceiro espelho do contrato
+ * `Movie` ao lado de `Montar resposta` e `Montar filme`.
+ *
+ * `week` é a segunda-feira da semana servida, não necessariamente a semana
+ * calendário atual: se o job de segunda falhar, a home mostra a semana
+ * anterior em vez de vazia. `null` só quando `home_sections` ainda não tem
+ * nenhuma semana gravada.
+ */
+export interface HomeSectionsResponse {
+  week: string | null;
+  sections: HomeSection[];
+}
+
 /** Erro em qualquer rota. Mensagem já em português, pronta para exibir. */
 export interface ApiError {
   error: string;

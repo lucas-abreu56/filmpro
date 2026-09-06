@@ -122,6 +122,15 @@ CREATE TABLE IF NOT EXISTS searches (
     movie_count     smallint     NOT NULL,
     not_found_count smallint     NOT NULL DEFAULT 0,
     latency_ms      integer,
+    -- 'human' | 'robot'. Decidido em 05/09/2026: sem isto, as 5 buscas
+    -- sintéticas por semana do workflow de fileiras (`n8n/nos/curar-tema`, via
+    -- 'Curar tema' → webhook de recomendações) seriam indistinguíveis de
+    -- busca de gente de verdade — 260 por ano, envenenando `stats_summary`
+    -- antes de `/estatisticas` sequer existir. Default 'human': todo tráfego
+    -- de produção de hoje não manda este campo, e a ausência tem de continuar
+    -- significando "pessoa", não "desconhecido".
+    source          text         NOT NULL DEFAULT 'human'
+                                  CHECK (source IN ('human', 'robot')),
     created_at      timestamptz  NOT NULL DEFAULT now()
 );
 
@@ -134,6 +143,10 @@ CREATE INDEX IF NOT EXISTS searches_query_hash_idx
 -- ---------------------------------------------------------------------------
 -- Views para /estatisticas
 -- ---------------------------------------------------------------------------
+-- Só 'human': as buscas do robô de fileiras semanais (source = 'robot') não
+-- são uso do produto, são o produto rodando sozinho para alimentar a home.
+-- Contá-las aqui infla total_searches e cache_hits sem que ninguém tenha
+-- pedido nada.
 CREATE OR REPLACE VIEW stats_summary AS
 SELECT
     count(*)                                                  AS total_searches,
@@ -143,7 +156,8 @@ SELECT
     round(avg(latency_ms) FILTER (WHERE NOT cache_hit))        AS avg_latency_live_ms,
     round(avg(latency_ms) FILTER (WHERE cache_hit))            AS avg_latency_cached_ms,
     max(created_at)                                            AS last_search_at
-FROM searches;
+FROM searches
+WHERE source = 'human';
 
 CREATE OR REPLACE VIEW stats_top_movies AS
 SELECT
@@ -172,9 +186,55 @@ ORDER BY occurrences DESC;
 
 
 -- ---------------------------------------------------------------------------
+-- As fileiras da home, criadas por um agente uma vez por semana.
+-- ---------------------------------------------------------------------------
+-- Por que uma tabela, e não uma marca no `search_cache`: aquela tabela tem
+-- semântica de CACHE — os SELECT dela filtram 30 dias, e o ON CONFLICT do
+-- `Gravar L1` decide pelo `model_used IS NULL` se a gravação veio do curador
+-- ou de um acerto. Uma coleção da home não expira no meio da semana e não é
+-- acerto de nada; enfiá-la ali significaria coluna nova numa tabela que já
+-- roda, ou sobrecarregar `model_used`, que é contrato e quebra em silêncio.
+--
+-- Isto aqui é aditivo: não altera nenhuma tabela existente.
+CREATE TABLE IF NOT EXISTS home_sections (
+    -- Segunda-feira da semana, de `date_trunc('week', now())::date`. É a chave
+    -- da rotação: a home pede a semana corrente e pronto, sem aritmética de
+    -- data espalhada por nó de workflow.
+    week       date        NOT NULL,
+    position   smallint    NOT NULL,   -- 1..5, a ordem na tela
+    -- O pedido que o modelo inventou, no mesmo formato que uma pessoa
+    -- digitaria ("um faroeste sujo e desesperançado"). Guardado porque é o que
+    -- se manda de volta ao gerador na semana seguinte, para ele não repetir —
+    -- e porque sem ele não há como auditar de onde a fileira saiu.
+    theme      text        NOT NULL,
+    title      text        NOT NULL,   -- o collectionTitle escrito pelo curador
+    -- MESMO formato de `search_cache.picks`: [{tmdb_id, reason, rank}]. O
+    -- espelho é de propósito — permite montar a resposta com a mesma lógica,
+    -- em vez de uma segunda implementação que diverge daqui a um mês.
+    --
+    -- É snapshot, não referência: se alguém buscar as mesmas palavras e o
+    -- ON CONFLICT regravar aquela linha do L1, a fileira da semana não muda no
+    -- meio da semana. E ela sobrevive à expiração do cache.
+    picks      jsonb       NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (week, position)
+);
+
+-- Sem índice em `week`, de propósito. A tabela ganha 5 linhas por semana —
+-- 260 por ano —, e a chave primária já cobre a única consulta que existe. Um
+-- índice aqui não se pagaria, e índice que não serve é peso que alguém vai
+-- ter que justificar daqui a um ano.
+--
+-- A consulta da home pede a semana mais recente que EXISTE (`ORDER BY week
+-- DESC LIMIT 1`), nunca `week = hoje`: se o job semanal falhar — modelo fora
+-- do ar, TMDB lento —, a home mostra a semana anterior em vez de ficar vazia.
+
+
+-- ---------------------------------------------------------------------------
 -- Verificação
 -- ---------------------------------------------------------------------------
--- Deve devolver 3 BASE TABLE e 3 VIEW:
+-- Deve devolver 4 BASE TABLE e 3 VIEW (eram 3 tabelas antes de
+-- `home_sections`):
 --
 --   SELECT table_name, table_type
 --     FROM information_schema.tables

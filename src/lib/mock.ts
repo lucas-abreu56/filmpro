@@ -1,4 +1,4 @@
-import type { Movie, RecommendationsResponse } from "@/lib/types";
+import type { HomeSection, Movie, RecommendationsResponse } from "@/lib/types";
 
 /**
  * Dados falsos para desenvolver a interface antes de o workflow do n8n existir.
@@ -124,3 +124,24 @@ export const RESPOSTA_FALSA: RecommendationsResponse = {
   movies: FILMES,
   notFound: ["Um Título Que O TMDB Não Confirmou"],
 };
+
+/**
+ * Fileiras falsas para a home, sem depender do n8n — mesmo espírito de
+ * `RESPOSTA_FALSA`. Reaproveita `FILMES` em dois recortes em vez de inventar
+ * um segundo elenco: o que se testa aqui é o layout de várias fileiras
+ * empilhadas, não a variedade de filmes.
+ */
+export const FILEIRAS_FALSAS: HomeSection[] = [
+  {
+    position: 1,
+    collectionTitle: "Paredes Que Se Aproximam",
+    theme: "suspense psicológico claustrofóbico, poucos personagens",
+    movies: FILMES.slice(0, 4),
+  },
+  {
+    position: 2,
+    collectionTitle: "O Medo Mora ao Lado",
+    theme: "terror doméstico, a ameaça já está dentro de casa",
+    movies: FILMES.slice(4, 8),
+  },
+];

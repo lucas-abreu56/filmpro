@@ -91,3 +91,55 @@ Os arquivos gerados desse fluxo vivem em `n8n/standalone/`:
 - `nos/buscar-filme.sql`: query no Postgres pela chave `tmdb_id`.
 - `nos/montar-filme.js`: mapeamento de colunas para o contrato `Movie` do Next.js.
 - `nos/validar-id.js`: sanitização do parâmetro `id`.
+
+---
+
+## As fileiras semanais da home
+
+Duas coisas separadas, dois workflows separados, publicados em 05-06/09/2026.
+Plano completo (não versionado): `docs/planos/plano-fileiras-semanais.local.md`.
+
+### 1. A geração (`n8n/fileiras-semana/`) — workflow `FilmPro — Fileiras da semana` (`kIfdSRrpNJkbTXPh`)
+
+Roda sozinho toda segunda às 6h (`America/Sao_Paulo`). Um agente inventa 5
+recortes de cinema, cada um passa pelo webhook de Recomendações (o mesmo que
+atende buscas reais — dogfooding, não um caminho de curadoria paralelo), e o
+resultado vai para `home_sections`.
+
+```
+Toda segunda → Temas anteriores → Programador da semana → Enfileirar temas
+                                        (+ Gemini/Groq)
+             → Curar tema (HTTP, 1 por tema) → Montar linhas → Gravar fileiras
+```
+
+- `Programador da semana` tem reserva (`Groq`) e `retryOnFail` — um 503 do
+  modelo principal não pode matar a semana inteira antes da primeira
+  curadoria.
+- `Montar linhas` descarta o que falhou (menos de 6 filmes, ou erro) e só
+  lança exceção se **nada** sobreviver — uma semana com 3 de 5 fileiras é
+  melhor que nenhuma. O `settings.errorWorkflow` aponta para
+  `Erros de Workflows` (Discord + Telegram), o handler genérico já usado por
+  outros workflows deste n8n.
+- As chamadas ao webhook de Recomendações levam `source: 'robot'`, para a
+  telemetria em `searches` não confundir isso com busca de gente de verdade
+  (coluna `source`, ver `db/schema.sql`).
+- `ON CONFLICT (week, position) DO UPDATE` permite reexecutar a semana à mão
+  quando ela sair capenga.
+
+### 2. A leitura (`n8n/fileiras-home/`) — workflow `FilmPro — Fileiras da Home` (`tcECS9mmOyFUzNup`)
+
+Sem LLM e sem TMDB. Serve a semana mais recente que **existe** em
+`home_sections` (nunca a semana calendário atual — se o job de segunda
+falhar, a home mostra a semana anterior em vez de vazia).
+
+```
+Webhook (/webhook/filmpro/home) → Buscar semana (Postgres) → Buscar filmes (Postgres) → Montar fileiras → Responder
+```
+
+`Montar fileiras` é o **terceiro espelho** do contrato `Movie` — os outros
+dois são `Montar resposta` (Recomendações) e `Montar filme` (Filme
+Standalone). Não há um só lugar que os três importem: cada um vive num
+workflow n8n diferente, sem import entre eles. Mudar o formato do contrato
+num obriga a mudar nos três.
+
+Resposta: `{ week, sections: [{ position, collectionTitle, theme, movies: Movie[] }] }`.

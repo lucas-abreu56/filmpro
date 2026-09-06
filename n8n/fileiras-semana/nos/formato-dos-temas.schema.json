@@ -1,0 +1,15 @@
+
+{
+  "type": "object",
+  "properties": {
+    "temas": {
+      "type": "array", "minItems": 5, "maxItems": 5,
+      "items": {
+        "type": "string", "minLength": 40, "maxLength": 180,
+        "description": "Um pedido escrito como uma pessoa digitaria numa busca de filme. Portugues brasileiro, com acentuacao."
+      }
+    }
+  },
+  "required": ["temas"],
+  "additionalProperties": false
+}

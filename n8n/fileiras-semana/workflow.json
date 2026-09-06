@@ -1,0 +1,345 @@
+{
+  "id": "kIfdSRrpNJkbTXPh",
+  "name": "FilmPro — Fileiras da semana",
+  "active": true,
+  "versionId": "705fd5ec-e036-4537-988a-7d0eebf064a2",
+  "activeVersionId": "705fd5ec-e036-4537-988a-7d0eebf064a2",
+  "description": "Toda segunda as 6h, um modelo inventa 5 recortes de cinema, o webhook de recomendacoes cura cada um, e as fileiras vao para home_sections. A home le a semana mais recente que existir.",
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true,
+    "timezone": "America/Sao_Paulo",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "executionTimeout": 600,
+    "errorWorkflow": "qFGb0jwjJKFX0tZz"
+  },
+  "connections": {
+    "Toda segunda": {
+      "main": [
+        [
+          {
+            "node": "Temas anteriores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Temas anteriores": {
+      "main": [
+        [
+          {
+            "node": "Programador da semana",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Programador da semana": {
+      "main": [
+        [
+          {
+            "node": "Enfileirar temas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Programador da semana",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Formato dos temas",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formato dos temas": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Programador da semana",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enfileirar temas": {
+      "main": [
+        [
+          {
+            "node": "Curar tema",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Curar tema": {
+      "main": [
+        [
+          {
+            "node": "Montar linhas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar linhas": {
+      "main": [
+        [
+          {
+            "node": "Gravar fileiras",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq (reserva)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Programador da semana",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    }
+  },
+  "nodes": [
+    {
+      "id": "974bd650-6e32-48f4-80ef-637193321c23",
+      "name": "Toda segunda",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        208
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "weeksInterval": 1,
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 6,
+              "triggerAtMinute": 0
+            }
+          ]
+        },
+        "misfirePolicy": "coalesce"
+      }
+    },
+    {
+      "id": "bf47b8d8-e5e0-41c4-8cd3-9910fb0879b9",
+      "name": "Temas anteriores",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        224,
+        208
+      ],
+      "parameters": {
+        "resource": "database",
+        "operation": "executeQuery",
+        "query": "-- Agrega de proposito: um agregado sobre conjunto vazio devolve UMA\n-- linha com NULL, entao a primeira semana — tabela vazia — nao interrompe o\n-- fluxo. Sem isso o no devolveria zero itens e todo o resto seria pulado,\n-- justamente na estreia.\nSELECT coalesce(\n         nullif(string_agg(t.theme, E'\\n' ORDER BY t.week DESC, t.position), ''),\n         '(nenhum ainda — esta e a primeira semana)'\n       ) AS anteriores\n  FROM (SELECT theme, week, position\n          FROM home_sections\n         ORDER BY week DESC, position\n         LIMIT 40) t",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "MPPgMCgqs6cXNHDh",
+          "name": "Filmpro"
+        }
+      }
+    },
+    {
+      "id": "70addccc-7add-4853-9626-ddcd4ba38227",
+      "name": "Programador da semana",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        448,
+        208
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "=<ja_usados>\n{{ $json.anteriores }}\n</ja_usados>\n\nEscreva os 5 recortes desta semana.",
+        "hasOutputParser": true,
+        "needsFallback": true,
+        "options": {
+          "systemMessage": "<papel>\nVocê programa a home do FilmPro, um site de recomendação de filmes. Uma vez por\nsemana você escolhe 5 recortes de cinema, e escreve cada um COMO SE FOSSE UMA\nPESSOA descrevendo o que quer assistir — porque é exatamente isso que o curador\ndo FilmPro sabe ler. Você não escolhe filmes; você escolhe o pedido.\n</papel>\n\n<o_que_e_um_bom_recorte>\n1. Específico o bastante para EXCLUIR. \"Filmes de ação\" não exclui nada.\n   \"Perseguição de carro filmada sem efeito digital\" exclui quase tudo.\n2. Sobre uma sensação, uma tensão ou um ofício — não sobre uma categoria de\n   catálogo. O nome de um gênero sozinho nunca é um recorte.\n3. Precisa EXISTIR: pelo menos oito filmes reconhecidos têm de caber ali. Um\n   recorte com três filmes vira uma fileira curta e o site fica pior.\n4. Primeira pessoa, como alguém digitaria numa busca. De 40 a 180 caracteres.\n5. Sem nome de filme, sem nome de diretor, sem título entre aspas. Você\n   descreve o que se quer sentir; achar os filmes é trabalho de outro.\n</o_que_e_um_bom_recorte>\n\n<variedade>\nOs cinco não podem se parecer. Varie o registro deliberadamente: um de época,\num de estado de espírito, um de ofício técnico (fotografia, montagem, som,\nefeito prático), um de país ou cultura, um de estrutura narrativa. Cinco\nvariações de terror é uma semana ruim, mesmo que cada uma seja boa sozinha.\n</variedade>\n\n<nao_repita>\nEm <ja_usados> vêm os recortes das semanas anteriores. Não repita nenhum — e\nnão faça a versão sinônima do mesmo. \"Faroeste sujo e desesperançado\" e\n\"western empoeirado sem heróis\" são o mesmo recorte com outra roupa, e a\npessoa que visita o site toda semana percebe.\n</nao_repita>\n\n<idioma>\nPortuguês brasileiro. ACENTUAÇÃO É OBRIGATÓRIA: escreva \"atmosfera\",\n\"protagonista\", \"década\", \"não\", \"melancólico\" — nunca sem acento. Este texto\nnão é lido pelo usuário final, mas alimenta um curador que escreve para ele, e\npedido mal escrito produz curadoria mal escrita.\n</idioma>"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "1fcd45a4-c10c-4f36-aaf7-b6d6a06c44b3",
+      "name": "Gemini",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        528,
+        640
+      ],
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {
+          "maxOutputTokens": 2048,
+          "temperature": 1
+        }
+      },
+      "credentials": {
+        "googlePalmApi": {
+          "id": "HCBJoiOy5wfezWIE",
+          "name": "Gemini N8N"
+        }
+      }
+    },
+    {
+      "id": "635f3c67-3566-4f09-9f22-37e26bcee7ea",
+      "name": "Formato dos temas",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        560,
+        432
+      ],
+      "parameters": {
+        "schemaType": "manual",
+        "autoFix": true,
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"temas\": {\n      \"type\": \"array\", \"minItems\": 5, \"maxItems\": 5,\n      \"items\": {\n        \"type\": \"string\", \"minLength\": 40, \"maxLength\": 180,\n        \"description\": \"Um pedido escrito como uma pessoa digitaria numa busca de filme. Portugues brasileiro, com acentuacao.\"\n      }\n    }\n  },\n  \"required\": [\"temas\"],\n  \"additionalProperties\": false\n}"
+      }
+    },
+    {
+      "id": "587f15b2-6c78-405f-b9f2-2f9fc390e6b0",
+      "name": "Enfileirar temas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        208
+      ],
+      "parameters": {
+        "jsCode": "// Um item por recorte, para o no HTTP seguinte fazer uma chamada por tema.\nconst saida = ($input.first().json || {}).output || {};\nconst temas = Array.isArray(saida.temas) ? saida.temas : [];\nif (!temas.length) throw new Error('O programador nao devolveu tema nenhum.');\n\n// requestId de verdade, e nao o uuid nulo: a telemetria em 'searches' precisa\n// distinguir uma busca da home semanal de outra. 'Preparar registro' aceita\n// qualquer coisa e cai no uuid zerado, o que juntaria as cinco num balaio so.\nfunction uuid() {\n  if (globalThis.crypto && globalThis.crypto.randomUUID) return globalThis.crypto.randomUUID();\n  return 'xxxxxxxx-xxxx-4xxx-8xxx-xxxxxxxxxxxx'.replace(/x/g, function () {\n    return Math.floor(Math.random() * 16).toString(16);\n  });\n}\n\nreturn temas.slice(0, 5).map(function (tema, i) {\n  return { json: { position: i + 1, tema: String(tema), requestId: uuid() } };\n});"
+      }
+    },
+    {
+      "id": "50898e44-a78e-408d-92f7-91f98abd3014",
+      "name": "Curar tema",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1024,
+        208
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/filmpro/recommendations",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ preferences: $json.tema, limit: 8, requestId: $json.requestId, source: 'robot' }) }}",
+        "options": {
+          "timeout": 60000,
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 3000
+            }
+          }
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PljU0H3VKagII0yg",
+          "name": "FilmPro Webhook"
+        }
+      }
+    },
+    {
+      "id": "a7b7c56e-4e30-4712-b5a6-6821ebc224f8",
+      "name": "Montar linhas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1248,
+        208
+      ],
+      "parameters": {
+        "jsCode": "// Reassocia resposta a pedido pela ORDEM, do mesmo jeito que 'Escolher\n// correspondencia' faz: o no HTTP devolve um item por item de entrada, na\n// mesma ordem, e continueRegularOutput preserva isso tambem em falha.\nconst pedidos = $('Enfileirar temas').all().map(function (i) { return i.json; });\nconst respostas = $input.all().map(function (i) { return i.json; });\n\n// Fileira curta parece defeito na tela. Se um tema so rendeu 5 filmes, e\n// melhor a semana ter 4 fileiras cheias que 5 com uma capenga.\nconst MINIMO = 6;\n\n// O n8n embrulha a falha num OBJETO, nao numa string. A primeira versao disto\n// fazia String(e) e escrevia '[object Object]' cinco vezes: a mensagem que\n// existia para explicar a falha nao explicava nada, e custou duas rodadas de\n// diagnostico em 05/09/2026. O erro real estava em e.message — era\n// 'connect ECONNREFUSED 127.0.1.1:443'.\nfunction descrever(e) {\n  if (e == null) return 'sem detalhe';\n  if (typeof e === 'string') return e.slice(0, 200);\n  const partes = [e.code, e.httpCode, e.message, e.description]\n    .filter(function (p) { return p; })\n    .map(function (p) { return String(p); });\n  if (partes.length) return partes.join(' — ').slice(0, 200);\n  try { return JSON.stringify(e).slice(0, 200); } catch (x) { return 'erro nao serializavel'; }\n}\n\nconst linhas = [];\nconst recusados = [];\nfor (let i = 0; i < pedidos.length; i++) {\n  const r = respostas[i];\n  const motivo = !r ? 'sem resposta'\n    : r.error ? descrever(r.error)\n    : !Array.isArray(r.movies) ? ('resposta sem movies: ' + descrever(r))\n    : r.movies.length < MINIMO ? ('so ' + r.movies.length + ' filmes')\n    : null;\n  if (motivo) { recusados.push('posicao ' + pedidos[i].position + ': ' + motivo); continue; }\n  linhas.push({\n    position: pedidos[i].position,\n    theme: pedidos[i].tema,\n    title: r.collectionTitle,\n    // Mesmo formato de search_cache.picks, com rank base zero, para a leitura\n    // da home poder usar a mesma logica de montagem.\n    picks: r.movies.map(function (m, k) {\n      return { tmdb_id: m.tmdbId, reason: m.reason, rank: k };\n    }),\n  });\n}\n\n// Se NADA sobreviveu, falhar alto: a home cai para a semana anterior sozinha,\n// e a execucao vermelha e o unico sinal de que a semana nao aconteceu.\nif (!linhas.length) {\n  throw new Error('Nenhuma fileira sobreviveu. ' + recusados.join(' | '));\n}\nreturn [{ json: { linhas: linhas, recusados: recusados } }];"
+      }
+    },
+    {
+      "id": "11039b5c-a53a-4761-b707-836d05d18ea6",
+      "name": "Gravar fileiras",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        1472,
+        208
+      ],
+      "parameters": {
+        "resource": "database",
+        "operation": "executeQuery",
+        "query": "-- A semana vem do POSTGRES, nao de JavaScript: date_trunc('week') ja\n-- comeca na segunda, e calcular isso em JS abriria fuso horario e virada de\n-- ano como duas fontes de erro que nao precisam existir.\nINSERT INTO home_sections (week, position, theme, title, picks)\nSELECT date_trunc('week', now())::date,\n       (d->>'position')::smallint,\n       d->>'theme',\n       d->>'title',\n       d->'picks'\n  FROM jsonb_array_elements($1::jsonb) AS d\n-- Reexecutar a mesma semana reescreve, em vez de estourar na chave primaria.\n-- E o que permite rodar de novo a mao quando uma semana saiu ruim.\nON CONFLICT (week, position) DO UPDATE\n   SET theme = EXCLUDED.theme,\n       title = EXCLUDED.title,\n       picks = EXCLUDED.picks,\n       created_at = now()",
+        "options": {
+          "queryReplacement": "={{ JSON.stringify($json.linhas) }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "MPPgMCgqs6cXNHDh",
+          "name": "Filmpro"
+        }
+      }
+    },
+    {
+      "id": "63a0e120-bd46-4daf-83c8-288eab653cc2",
+      "name": "Groq (reserva)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        340,
+        640
+      ],
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {
+          "maxTokensToSample": 2048,
+          "temperature": 1
+        }
+      },
+      "credentials": {
+        "groqApi": {
+          "id": "czpWnTUxULZCgAiI",
+          "name": "Groq account"
+        }
+      }
+    }
+  ]
+}

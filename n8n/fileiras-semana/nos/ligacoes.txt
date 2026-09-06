@@ -1,0 +1,10 @@
+Curar tema -> Montar linhas
+Enfileirar temas -> Curar tema
+Formato dos temas (ai_outputParser) -> Programador da semana
+Gemini (ai_languageModel) -> Formato dos temas
+Gemini (ai_languageModel) -> Programador da semana
+Groq (reserva) (ai_languageModel) -> Programador da semana
+Montar linhas -> Gravar fileiras
+Programador da semana -> Enfileirar temas
+Temas anteriores -> Programador da semana
+Toda segunda -> Temas anteriores

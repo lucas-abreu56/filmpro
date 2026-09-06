@@ -100,7 +100,7 @@ Com a credencial escolhida, rode o schema no banco correspondente:
 psql "postgresql://usuario:senha@host:5432/banco" -f db/schema.sql
 ```
 
-Verificação — deve devolver 3 tabelas e 3 views:
+Verificação — deve devolver 4 tabelas e 3 views:
 
 ```sql
 SELECT table_name, table_type
@@ -154,12 +154,15 @@ Cada passo só faz sentido depois do anterior.
 
 ## 6. Os workflows, e a armadilha da credencial do webhook
  
-O FilmPro utiliza **dois workflows** no n8n:
+O FilmPro utiliza **quatro workflows** no n8n:
 1. **FilmPro — Recomendações** (`gwKwNLFM2ztGuB8U`) — curadoria completa por IA, enriquecimento via TMDB e OMDB, cache em duas camadas (L1/L2).
 2. **FilmPro — Filme Standalone** (`H494wB7YvKU25gOq`) — leitura direta e autenticada da tabela `movies` no Postgres para a rota `/filme/[tmdbId]`, sem invocar LLM nem TMDB.
+3. **FilmPro — Fileiras da semana** (`kIfdSRrpNJkbTXPh`) — toda segunda às 6h, um agente inventa 5 recortes de cinema e cada um passa pelo webhook de Recomendações (item 1), gravando o resultado em `home_sections`.
+4. **FilmPro — Fileiras da Home** (`tcECS9mmOyFUzNup`) — leitura de `home_sections` para a rota `/`, sem LLM nem TMDB, no mesmo espírito do item 2.
 
 A fonte de verdade é o que está no n8n. A documentação em [`n8n/`](../n8n/) é
-**gerada** a partir deles (com subpasta dedicada `n8n/standalone/` para o segundo fluxo):
+**gerada** a partir deles, uma subpasta por fluxo (`n8n/standalone/`,
+`n8n/fileiras-semana/`, `n8n/fileiras-home/`):
 
 ```bash
 node scripts/exportar-workflow.mjs n8n/workflow.json
@@ -276,8 +279,9 @@ plano Hobby, uma região só.
 | `N8N_API_KEY` | **Obrigatória.** A mesma string da credencial *FilmPro Webhook* no n8n. Sem ela o BFF e a rota de filme devolvem erro de propósito, em vez de chamar os webhooks sem autenticação. |
 | `N8N_FILMPRO_WEBHOOK` | A URL de produção do webhook de recomendações (`/webhook/filmpro/recommendations`). Tem fallback no código, mas o fallback usa `??`, que só cobre ausente — uma string **vazia** passa e quebra o `fetch`. Preencha, ou remova a variável; nunca deixe presente e vazia. |
 | `N8N_FILMPRO_MOVIE_WEBHOOK` | A URL de produção do webhook standalone de filme (`/webhook/filmpro/movie`). Usada em `/filme/[tmdbId]` para acessos diretos. Possui fallback para a URL de produção oficial. |
+| `N8N_FILMPRO_HOME_WEBHOOK` | A URL de produção do webhook de leitura das fileiras semanais (`/webhook/filmpro/home`). Usada na home (`/`). Possui fallback para a URL de produção oficial. |
 
-As três em Production e Preview.
+As quatro em Production e Preview.
 
 ### A região da função: São Paulo, e por quê
 
