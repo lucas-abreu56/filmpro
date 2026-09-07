@@ -3,13 +3,20 @@
   "type": "object",
   "properties": {
     "temas": {
-      "type": "array", "minItems": 5, "maxItems": 5,
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "description": "Cinco recortes na ordem das fileiras da home. O PRIMEIRO e sempre de terror ou suspense, porque a fileira 1 alimenta a imagem que abre o site; os outros quatro nunca sao de terror nem de suspense.",
       "items": {
-        "type": "string", "minLength": 40, "maxLength": 180,
+        "type": "string",
+        "minLength": 40,
+        "maxLength": 180,
         "description": "Um pedido escrito como uma pessoa digitaria numa busca de filme. Portugues brasileiro, com acentuacao."
       }
     }
   },
-  "required": ["temas"],
+  "required": [
+    "temas"
+  ],
   "additionalProperties": false
 }
