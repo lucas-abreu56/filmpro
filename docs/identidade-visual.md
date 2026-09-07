@@ -81,8 +81,15 @@ pagas. A própria doc da kirlian aponta as substitutas livres.
 
 | Papel | Família | Uso |
 |---|---|---|
-| Display | **Big Shoulders Display** | Caixa alta, peso 500, `line-height: .75`, tamanhos em `vw`. Voz do produto |
+| Display | **Big Shoulders Display** | Caixa alta, peso 500, `line-height: .88`, tamanhos em `vw`. Voz do produto |
 | Texto | **Inter** | Tudo que se lê em linha |
+
+**A entrelinha é 0.88, não os 0.75 do sistema da kirlian.** Aquele valor foi
+medido sobre caixa alta em inglês; em português os diacríticos sobem acima da
+altura de maiúscula, e a 0.78 o circunflexo de "VOCÊ" colidia com a linha de
+cima. O código sempre usou 0.88/0.9 (`page.tsx`, `Hero.tsx`) — era esta tabela
+que estava errada. Quem construir tela nova a partir do 0.75 reintroduz uma
+colisão já medida e consertada.
 
 Duas vozes, e a distinção carrega a tese do projeto — no modelo da Crying
 Glacier, onde tamanho e peso fazem toda a hierarquia:
