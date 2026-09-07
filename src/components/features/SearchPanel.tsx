@@ -3,26 +3,25 @@
 import { useRef, useState, useEffect } from "react";
 
 import AquecerTrailer from "@/components/features/AquecerTrailer";
-import FilmStrip from "@/components/features/FilmStrip";
 import Loader from "@/components/features/Loader";
 import { EXEMPLOS } from "@/lib/exemplos";
 import { RESPOSTA_FALSA } from "@/lib/mock";
-import { LIMITS, type RecommendationsResponse } from "@/lib/types";
-import { useMovieStore } from "@/lib/store";
+import { LIMITS } from "@/lib/types";
+import { useMovieStore, useSearchStore } from "@/lib/store";
 
 /** Sem workflow no n8n, `NEXT_PUBLIC_FILMPRO_MOCK=1` faz a interface rodar com
  *  dados falsos. Não afeta produção: a variável não existe lá. */
 const MOCK = process.env.NEXT_PUBLIC_FILMPRO_MOCK === "1";
 
-type Estado =
-  | { fase: "parado" }
-  | { fase: "buscando" }
-  | { fase: "pronto"; dados: RecommendationsResponse; ms: number }
-  | { fase: "erro"; mensagem: string };
-
+/**
+ * Só o formulário — a tira de resultados é `SearchResults`, desenhada fora
+ * daqui. No herói (`Hero.tsx`) este componente mora dentro do cartão escuro;
+ * a tira de resultados nunca pode morar ali (ver `useSearchStore`).
+ */
 export default function SearchPanel() {
   const [texto, setTexto] = useState("");
-  const [estado, setEstado] = useState<Estado>({ fase: "parado" });
+  const estado = useSearchStore((state) => state.estado);
+  const setEstado = useSearchStore((state) => state.setEstado);
   /** Primeiro sinal de que esta pessoa vai buscar alguma coisa. Liga o quadro
    *  quente do trailer e nunca desliga — ver `AquecerTrailer`. */
   const [pretende, setPretende] = useState(false);
@@ -133,7 +132,6 @@ export default function SearchPanel() {
             <button
               type="submit"
               disabled={curto || buscando}
-              data-cursor="buscar"
               className="bg-acento text-papel font-display hover:bg-tinta disabled:bg-fio disabled:text-apoio px-6 py-2 text-sm font-medium tracking-[0.12em] uppercase transition-colors disabled:cursor-not-allowed"
             >
               {buscando ? "Curando" : "Buscar"}
@@ -160,45 +158,6 @@ export default function SearchPanel() {
           </p>
         )}
       </div>
-
-      {estado.fase === "pronto" && (
-        <section className="mt-16 w-full">
-          <header className="mb-6 max-w-5xl">
-            <p className="text-apoio font-display text-xs tracking-[0.16em] uppercase">
-              Coleção
-            </p>
-            {/* Nome da coleção: texto autoral do agente. */}
-            <h2 className="font-display mt-1 text-[clamp(2.5rem,7vw,5rem)] leading-[0.85] font-medium uppercase">
-              {estado.dados.collectionTitle}
-            </h2>
-            <p className="text-apoio mt-3 text-xs tabular-nums">
-              {estado.dados.movies.length} filmes · {estado.ms} ms
-              {estado.dados.cached && " · do cache"}
-              {/* Contar a verdade é o ponto deste texto — então ele precisa
-                  concordar em número. "2 sugestão descartada" desmente a
-                  própria frase que está tentando ser honesta.
-
-                  "na verificação", e não mais "por não constar no TMDB": desde
-                  03/09/2026 uma sugestão também cai quando dois títulos do
-                  curador resolvem para o MESMO filme. Nesse caso o filme
-                  existe, e a frase antiga afirmava o contrário. */}
-              {estado.dados.notFound.length === 1 &&
-                " · 1 sugestão descartada na verificação"}
-              {estado.dados.notFound.length > 1 &&
-                ` · ${estado.dados.notFound.length} sugestões descartadas na verificação`}
-            </p>
-          </header>
-
-          <FilmStrip movies={estado.dados.movies} />
-
-          {MOCK && (
-            <p className="text-apoio mt-4 text-xs">
-              Dados falsos — quadros procedurais, como na réplica da kirlian.
-              Trailer e pôster reais exigem as credenciais do TMDB.
-            </p>
-          )}
-        </section>
-      )}
     </>
   );
 }

@@ -75,6 +75,78 @@ body {
   background-repeat: repeat-x;
 }
 
+/* ── A deriva (zoom lento) ────────────────────────────────────────────────
+   Usada só pelo still do herói (`.hero-still img` abaixo). Existiu uma
+   versão pequena da projeção para o destaque da fileira 1 — removida em
+   07/09/2026: o Lucas achou repetitivo ter o mesmo filme em destaque duas
+   vezes na mesma rolagem (herói grande + card pequeno), então o card saiu. */
+@keyframes projecao-deriva {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.07);
+  }
+}
+
+/* ── O herói (a sala escura) ──────────────────────────────────────────────
+   Prototipado em três versões no scratchpad (still, still+faixa clara,
+   trailer de verdade) e aprovado por captura — o Lucas escolheu o still.
+   `.hero-still` é a mesma deriva da projeção pequena; a perfuração no fim da
+   tela funciona como a costura entre "a tela" (profundo, escuro) e "a sala"
+   (papel, claro) — é o mesmo motivo da tira, só que fechando o herói em vez
+   de emoldurar um fotograma. */
+.hero-cinema {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  background-color: var(--color-profundo);
+  color: var(--color-papel);
+}
+.hero-still {
+  position: absolute;
+  inset: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+.hero-still img {
+  animation: projecao-deriva 24s ease-in-out infinite alternate;
+}
+.hero-still .perfuracao {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+.hero-scrim {
+  position: absolute;
+  inset: 0;
+  height: 100vh;
+  background:
+    linear-gradient(
+      180deg,
+      rgb(37 7 1 / 0.7) 0%,
+      transparent 38%,
+      transparent 55%,
+      rgb(37 7 1 / 0.88) 100%
+    );
+}
+/* O H1 do herói lê por cima da imagem sem scrim pesado — item 5 das
+   animações aprovadas em `docs/identidade-visual.md` desde 01/09/2026 e
+   nunca implementado até aqui. */
+.hero-h1 {
+  color: #fff;
+  mix-blend-mode: difference;
+}
+
+/* Quem pede menos movimento recebe o still parado — a deriva já é o único
+   movimento do herói, então basta desligar a animação. */
+@media (prefers-reduced-motion: reduce) {
+  .hero-still img {
+    animation: none !important;
+  }
+}
+
 /* A pilha do celular. Em repouso a imagem é cinza; a cor é recompensa por
    atenção — a regra que o República Pureza enuncia e que este projeto adotou.
 
