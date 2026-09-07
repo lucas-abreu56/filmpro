@@ -19,6 +19,12 @@
  *
  * A hierarquia de proeminência é deliberada: "FILMPRO" na display, maior, à
  * esquerda; o logo do TMDB pequeno, à direita.
+ *
+ * O crédito ao OMDb (nota do IMDb, prêmios) é mais simples: o rodapé do
+ * próprio `omdbapi.com` diz "All content licensed under CC BY-NC 4.0"
+ * (conferido no HTML deles em 07/09/2026), e essa licença pede crédito COM
+ * link de volta à fonte — não só o nome. Sem exigência de logo, ao contrário
+ * do TMDB.
  */
 export default function Footer() {
   return (
@@ -30,8 +36,16 @@ export default function Footer() {
           </p>
           <p className="text-apoio mt-2 max-w-md text-xs leading-relaxed">
             Pôster, fotograma, elenco, duração e onde assistir vêm do TMDB.
-            Nota do IMDb e prêmios vêm do OMDb. A curadoria — e só ela — é
-            escrita por um agente.
+            Nota do IMDb e prêmios vêm do{" "}
+            <a
+              href="https://www.omdbapi.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-tinta underline underline-offset-2"
+            >
+              OMDb
+            </a>
+            . A curadoria — e só ela — é escrita por um agente.
           </p>
         </div>
 
