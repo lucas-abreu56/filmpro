@@ -14,9 +14,6 @@ import { type Movie } from "@/lib/types";
  * TMDB. Contrato de saída idêntico ao de `/api/recommendations`: o mapeamento
  * de coluna para `Movie` acontece lá, no nó `Montar filme`.
  */
-const WEBHOOK_URL =
-  process.env.N8N_FILMPRO_MOVIE_WEBHOOK ??
-  "https://<seu-n8n>/webhook/filmpro/movie";
 
 /** Os fatos de um filme mudam pouco — a tabela `movies` já tem TTL de 90 dias
  *  do lado do n8n. Uma semana aqui na frente evita ida ao VPS a cada visita. */
@@ -38,9 +35,19 @@ async function buscarFilme(tmdbId: string): Promise<Movie | null> {
     return null;
   }
 
+  // Obrigatória e sem default, pelos dois motivos que o route handler explica:
+  // o `??` publicava o host do n8n e não cobria variável presente e vazia.
+  const webhookUrl = process.env.N8N_FILMPRO_MOVIE_WEBHOOK;
+  if (!webhookUrl) {
+    console.error(
+      "N8N_FILMPRO_MOVIE_WEBHOOK não está definida nas variáveis de ambiente",
+    );
+    return null;
+  }
+
   try {
     const res = await fetch(
-      `${WEBHOOK_URL}?id=${encodeURIComponent(tmdbId)}`,
+      `${webhookUrl}?id=${encodeURIComponent(tmdbId)}`,
       {
         headers: { "x-api-key": apiKey },
         next: { revalidate: REVALIDA_S },

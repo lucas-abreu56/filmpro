@@ -6,15 +6,6 @@ import { sanitizeAuthoredText, sanitizeReasonOrNull } from "@/lib/sanitize";
 import { LIMITS, type HomeSection, type HomeSectionsResponse } from "@/lib/types";
 
 /**
- * O webhook de leitura das fileiras semanais (`FilmPro — Fileiras da Home`).
- * Sem LLM e sem TMDB do lado do n8n: ele lê `home_sections` já junto com
- * `movies`. Mesma convenção de fallback dos outros dois webhooks.
- */
-const HOME_WEBHOOK_URL =
-  process.env.N8N_FILMPRO_HOME_WEBHOOK ??
-  "https://<seu-n8n>/webhook/filmpro/home";
-
-/**
  * As fileiras mudam uma vez por semana, segunda às 6h. Não há motivo para
  * revalidar a cada visita como um dado ao vivo — mas também não convém o TTL
  * de dias que os *fatos* de um filme usam (`REVALIDA_S` em `/filme`), porque
@@ -77,8 +68,20 @@ async function buscarFileiras(): Promise<Fileiras> {
     return { week: null, sections: [] };
   }
 
+  // O webhook de leitura das fileiras semanais (`FilmPro — Fileiras da Home`):
+  // sem LLM e sem TMDB do lado do n8n, ele lê `home_sections` já junto com
+  // `movies`. Obrigatória e sem default, pelos dois motivos que o route
+  // handler explica.
+  const webhookUrl = process.env.N8N_FILMPRO_HOME_WEBHOOK;
+  if (!webhookUrl) {
+    console.error(
+      "N8N_FILMPRO_HOME_WEBHOOK não está definida nas variáveis de ambiente",
+    );
+    return { week: null, sections: [] };
+  }
+
   try {
-    const res = await fetch(HOME_WEBHOOK_URL, {
+    const res = await fetch(webhookUrl, {
       headers: { "x-api-key": apiKey },
       next: { revalidate: REVALIDA_HOME_S },
     });

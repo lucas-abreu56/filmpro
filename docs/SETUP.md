@@ -117,7 +117,9 @@ SELECT table_name, table_type
 cp .env.example .env
 ```
 
-Preencha `N8N_API_KEY` com a mesma string da credencial *FilmPro Webhook*.
+Preencha `N8N_API_KEY` com a mesma string da credencial *FilmPro Webhook*, e as
+**três URLs de webhook** — elas não têm mais default no código, então em branco
+a página degrada e o log diz qual faltou.
 
 Enquanto o workflow estiver em construção, aponte para a URL de teste — ela só
 responde enquanto a aba do n8n estiver com "Listen for test event" ligado:
@@ -125,6 +127,9 @@ responde enquanto a aba do n8n estiver com "Listen for test event" ligado:
 ```ini
 N8N_FILMPRO_WEBHOOK="https://<seu-n8n>/webhook-test/filmpro/recommendations"
 ```
+
+Para mexer só na interface, nada disso é necessário: `NEXT_PUBLIC_FILMPRO_MOCK=1`
+serve dados falsos e a checagem dele roda **antes** dos guards de ambiente.
 
 ```bash
 npm install
@@ -277,11 +282,23 @@ plano Hobby, uma região só.
 | | |
 |---|---|
 | `N8N_API_KEY` | **Obrigatória.** A mesma string da credencial *FilmPro Webhook* no n8n. Sem ela o BFF e a rota de filme devolvem erro de propósito, em vez de chamar os webhooks sem autenticação. |
-| `N8N_FILMPRO_WEBHOOK` | A URL de produção do webhook de recomendações (`/webhook/filmpro/recommendations`). Tem fallback no código, mas o fallback usa `??`, que só cobre ausente — uma string **vazia** passa e quebra o `fetch`. Preencha, ou remova a variável; nunca deixe presente e vazia. |
-| `N8N_FILMPRO_MOVIE_WEBHOOK` | A URL de produção do webhook standalone de filme (`/webhook/filmpro/movie`). Usada em `/filme/[tmdbId]` para acessos diretos. Possui fallback para a URL de produção oficial. |
-| `N8N_FILMPRO_HOME_WEBHOOK` | A URL de produção do webhook de leitura das fileiras semanais (`/webhook/filmpro/home`). Usada na home (`/`). Possui fallback para a URL de produção oficial. |
+| `N8N_FILMPRO_WEBHOOK` | **Obrigatória.** A URL de produção do webhook de recomendações (`/webhook/filmpro/recommendations`). |
+| `N8N_FILMPRO_MOVIE_WEBHOOK` | **Obrigatória.** A URL de produção do webhook standalone de filme (`/webhook/filmpro/movie`). Usada em `/filme/[tmdbId]` para acessos diretos. |
+| `N8N_FILMPRO_HOME_WEBHOOK` | **Obrigatória.** A URL de produção do webhook de leitura das fileiras semanais (`/webhook/filmpro/home`). Usada na home (`/`). |
 
 As quatro em Production e Preview.
+
+> **As três URLs não têm mais default no código** (08/09/2026). Tiveram um
+> `?? "https://n8n.…/webhook/…"`, removido por dois motivos: publicava o host do
+> n8n num repositório que vai a público, e o `??` só cobre `undefined` — uma
+> variável **presente e vazia** escapava do fallback e virava `fetch("")`, com
+> erro que não dizia o que faltava. Hoje ausente **ou** vazia dá o mesmo log
+> nomeando a variável, e a página degrada como já degradava sem `N8N_API_KEY`:
+> home sem as fileiras, `/filme/[id]` em 404, busca em 500.
+>
+> Consequência operacional: **conferir que as três existem e estão preenchidas
+> na Vercel antes de subir código que dependa delas.** Faltando uma, o deploy
+> não quebra o build — quebra a tela, em silêncio no build e ruidosamente no log.
 
 ### A região da função: São Paulo, e por quê
 

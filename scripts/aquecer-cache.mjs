@@ -16,12 +16,20 @@
 import { EXEMPLOS } from "../src/lib/exemplos.ts";
 
 const CHAVE = process.env.N8N_API_KEY;
-const URL_WEBHOOK =
-  process.env.N8N_FILMPRO_WEBHOOK ??
-  "https://<seu-n8n>/webhook/filmpro/recommendations";
+const URL_WEBHOOK = process.env.N8N_FILMPRO_WEBHOOK;
 
 if (!CHAVE) {
   console.error("N8N_API_KEY não está definida. Rode com --env-file=.env");
+  process.exit(1);
+}
+
+// Sem default, pelo mesmo motivo do route handler: o `??` publicava o host do
+// n8n num repositório que vai a público, e não cobria variável presente e
+// vazia. Aqui a falha é dura — script de manutenção não tem por que degradar.
+if (!URL_WEBHOOK) {
+  console.error(
+    "N8N_FILMPRO_WEBHOOK não está definida. Rode com --env-file=.env",
+  );
   process.exit(1);
 }
 

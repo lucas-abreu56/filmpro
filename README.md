@@ -204,11 +204,15 @@ Requer Node 20.9+.
 
 ```bash
 npm install
-cp .env.example .env    # preencha N8N_API_KEY
+cp .env.example .env    # preencha N8N_API_KEY e as três URLs de webhook
 npm run dev
 ```
 
-Para ver a interface sem depender do n8n:
+As três `N8N_FILMPRO_*_WEBHOOK` são obrigatórias e **não têm default** — em
+branco, a página degrada e o log nomeia a que faltou, em vez de bater num host
+hardcoded.
+
+Para ver a interface sem depender do n8n — e sem preencher nada:
 
 ```bash
 NEXT_PUBLIC_FILMPRO_MOCK=1 npm run dev

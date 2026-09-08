@@ -18,11 +18,6 @@ import { LIMITS, type Movie, type RecommendationsResponse } from "@/lib/types";
  */
 export const maxDuration = 60;
 
-/** Aponte para `/webhook-test/...` durante o desenvolvimento do workflow. */
-const N8N_WEBHOOK =
-  process.env.N8N_FILMPRO_WEBHOOK ??
-  "https://<seu-n8n>/webhook/filmpro/recommendations";
-
 /**
  * Dispara antes do teto da plataforma de propósito: assim quem responde 504
  * somos nós, com mensagem em português, em vez de a Vercel devolver a página
@@ -91,11 +86,31 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Erro interno." }, { status: 500 });
     }
 
+    // A URL do webhook é obrigatória, e **sem default** — os três webhooks
+    // seguem esta mesma postura. Ela já teve um `?? "https://n8n.…/webhook/…"`,
+    // e aquilo custava duas coisas:
+    //
+    // 1. Publicava o host do n8n num repositório que vai a público. Hoje esse
+    //    endereço é invisível de fora, porque quem fala com o n8n é o servidor.
+    // 2. `??` só cobre `undefined`. Uma variável PRESENTE E VAZIA — que é
+    //    exatamente o que o `.env.example` entrega — escapava do fallback e
+    //    virava `fetch("")`, com erro que não dizia o que faltava. `!url` cobre
+    //    os dois casos.
+    //
+    // Aponte para `/webhook-test/...` durante o desenvolvimento do workflow.
+    const webhookUrl = process.env.N8N_FILMPRO_WEBHOOK;
+    if (!webhookUrl) {
+      console.error(
+        "N8N_FILMPRO_WEBHOOK não está definida nas variáveis de ambiente",
+      );
+      return NextResponse.json({ error: "Erro interno." }, { status: 500 });
+    }
+
     // Correlaciona o log da Vercel com a execução no n8n. O IP não vai junto:
     // é PII, e o rate limit já foi resolvido acima.
     const requestId = crypto.randomUUID();
 
-    const response = await fetch(N8N_WEBHOOK, {
+    const response = await fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-api-key": apiKey },
       body: JSON.stringify({ preferences: texto, limit: quantos, requestId }),
