@@ -41,13 +41,7 @@ export default function MovieDetail({ movie }: { movie: Movie }) {
   const fundo = movie.backdropUrl ?? movie.posterUrl;
 
   return (
-    <article
-      // O Lenis não trata scroll aninhado sozinho: sem isto, rolar dentro da
-      // ficha rolaria a página atrás. Vale nos dois usos do componente (modal
-      // e página `/filme`) — inócuo quando o Lenis não está montado.
-      data-lenis-prevent
-      className="bg-profundo text-papel flex max-h-full min-h-0 flex-col overflow-y-auto"
-    >
+    <article className="bg-profundo text-papel flex max-h-full min-h-0 flex-col overflow-y-auto">
       {/* ── O palco e o cabeçalho ──────────────────────────────────────────
           Um contêiner para dois arranjos do MESMO markup — nunca duas cópias,
           porque duas cópias divergem, e neste projeto já divergiram.

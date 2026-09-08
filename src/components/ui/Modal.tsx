@@ -57,7 +57,22 @@ export default function Modal({
       {/* Sem sombra, e com fio de 1 px: a separação vem de contraste, que é a
           regra da referência e já era a do resto do projeto. A cor de fundo é
           a do palco — a ficha lá dentro é escura. */}
-      <div className="bg-profundo text-papel border-papel/15 ficha-entra relative flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded border">
+      {/* `data-lenis-prevent` mora AQUI, e não no `<article>` do `MovieDetail`.
+          O Lenis procura o atributo subindo a partir do alvo do evento, então
+          pôr no painel cobre a ficha lá dentro — e cobre só o modal, que é o
+          único lugar onde ela é um contêiner de rolagem de verdade.
+
+          Estava no `<article>` e isso travou a página `/filme/[tmdbId]`: lá a
+          ficha NÃO rola por dentro (é a página que rola), e o
+          `overscroll-behavior: contain` que o `lenis.css` aplica em
+          `[data-lenis-prevent]` bloqueava o encadeamento para o documento. Com
+          o cursor sobre a ficha — quase a tela inteira — a roda não fazia
+          nada. Medido em 08/09/2026: `scrollY` preso em 0 sobre a ficha,
+          rolando normal só na margem lateral. */}
+      <div
+        data-lenis-prevent
+        className="bg-profundo text-papel border-papel/15 ficha-entra relative flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded border"
+      >
         {/* Pílula, e não texto solto. Dois motivos, medidos numa tela de
             390 px em 04/09/2026:
 
