@@ -24,7 +24,25 @@ import { useMedia } from "@/lib/useMedia";
  * `useMedia` começa `false` no servidor e no primeiro quadro do cliente, e
  * `<ReactLenis root>` não renderiza nó no DOM: a montagem condicional não
  * quebra hidratação.
+ *
+ * ── Harness de `lerp` (só em desenvolvimento) ───────────────────────────────
+ * `lerp` (padrão 0.1) governa a inércia: menor é mais pesado, maior é mais
+ * seco. Sensação não se mede — quem julga é o Lucas, no trackpad dele. Para
+ * comparar sem recompilar, em `npm run dev` a URL aceita `?lerp=0.2` e recarga.
+ * Em produção o parâmetro é ignorado e vale o padrão. Quando o valor for
+ * escolhido, este bloco sai e vira a opção `lerp` fixa (ou o Lenis é removido,
+ * se a escolha for perto de 1 — aí ele quase não faz efeito).
  */
+function lerpDeDev(): number | undefined {
+  if (process.env.NODE_ENV === "production" || typeof window === "undefined") {
+    return undefined;
+  }
+  const bruto = new URLSearchParams(window.location.search).get("lerp");
+  if (bruto === null) return undefined;
+  const valor = Number(bruto);
+  return Number.isFinite(valor) && valor > 0 && valor <= 1 ? valor : undefined;
+}
+
 export default function SmoothScroll({
   children,
 }: {
@@ -35,7 +53,10 @@ export default function SmoothScroll({
   if (semMovimento) return <>{children}</>;
 
   return (
-    <ReactLenis root options={{ autoRaf: true, anchors: true }}>
+    <ReactLenis
+      root
+      options={{ autoRaf: true, anchors: true, lerp: lerpDeDev() }}
+    >
       {children}
     </ReactLenis>
   );
