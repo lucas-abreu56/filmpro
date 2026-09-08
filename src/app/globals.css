@@ -341,6 +341,22 @@ body {
    animações aprovadas), e qualquer `translate`/altura extra no wrapper o
    arrasta para fora da dobra. Não valia reestruturar por um efeito sutil. */
 
+/* As cinco fileiras ficam empilhadas e quatro delas nascem fora da tela. Sem
+   isto o navegador faz layout, recálculo de estilo e paint das cinco já no
+   primeiro quadro — e cada FilmStrip tem oito colunas com filtro sobre um
+   fotograma de fundo. `content-visibility: auto` adia esse trabalho para
+   quando a fileira se aproxima da viewport e o refaz ao sair; a altura
+   estimada evita o pulo de scrollbar, e o `auto` guarda a real depois do
+   primeiro render. Fora dos blocos `@supports`/`@media` abaixo de propósito:
+   a contenção vale mesmo sem a animação scroll-driven. */
+.fileira {
+  content-visibility: auto;
+  /* ~800px é a altura real de uma fileira medida (cabeçalho + tira + legenda)
+     no desktop; o `auto` guarda a exata depois do primeiro render, então esse
+     número só governa o quanto o scrollbar se ajusta na primeira rolagem. */
+  contain-intrinsic-size: auto 800px;
+}
+
 /* A fileira sobe e aparece ao entrar na tela — "cor é recompensa por atenção",
    agora na escala da seção. Estado de repouso: visível, sem transform. */
 @keyframes fileira-revela {

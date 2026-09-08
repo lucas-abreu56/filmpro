@@ -42,6 +42,27 @@ export function backdropUrl(path: string | null, size: BackdropSize = "w780") {
   return imageUrl(path, size);
 }
 
+/**
+ * Reduz um backdrop JÁ MONTADO para um tamanho menor, reescrevendo o segmento
+ * de tamanho na URL.
+ *
+ * O n8n assa `w1280` na URL do backdrop (`montar-resposta.js` e dois espelhos).
+ * É o tamanho certo para o herói, que ocupa a largura inteira da tela — e
+ * desperdício para os fotogramas da tira, que no desktop não passam de ~270px
+ * de largura e no celular de ~540px. Nesse tamanho `w780` é indistinguível de
+ * `w1280` e custa ~55% menos bytes; além do peso de rede, o fundo é
+ * re-rasterizado a cada quadro enquanto a coluna abre no hover, e a textura
+ * menor barateia esse custo.
+ *
+ * Recorte de string de propósito: a URL chega pronta do n8n e o `backdrop_path`
+ * não é persistido separado no payload enxuto (`enxugar.ts`). O conserto certo
+ * é o n8n mandar só o path e o Next montar aqui — quando isso acontecer, esta
+ * função sai junto.
+ */
+export function backdropMenor(url: string, size: BackdropSize = "w780"): string {
+  return url.replace(/\/t\/p\/w\d+\//, `/t/p/${size}/`);
+}
+
 /** Link canônico da ficha. É o "prove que existe" de cada card. */
 export function tmdbMovieUrl(tmdbId: number) {
   return `https://www.themoviedb.org/movie/${tmdbId}`;

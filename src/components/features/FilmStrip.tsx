@@ -4,7 +4,7 @@ import { memo, useCallback, useState } from "react";
 import Link from "next/link";
 
 import { fotogramaProcedural } from "@/lib/mock";
-import { tmdbWatchUrl } from "@/lib/tmdb";
+import { backdropMenor, tmdbWatchUrl } from "@/lib/tmdb";
 import type { Movie, ProviderType, WatchProvider } from "@/lib/types";
 import { useMedia } from "@/lib/useMedia";
 
@@ -196,7 +196,11 @@ const Tira = memo(function Tira({
                   style={
                     movie.backdropUrl ?? movie.posterUrl
                       ? {
-                          backgroundImage: `url(${movie.backdropUrl ?? movie.posterUrl})`,
+                          backgroundImage: `url(${
+                            movie.backdropUrl
+                              ? backdropMenor(movie.backdropUrl)
+                              : movie.posterUrl
+                          })`,
                         }
                       : { backgroundImage: fotogramaProcedural(movie.tmdbId) }
                   }
@@ -450,7 +454,7 @@ function Pilha({ movies }: { movies: Movie[] }) {
                   className="absolute inset-0 bg-cover bg-center"
                   style={
                     movie.backdropUrl
-                      ? { backgroundImage: `url(${movie.backdropUrl})` }
+                      ? { backgroundImage: `url(${backdropMenor(movie.backdropUrl)})` }
                       : { backgroundImage: fotogramaProcedural(movie.tmdbId) }
                   }
                 />
