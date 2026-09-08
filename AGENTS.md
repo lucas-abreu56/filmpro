@@ -31,3 +31,16 @@ Siga esta estrutura para manter o documento limpo:
   - **Double Check:** Compilar, lintar e testar não prova comportamento — prova só que o código roda. Exercite o caminho real de uso (rodar a app, repetir o fluxo com dado real) antes de dar uma tarefa como pronta, e nunca confie em captura estática para validar um componente com estado.
 - **Poda de Código:** Procure ativamente e apague código morto, lógica duplicada ou abstrações inúteis. Manter é tão importante quanto criar.
 - **Design Responsável:** Foque na substância (resolução de problemas e dados reais) em vez de efeitos cosméticos pesados (ex: gradientes excessivos, bibliotecas 3D sem necessidade). O projeto deve ser maduro e performático.
+
+## Auditoria pré-commit (obrigatória)
+
+Antes de todo `git commit`, revise o que está em `git diff --cached` — não o que "deveria" ter mudado, o que de fato está staged. Responda, por escrito, às 4 perguntas:
+
+1. **Segurança:** expõe dado de usuário, credencial ou rota sem proteção? Abre brecha (injeção, SSRF, path traversal, XSS)?
+2. **Eficiência:** aguenta escala? Query em loop, N+1, payload inflado, trabalho repetido a cada request?
+3. **Regressões:** o que isso pode quebrar no resto do projeto? Componente que consome o mesmo estado, contrato de API, rota que compartilha layout.
+4. **Testes:** o que precisa ser escrito ou rodado antes de ir para produção? Rode o que já existe.
+
+Liste os achados e corrija o que for crítico antes de commitar. Commit trivial (uma linha de doc, ajuste de texto) passa pela mesma porta — a revisão é rápida, não é dispensada.
+
+Um hook `PreToolUse` bloqueia o `git commit` até o aval ser gravado: `git diff --cached | git hash-object --stdin > .claude/.review-ok`. O aval é de uso único e vale só para aquele diff exato; mudou o staged, revisa de novo. Script em `.claude/hooks/revisao-pre-commit.sh` (fora do git — a regra é esta seção).

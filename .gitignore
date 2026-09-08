@@ -46,6 +46,13 @@ docs/design-systems/
 # código do produto — e num repositório público seria só ruído.
 .agents/
 
+# Config local do Claude Code nesta máquina: allowlist de permissões, hook da
+# auditoria pré-commit e o aval de uso único que ele consome. Ferramenta da
+# máquina — a regra que importa vive versionada em AGENTS.md.
+/.claude/
+# Contexto de design gerado pelo impeccable (binário, cache, variantes).
+/.impeccable/
+
 # Notas de handoff entre sessões. Estado operacional, não documentação do
 # projeto — o que é documentação vive em docs/ e é versionado.
 *.local.md
