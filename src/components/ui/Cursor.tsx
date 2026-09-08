@@ -23,10 +23,24 @@ export default function Cursor() {
     const parado = window.matchMedia("(prefers-reduced-motion: reduce)");
     if (!fino.matches || parado.matches) return;
 
-    const mover = (e: MouseEvent) => {
+    // `mousemove` dispara mais de uma vez por quadro em mouse de 120 Hz (e o
+    // navegador ainda coalesce eventos pendentes). Sem o rAF, cada amostra
+    // fazia um `closest()` na árvore e dois `setState`. Agora o evento só
+    // guarda a posição, e o trabalho — a busca do `data-cursor` e o render —
+    // acontece uma vez por quadro.
+    let quadro = 0;
+    let ultimo: MouseEvent | null = null;
+    const processa = () => {
+      quadro = 0;
+      const e = ultimo;
+      if (!e) return;
       setPos({ x: e.clientX, y: e.clientY });
       const alvo = (e.target as HTMLElement | null)?.closest?.("[data-cursor]");
       setRotulo(alvo?.getAttribute("data-cursor") ?? "");
+    };
+    const mover = (e: MouseEvent) => {
+      ultimo = e;
+      if (!quadro) quadro = requestAnimationFrame(processa);
     };
     const sair = () => setPos(null);
 
@@ -35,6 +49,7 @@ export default function Cursor() {
     return () => {
       window.removeEventListener("mousemove", mover);
       document.removeEventListener("mouseleave", sair);
+      if (quadro) cancelAnimationFrame(quadro);
     };
   }, []);
 

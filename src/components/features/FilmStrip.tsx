@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 import { fotogramaProcedural } from "@/lib/mock";
@@ -124,11 +124,7 @@ function MesaDeMontagem({
   return (
     <div className="w-full">
       <Tira movies={movies} temHover={temHover} aoFocar={aoFocar} />
-      {/* A `key` não é organização de lista — é o gatilho da animação. Uma
-          animação CSS só recomeça quando o elemento nasce de novo, e trocar a
-          chave é o que faz o React remontar a legenda em vez de reaproveitá-la
-          com texto diferente dentro. */}
-      <Legenda key={filme.tmdbId} filme={filme} />
+      <Legenda filme={filme} />
     </div>
   );
 }
@@ -305,14 +301,40 @@ function Seta({
  *
  * Quem pediu `prefers-reduced-motion: reduce` não vê nada disso — o bloco no
  * fim do `globals.css` zera a duração de toda animação da página.
+ *
+ * ── Por que não `key={filme.tmdbId}` ───────────────────────────────────────
+ * Trocar a `key` remontava a legenda a cada passagem do mouse por uma coluna
+ * diferente — ~30 nós e os 6 logos de provedor destruídos e recriados por
+ * hover. Aqui o React reconcilia o texto no lugar, e a animação de entrada é
+ * rearmada tirando e recolocando a classe (com um reflow forçado no meio,
+ * senão o navegador não vê a remoção). Sob `prefers-reduced-motion` a classe
+ * não anima nada, então o efeito é inócuo.
  */
 function Legenda({ filme }: { filme: Movie }) {
+  const raiz = useRef<HTMLDivElement>(null);
+  const primeira = useRef(true);
   const meta = [filme.director, filme.year, filme.runtime && `${filme.runtime} min`]
     .filter(Boolean)
     .join(" · ");
 
+  useEffect(() => {
+    // O primeiro render já entra com a classe no JSX — rearmar só nas trocas.
+    if (primeira.current) {
+      primeira.current = false;
+      return;
+    }
+    const el = raiz.current;
+    if (!el) return;
+    el.classList.remove("legenda-entra");
+    void el.offsetWidth;
+    el.classList.add("legenda-entra");
+  }, [filme.tmdbId]);
+
   return (
-    <div className="legenda-entra border-fio mt-6 flex min-h-[12.5rem] flex-col gap-3 border-t pt-6">
+    <div
+      ref={raiz}
+      className="legenda-entra border-fio mt-6 flex min-h-[12.5rem] flex-col gap-3 border-t pt-6"
+    >
       <div className="surge flex items-start justify-between gap-8">
         <div className="min-w-0">
           <h3 className="font-display text-[clamp(1.6rem,2.6vw,2.4rem)] leading-[0.92] font-medium tracking-tight uppercase">
@@ -611,7 +633,10 @@ export function OndeAssistir({
 
       <ul className="mt-2 flex list-none flex-col gap-1.5">
         {grupos.map(({ rotulo, lista }) => (
-          <li key={rotulo} className="flex items-center gap-2">
+          // `flex-wrap`: abaixo de ~360px o rótulo de 9,5rem + os logos não
+          // cabem lado a lado; sem isto os logos espremiam. Com ele os logos
+          // caem para a linha de baixo em vez de encolher.
+          <li key={rotulo} className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className="text-apoio w-[9.5rem] shrink-0 text-[11px]">{rotulo}</span>
             <span className="flex flex-wrap items-center">
               {lista.slice(0, 5).map((p) => (
