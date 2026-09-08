@@ -43,4 +43,9 @@ Antes de todo `git commit`, revise o que está em `git diff --cached` — não o
 
 Liste os achados e corrija o que for crítico antes de commitar. Commit trivial (uma linha de doc, ajuste de texto) passa pela mesma porta — a revisão é rápida, não é dispensada.
 
-Um hook `PreToolUse` bloqueia o `git commit` até o aval ser gravado: `git diff --cached | git hash-object --stdin > .claude/.review-ok`. O aval é de uso único e vale só para aquele diff exato; mudou o staged, revisa de novo. Script em `.claude/hooks/revisao-pre-commit.sh` (fora do git — a regra é esta seção).
+Um hook `PreToolUse` bloqueia o `git commit` até o aval ser gravado. Como o hook roda **antes** do comando, faça em dois passos separados:
+
+1. Num comando só para isso: `git diff --cached | git hash-object --stdin > .claude/.review-ok`
+2. Noutro comando, o `git commit` sozinho.
+
+Aval e commit na mesma linha com `&&` não funciona — quando o hook checa, o aval ainda não existe. O aval é de uso único e vale só para aquele diff exato; mudou o staged, revisa de novo. Script em `.claude/hooks/revisao-pre-commit.sh` (fora do git — a regra é esta seção).
