@@ -38,6 +38,9 @@ for (let i = 0; i < pedidos.length; i++) {
     position: pedidos[i].position,
     theme: pedidos[i].tema,
     title: r.collectionTitle,
+    // Rotulo curto da fileira. Guardado cru, como theme e title — a sanitizacao
+    // roda na leitura ('Montar fileiras') e de novo no Next.
+    label: pedidos[i].rotulo || null,
     // Mesmo formato de search_cache.picks, com rank base zero, para a leitura
     // da home poder usar a mesma logica de montagem.
     picks: r.movies.map(function (m, k) {

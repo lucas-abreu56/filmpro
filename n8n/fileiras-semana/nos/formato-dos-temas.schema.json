@@ -3,20 +3,25 @@
   "type": "object",
   "properties": {
     "temas": {
-      "type": "array",
-      "minItems": 5,
-      "maxItems": 5,
-      "description": "Cinco recortes na ordem das fileiras da home. O PRIMEIRO e sempre de terror ou suspense, porque a fileira 1 alimenta a imagem que abre o site; os outros quatro nunca sao de terror nem de suspense.",
+      "type": "array", "minItems": 5, "maxItems": 5,
+      "description": "Cinco fileiras na ordem da home. A PRIMEIRA e sempre de terror ou suspense (o primeiro filme dela alimenta a imagem que abre o site); as outras quatro nunca sao de terror nem de suspense.",
       "items": {
-        "type": "string",
-        "minLength": 40,
-        "maxLength": 180,
-        "description": "Um pedido escrito como uma pessoa digitaria numa busca de filme. Portugues brasileiro, com acentuacao."
+        "type": "object",
+        "properties": {
+          "recorte": {
+            "type": "string", "minLength": 40, "maxLength": 180,
+            "description": "O pedido escrito como uma pessoa digitaria numa busca de filme. Portugues brasileiro, com acentuacao."
+          },
+          "rotulo": {
+            "type": "string", "minLength": 3, "maxLength": 28,
+            "description": "Rotulo de 1 a 3 palavras que nomeia o angulo do recorte, exibido em caixa alta acima do titulo da fileira na home. Ex: 'Terror folclorico', 'Vigilancia e paranoia', 'Melancolia urbana', 'Camera na mao', 'Anos 70', 'Efeitos praticos'. Portugues com acentuacao. Nao e o nome de um genero solto ('Terror', 'Drama') nem repeticao do titulo da colecao."
+          }
+        },
+        "required": ["recorte", "rotulo"],
+        "additionalProperties": false
       }
     }
   },
-  "required": [
-    "temas"
-  ],
+  "required": ["temas"],
   "additionalProperties": false
 }

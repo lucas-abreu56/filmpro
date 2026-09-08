@@ -1,5 +1,5 @@
 // Nó "Enfileirar temas" — n8n-nodes-base.code
-// Um item por recorte, para o no HTTP seguinte fazer uma chamada por tema.
+// Um item por fileira, para o no HTTP seguinte fazer uma chamada por recorte.
 const saida = ($input.first().json || {}).output || {};
 const temas = Array.isArray(saida.temas) ? saida.temas : [];
 if (!temas.length) throw new Error('O programador nao devolveu tema nenhum.');
@@ -14,6 +14,16 @@ function uuid() {
   });
 }
 
-return temas.slice(0, 5).map(function (tema, i) {
-  return { json: { position: i + 1, tema: String(tema), requestId: uuid() } };
+return temas.slice(0, 5).map(function (t, i) {
+  // O parser devolve {recorte, rotulo}. Aceita string solta tambem, caso o
+  // autoFix caia no formato antigo — semana sem rotulo e melhor que sem fileira.
+  const obj = t && typeof t === 'object' ? t : { recorte: t, rotulo: '' };
+  return {
+    json: {
+      position: i + 1,
+      tema: String(obj.recorte == null ? '' : obj.recorte),
+      rotulo: String(obj.rotulo == null ? '' : obj.rotulo),
+      requestId: uuid(),
+    },
+  };
 });

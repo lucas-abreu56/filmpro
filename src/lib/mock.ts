@@ -135,12 +135,14 @@ export const FILEIRAS_FALSAS: HomeSection[] = [
   {
     position: 1,
     collectionTitle: "Paredes Que Se Aproximam",
+    label: "Espaço fechado",
     theme: "suspense psicológico claustrofóbico, poucos personagens",
     movies: FILMES.slice(0, 4),
   },
   {
     position: 2,
     collectionTitle: "O Medo Mora ao Lado",
+    label: "Ameaça doméstica",
     theme: "terror doméstico, a ameaça já está dentro de casa",
     movies: FILMES.slice(4, 8),
   },

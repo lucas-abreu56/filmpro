@@ -6,10 +6,10 @@
 // eles — entao mudar o formato de UM contrato obriga a mudar os TRES.
 const IMG = 'https://image.tmdb.org/t/p/';
 
-// Espelha src/lib/sanitize.ts e os outros dois montadores. O reason e a
-// unica coisa escrita por modelo que chega a ser renderizada, entao e a
-// unica superficie de injecao que sobra. Invisiveis por NUMERO, nunca
-// escritos como caractere — e assim que se compara com o lado do TypeScript.
+// Espelha src/lib/sanitize.ts e os outros dois montadores. O reason e o label
+// sao o que chega escrito por modelo a ser renderizado, entao sao a superficie
+// de injecao que sobra. Invisiveis por NUMERO, nunca escritos como caractere —
+// e assim que se compara com o lado do TypeScript.
 const PROIBIDO = /https?:\/\/|www\.|<[a-z\/]|\[[^\]]*\]\([^)]*\)|javascript:|data:/i;
 const PROIBIDO_INVISIVEL = [0x200b, 0x200c, 0x200d, 0x2060, 0xfeff, 0x00ad];
 const INVISIVEL = new RegExp('[' + PROIBIDO_INVISIVEL.map(function (c) {
@@ -100,6 +100,10 @@ const sections = secoes.map(function (s) {
   return {
     position: s.position,
     collectionTitle: s.collection_title,
+    // Rotulo curto escrito pelo 'Programador da semana' (1-3 palavras). null
+    // nas semanas gravadas antes de 09/2026 e quando a sanitizacao rejeita —
+    // a home cai num rotulo neutro por posicao.
+    label: limpar(s.label, 28),
     theme: s.theme,
     movies: picks
       .map(function (p) {

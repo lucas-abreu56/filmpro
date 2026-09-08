@@ -2,11 +2,12 @@
   "id": "tcECS9mmOyFUzNup",
   "name": "FilmPro — Fileiras da Home",
   "active": true,
-  "versionId": "00dbc15c-3192-4143-81ce-dc43594696d9",
-  "activeVersionId": "00dbc15c-3192-4143-81ce-dc43594696d9",
+  "versionId": "86a8ac99-7a52-4b0e-85ca-ec2220c5d38d",
+  "activeVersionId": "86a8ac99-7a52-4b0e-85ca-ec2220c5d38d",
   "description": "Serve as fileiras semanais (home_sections) para a home do Next, no formato do contrato Movie. Sem LLM: le a semana mais recente e junta com movies. Terceiro espelho do contrato, ao lado de Montar resposta e Montar filme.",
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "availableInMCP": true
   },
   "connections": {
     "Webhook": {
@@ -56,6 +57,7 @@
   },
   "nodes": [
     {
+      "id": "20654530-04de-4033-baa0-082ff92c5a18",
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
@@ -70,6 +72,7 @@
         "responseMode": "responseNode",
         "options": {}
       },
+      "webhookId": "c0c1a473-4b7a-4fe5-961d-edb74846ce89",
       "credentials": {
         "httpHeaderAuth": {
           "id": "PljU0H3VKagII0yg",
@@ -78,6 +81,7 @@
       }
     },
     {
+      "id": "e9172fcb-097c-4e18-a5ee-bbbc1f5dd590",
       "name": "Buscar semana",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.7,
@@ -88,7 +92,7 @@
       "parameters": {
         "resource": "database",
         "operation": "executeQuery",
-        "query": "-- A home le a semana mais recente que EXISTE, nunca a semana atual: se o\n-- job semanal falhar (modelo fora do ar, TMDB lento), a home mostra a\n-- semana anterior em vez de vazia. Mesma doutrina do resto do produto.\nSELECT week, position, title AS collection_title, theme, picks\n  FROM home_sections\n WHERE week = (SELECT max(week) FROM home_sections)\n ORDER BY position",
+        "query": "-- A home le a semana mais recente que EXISTE, nunca a semana atual: se o\n-- job semanal falhar (modelo fora do ar, TMDB lento), a home mostra a\n-- semana anterior em vez de vazia. Mesma doutrina do resto do produto.\nSELECT week, position, title AS collection_title, label, theme, picks\n  FROM home_sections\n WHERE week = (SELECT max(week) FROM home_sections)\n ORDER BY position",
         "options": {}
       },
       "alwaysOutputData": true,
@@ -100,6 +104,7 @@
       }
     },
     {
+      "id": "a4cf68cb-65e0-427f-807f-9ce8fecb7663",
       "name": "Buscar filmes",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.7,
@@ -122,6 +127,7 @@
       }
     },
     {
+      "id": "0eb12fee-f7b0-406b-88f7-5f551f2e27a6",
       "name": "Montar fileiras",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -130,10 +136,11 @@
         0
       ],
       "parameters": {
-        "jsCode": "// Apresentacao, e so isso — o TERCEIRO espelho do contrato Movie. Os outros\n// dois: 'Montar resposta' (workflow FilmPro — Recomendacoes) e 'Montar\n// filme' (workflow FilmPro — Filme Standalone). Nao ha um so lugar que os\n// tres importem — cada um vive num workflow n8n diferente, sem import entre\n// eles — entao mudar o formato de UM contrato obriga a mudar os TRES.\nconst IMG = 'https://image.tmdb.org/t/p/';\n\n// Espelha src/lib/sanitize.ts e os outros dois montadores. O reason e a\n// unica coisa escrita por modelo que chega a ser renderizada, entao e a\n// unica superficie de injecao que sobra. Invisiveis por NUMERO, nunca\n// escritos como caractere — e assim que se compara com o lado do TypeScript.\nconst PROIBIDO = /https?:\\/\\/|www\\.|<[a-z\\/]|\\[[^\\]]*\\]\\([^)]*\\)|javascript:|data:/i;\nconst PROIBIDO_INVISIVEL = [0x200b, 0x200c, 0x200d, 0x2060, 0xfeff, 0x00ad];\nconst INVISIVEL = new RegExp('[' + PROIBIDO_INVISIVEL.map(function (c) {\n  return String.fromCharCode(c);\n}).join('') + ']', 'g');\nfunction limpar(t, max) {\n  const s = String(t == null ? '' : t).replace(INVISIVEL, '').trim();\n  if (!s || PROIBIDO.test(s)) return null;\n  return s.slice(0, max);\n}\nfunction url(base, caminho) { return caminho ? IMG + base + caminho : null; }\n// NUMERIC volta como string do no Postgres (largeNumbersOutput = text por\n// padrao). Sem o Number(), rating viraria \"8.3\" e a UI compararia string.\nfunction num(v) { return v == null ? null : Number(v); }\n\nfunction montarFilme(d, reason) {\n  return {\n    tmdbId: d.tmdb_id,\n    tmdbUrl: 'https://www.themoviedb.org/movie/' + d.tmdb_id,\n    imdbId: d.imdb_id || null,\n    title: d.title,\n    originalTitle: d.original_title || null,\n    year: num(d.release_year),\n    tagline: d.tagline || null,\n    overview: d.overview || null,\n    posterUrl: url('w500', d.poster_path),\n    backdropUrl: url('w1280', d.backdrop_path),\n    logoUrl: url('w300', d.logo_path),\n    trailerKey: d.trailer_key || null,\n    rating: num(d.rating),\n    voteCount: num(d.vote_count),\n    imdbRating: num(d.imdb_rating),\n    imdbVotes: num(d.imdb_votes),\n    awards: d.awards || null,\n    runtime: num(d.runtime),\n    genres: d.genres || [],\n    keywords: d.keywords || [],\n    originalLanguage: d.original_language || null,\n    spokenLanguages: d.spoken_languages || [],\n    ageRating: d.age_rating || null,\n    director: d.director || null,\n    cast: (d.cast_members || []).map(function (a) {\n      return { name: a.name, character: a.character || null, profileUrl: url('w185', a.profile_path) };\n    }),\n    crew: (d.crew_members || []).map(function (c) {\n      return { name: c.name, role: c.role, profileUrl: url('w185', c.profile_path) };\n    }),\n    collection: d.collection_name || null,\n    similar: (d.similar_movies || []).map(function (r) {\n      return {\n        tmdbId: r.tmdb_id, title: r.title, year: num(r.year),\n        backdropUrl: url('w780', r.backdrop_path),\n        posterUrl: url('w342', r.poster_path),\n        director: null,\n      };\n    }),\n    providers: (d.providers || []).map(function (p) {\n      return { type: p.type, name: p.name, logoUrl: url('w92', p.logo_path) };\n    }),\n    fetchedAt: d.fetched_at ? new Date(d.fetched_at).toISOString() : new Date().toISOString(),\n    // Sem fallback generico de reason, igual ao 'Montar filme': aqui SEMPRE\n    // existe curadoria (o pick veio do curador), entao um reason ausente\n    // significa que a sanitizacao rejeitou o texto, nao que ele nunca existiu.\n    reason: limpar(reason, 220),\n  };\n}\n\n// 'Buscar semana' tem alwaysOutputData ligado (tabela vazia no dia zero nao\n// pode pendurar o webhook ate o timeout). Filtra o item sintetico: ele nao\n// tem 'week', uma linha de verdade sempre tem.\nconst secoes = $('Buscar semana').all().map(function (i) { return i.json; })\n  .filter(function (s) { return s && s.week; });\n\nconst fatos = {};\n$input.all().forEach(function (i) {\n  const j = i.json;\n  if (j && j.tmdb_id != null) fatos[j.tmdb_id] = j;\n});\n\n// A ordem dentro de cada fileira ja e a ordem final — o rank aqui e o\n// indice pos-reordenacao que 'Montar resposta' ja fez (disponibilidade no\n// Brasil primeiro) na hora em que o robo curou o tema. Nao ha o que\n// reordenar de novo, so preservar.\nconst sections = secoes.map(function (s) {\n  const picks = (s.picks || []).slice().sort(function (a, b) {\n    return Number(a.rank || 0) - Number(b.rank || 0);\n  });\n  return {\n    position: s.position,\n    collectionTitle: s.collection_title,\n    theme: s.theme,\n    movies: picks\n      .map(function (p) {\n        const d = fatos[p.tmdb_id];\n        return d ? montarFilme(d, p.reason) : null;\n      })\n      // Defensivo: so faltaria fato se 'Buscar filmes' e 'Buscar semana' lessem\n      // semanas diferentes por uma corrida entre as duas consultas — nao deveria\n      // acontecer (mesma tabela, mesmo max(week) resolvido nas duas), mas um\n      // filme ausente e melhor que a pagina inteira quebrar.\n      .filter(function (m) { return m; }),\n  };\n});\n\nreturn [{ json: {\n  week: secoes.length ? secoes[0].week : null,\n  sections: sections,\n} }];"
+        "jsCode": "// Apresentacao, e so isso — o TERCEIRO espelho do contrato Movie. Os outros\n// dois: 'Montar resposta' (workflow FilmPro — Recomendacoes) e 'Montar\n// filme' (workflow FilmPro — Filme Standalone). Nao ha um so lugar que os\n// tres importem — cada um vive num workflow n8n diferente, sem import entre\n// eles — entao mudar o formato de UM contrato obriga a mudar os TRES.\nconst IMG = 'https://image.tmdb.org/t/p/';\n\n// Espelha src/lib/sanitize.ts e os outros dois montadores. O reason e o label\n// sao o que chega escrito por modelo a ser renderizado, entao sao a superficie\n// de injecao que sobra. Invisiveis por NUMERO, nunca escritos como caractere —\n// e assim que se compara com o lado do TypeScript.\nconst PROIBIDO = /https?:\\/\\/|www\\.|<[a-z\\/]|\\[[^\\]]*\\]\\([^)]*\\)|javascript:|data:/i;\nconst PROIBIDO_INVISIVEL = [0x200b, 0x200c, 0x200d, 0x2060, 0xfeff, 0x00ad];\nconst INVISIVEL = new RegExp('[' + PROIBIDO_INVISIVEL.map(function (c) {\n  return String.fromCharCode(c);\n}).join('') + ']', 'g');\nfunction limpar(t, max) {\n  const s = String(t == null ? '' : t).replace(INVISIVEL, '').trim();\n  if (!s || PROIBIDO.test(s)) return null;\n  return s.slice(0, max);\n}\nfunction url(base, caminho) { return caminho ? IMG + base + caminho : null; }\n// NUMERIC volta como string do no Postgres (largeNumbersOutput = text por\n// padrao). Sem o Number(), rating viraria \"8.3\" e a UI compararia string.\nfunction num(v) { return v == null ? null : Number(v); }\n\nfunction montarFilme(d, reason) {\n  return {\n    tmdbId: d.tmdb_id,\n    tmdbUrl: 'https://www.themoviedb.org/movie/' + d.tmdb_id,\n    imdbId: d.imdb_id || null,\n    title: d.title,\n    originalTitle: d.original_title || null,\n    year: num(d.release_year),\n    tagline: d.tagline || null,\n    overview: d.overview || null,\n    posterUrl: url('w500', d.poster_path),\n    backdropUrl: url('w1280', d.backdrop_path),\n    logoUrl: url('w300', d.logo_path),\n    trailerKey: d.trailer_key || null,\n    rating: num(d.rating),\n    voteCount: num(d.vote_count),\n    imdbRating: num(d.imdb_rating),\n    imdbVotes: num(d.imdb_votes),\n    awards: d.awards || null,\n    runtime: num(d.runtime),\n    genres: d.genres || [],\n    keywords: d.keywords || [],\n    originalLanguage: d.original_language || null,\n    spokenLanguages: d.spoken_languages || [],\n    ageRating: d.age_rating || null,\n    director: d.director || null,\n    cast: (d.cast_members || []).map(function (a) {\n      return { name: a.name, character: a.character || null, profileUrl: url('w185', a.profile_path) };\n    }),\n    crew: (d.crew_members || []).map(function (c) {\n      return { name: c.name, role: c.role, profileUrl: url('w185', c.profile_path) };\n    }),\n    collection: d.collection_name || null,\n    similar: (d.similar_movies || []).map(function (r) {\n      return {\n        tmdbId: r.tmdb_id, title: r.title, year: num(r.year),\n        backdropUrl: url('w780', r.backdrop_path),\n        posterUrl: url('w342', r.poster_path),\n        director: null,\n      };\n    }),\n    providers: (d.providers || []).map(function (p) {\n      return { type: p.type, name: p.name, logoUrl: url('w92', p.logo_path) };\n    }),\n    fetchedAt: d.fetched_at ? new Date(d.fetched_at).toISOString() : new Date().toISOString(),\n    // Sem fallback generico de reason, igual ao 'Montar filme': aqui SEMPRE\n    // existe curadoria (o pick veio do curador), entao um reason ausente\n    // significa que a sanitizacao rejeitou o texto, nao que ele nunca existiu.\n    reason: limpar(reason, 220),\n  };\n}\n\n// 'Buscar semana' tem alwaysOutputData ligado (tabela vazia no dia zero nao\n// pode pendurar o webhook ate o timeout). Filtra o item sintetico: ele nao\n// tem 'week', uma linha de verdade sempre tem.\nconst secoes = $('Buscar semana').all().map(function (i) { return i.json; })\n  .filter(function (s) { return s && s.week; });\n\nconst fatos = {};\n$input.all().forEach(function (i) {\n  const j = i.json;\n  if (j && j.tmdb_id != null) fatos[j.tmdb_id] = j;\n});\n\n// A ordem dentro de cada fileira ja e a ordem final — o rank aqui e o\n// indice pos-reordenacao que 'Montar resposta' ja fez (disponibilidade no\n// Brasil primeiro) na hora em que o robo curou o tema. Nao ha o que\n// reordenar de novo, so preservar.\nconst sections = secoes.map(function (s) {\n  const picks = (s.picks || []).slice().sort(function (a, b) {\n    return Number(a.rank || 0) - Number(b.rank || 0);\n  });\n  return {\n    position: s.position,\n    collectionTitle: s.collection_title,\n    // Rotulo curto escrito pelo 'Programador da semana' (1-3 palavras). null\n    // nas semanas gravadas antes de 09/2026 e quando a sanitizacao rejeita —\n    // a home cai num rotulo neutro por posicao.\n    label: limpar(s.label, 28),\n    theme: s.theme,\n    movies: picks\n      .map(function (p) {\n        const d = fatos[p.tmdb_id];\n        return d ? montarFilme(d, p.reason) : null;\n      })\n      // Defensivo: so faltaria fato se 'Buscar filmes' e 'Buscar semana' lessem\n      // semanas diferentes por uma corrida entre as duas consultas — nao deveria\n      // acontecer (mesma tabela, mesmo max(week) resolvido nas duas), mas um\n      // filme ausente e melhor que a pagina inteira quebrar.\n      .filter(function (m) { return m; }),\n  };\n});\n\nreturn [{ json: {\n  week: secoes.length ? secoes[0].week : null,\n  sections: sections,\n} }];"
       }
     },
     {
+      "id": "ad09ed34-a69d-4dfd-be4f-9cd1bd303688",
       "name": "Responder",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,

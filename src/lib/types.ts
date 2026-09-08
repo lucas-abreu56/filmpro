@@ -33,6 +33,11 @@ export const LIMITS = {
    *  entregue ao modelo — o schema é o guardrail, não o prompt. */
   MAX_REASON: 220,
   MAX_COLLECTION_TITLE: 60,
+  /** O rótulo curto da fileira ("Terror folclórico"). 28 cabe 3 palavras em
+   *  PT-BR — "Suspense de vigilância" dá 22. O mesmo número está assado em
+   *  dois lugares do n8n (o `maxLength` do schema no `Formato dos temas` e o
+   *  `limpar(s.label, 28)` do `Montar fileiras`); os três precisam bater. */
+  MAX_SECTION_LABEL: 28,
 } as const;
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -244,6 +249,16 @@ export interface RecommendationsResponse {
 export interface HomeSection {
   position: number;
   collectionTitle: string;
+  /**
+   * Rótulo curto da fileira, 1–3 palavras, escrito pelo curador junto com o
+   * recorte ("Terror folclórico", "Melancolia urbana"). É o filete acima do
+   * título, não o título.
+   *
+   * `null` nas semanas gravadas antes de 08/09/2026, quando a coluna não
+   * existia — a home cai num rótulo de reserva nesse caso. Campo autoral:
+   * passa pelo `sanitizeAuthoredText` como o `collectionTitle`.
+   */
+  label: string | null;
   theme: string;
   movies: Movie[];
 }

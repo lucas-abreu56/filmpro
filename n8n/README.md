@@ -142,4 +142,8 @@ Standalone). Não há um só lugar que os três importem: cada um vive num
 workflow n8n diferente, sem import entre eles. Mudar o formato do contrato
 num obriga a mudar nos três.
 
-Resposta: `{ week, sections: [{ position, collectionTitle, theme, movies: Movie[] }] }`.
+Resposta: `{ week, sections: [{ position, collectionTitle, label, theme, movies: Movie[] }] }`.
+
+`label` é o filete de 1–3 palavras acima do título ("Terror folclórico"),
+escrito pelo curador. Vem `null` nas semanas anteriores a 08/09/2026, quando a
+coluna não existia — a home cai num rótulo de reserva nesse caso.

@@ -208,6 +208,15 @@ CREATE TABLE IF NOT EXISTS home_sections (
     -- e porque sem ele não há como auditar de onde a fileira saiu.
     theme      text        NOT NULL,
     title      text        NOT NULL,   -- o collectionTitle escrito pelo curador
+    -- O filete de 1-3 palavras acima do título ("Terror folclórico"), escrito
+    -- pelo curador junto com o recorte. Atributo da FILEIRA, como `theme` e
+    -- `title` — não do filme, por isso não vive dentro de `picks`.
+    --
+    -- Nullable de propósito: as semanas gravadas antes de 08/09/2026 não têm,
+    -- e a home cai num rótulo de reserva em vez de quebrar. Guardado CRU, como
+    -- os outros dois campos autorais — a limpeza roda na leitura (`Montar
+    -- fileiras`) e de novo no Next.
+    label      text,
     -- MESMO formato de `search_cache.picks`: [{tmdb_id, reason, rank}]. O
     -- espelho é de propósito — permite montar a resposta com a mesma lógica,
     -- em vez de uma segunda implementação que diverge daqui a um mês.
@@ -219,6 +228,13 @@ CREATE TABLE IF NOT EXISTS home_sections (
     created_at timestamptz NOT NULL DEFAULT now(),
     PRIMARY KEY (week, position)
 );
+
+-- O `CREATE TABLE IF NOT EXISTS` acima não roda em banco que já tem a tabela,
+-- então a coluna nova precisa da própria linha. É o primeiro ALTER do arquivo:
+-- `label` chegou em 08/09/2026, depois de `home_sections` já estar em
+-- produção. Idempotente — rodar o schema inteiro de novo continua sendo
+-- seguro.
+ALTER TABLE home_sections ADD COLUMN IF NOT EXISTS label text;
 
 -- Sem índice em `week`, de propósito. A tabela ganha 5 linhas por semana —
 -- 260 por ano —, e a chave primária já cobre a única consulta que existe. Um

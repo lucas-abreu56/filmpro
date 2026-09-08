@@ -31,9 +31,16 @@ const CORES_FILEIRA = [
   "text-rosa",
 ] as const;
 
-/** Cinco fileiras, cinco rótulos — "Recorte da semana" repetido cinco vezes
- * lia como formulário, não como revista. */
-const ROTULOS_FILEIRA = [
+/**
+ * Reserva para fileira sem rótulo do curador — as semanas gravadas antes de
+ * 08/09/2026, quando `home_sections.label` não existia.
+ *
+ * Foram os rótulos fixos da home até então, e a auditoria de front-end tinha
+ * razão sobre eles: os quatro últimos são variação sem informação. Ficam como
+ * degradação, nunca como o caso normal. Se o gerador do n8n falhar em escrever
+ * o rótulo, a fileira ainda tem um filete em vez de um vão.
+ */
+const ROTULO_RESERVA = [
   "Recorte da semana",
   "Também da semana",
   "Ainda esta semana",
@@ -107,6 +114,16 @@ async function buscarFileiras(): Promise<Fileiras> {
         maxLength: LIMITS.MAX_COLLECTION_TITLE,
         fallback: "Seleção da semana",
       }),
+      // O rótulo não tem fallback de texto como o título: quando ele não vem
+      // (semana velha) ou não sobrevive à limpeza, `null` manda a home usar o
+      // `ROTULO_RESERVA`. Daí o `|| null` — `sanitizeAuthoredText` devolve o
+      // `fallback` no caso suspeito, e string vazia renderizaria um filete mudo.
+      label: secao.label
+        ? sanitizeAuthoredText(secao.label, {
+            maxLength: LIMITS.MAX_SECTION_LABEL,
+            fallback: "",
+          }) || null
+        : null,
       movies: enxugarFilmes(secao.movies).map((m) => ({
         ...m,
         reason: sanitizeReasonOrNull(m.reason),
@@ -192,7 +209,8 @@ export default async function Home() {
           {fileiras.map((secao) => {
             const cor = CORES_FILEIRA[(secao.position - 1) % CORES_FILEIRA.length];
             const rotulo =
-              ROTULOS_FILEIRA[(secao.position - 1) % ROTULOS_FILEIRA.length];
+              secao.label ??
+              ROTULO_RESERVA[(secao.position - 1) % ROTULO_RESERVA.length];
 
             return (
               <section key={secao.position} className="fileira fileira-revela">
