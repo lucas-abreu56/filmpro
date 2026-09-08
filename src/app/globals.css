@@ -325,6 +325,40 @@ body {
   animation-delay: 110ms;
 }
 
+/* ── Movimento dirigido pela rolagem ──────────────────────────────────────
+   Em CSS scroll-driven nativo (sem lib). Guardado duas vezes: por `@supports`
+   (fora de Chrome 115+/Safari 26/Firefox 136+ o conteúdo aparece estático e
+   completo, nunca escondido) e por `prefers-reduced-motion: no-preference` —
+   o bloco global de `reduce` lá embaixo zera `animation-duration`, mas isso
+   não desliga uma timeline de rolagem, então a guarda explícita é obrigatória.
+
+   Com o Lenis (`SmoothScroll.tsx`) em modo `root`, quem rola é o `<body>`
+   nativo de verdade: a timeline lê o `scrollTop` real e acompanha a inércia
+   sozinha.
+
+   O parallax no still do herói foi tentado e recuado: o `.perfuracao` mora no
+   rodapé do `.hero-still` de propósito (a costura "tela↔sala", item 2 das
+   animações aprovadas), e qualquer `translate`/altura extra no wrapper o
+   arrasta para fora da dobra. Não valia reestruturar por um efeito sutil. */
+
+/* A fileira sobe e aparece ao entrar na tela — "cor é recompensa por atenção",
+   agora na escala da seção. Estado de repouso: visível, sem transform. */
+@keyframes fileira-revela {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .fileira-revela {
+      animation: fileira-revela linear both;
+      animation-timeline: view();
+      animation-range: entry 5% entry 40%;
+    }
+  }
+}
+
 ::-webkit-scrollbar {
   width: 10px;
 }

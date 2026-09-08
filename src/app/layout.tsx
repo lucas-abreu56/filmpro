@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Big_Shoulders, Inter } from "next/font/google";
 import Cursor from "@/components/ui/Cursor";
 import Footer from "@/components/ui/Footer";
+import SmoothScroll from "@/components/SmoothScroll";
 import "./globals.css";
 
 // Founders Grotesk X-Condensed (kirlian) e Schabo Condensed (Awwwocado) são
@@ -45,11 +46,13 @@ export default function RootLayout({ children, modal }: LayoutProps<"/">) {
             para quem pediu menos movimento. */}
         <div className="grao" aria-hidden="true" />
         <Cursor />
-        {children}
-        {/* Persistente em toda rota, e é de propósito: a atribuição do TMDB é
-            exigência contratual da API, não um enfeite da home. */}
-        <Footer />
-        {modal}
+        <SmoothScroll>
+          {children}
+          {/* Persistente em toda rota, e é de propósito: a atribuição do TMDB é
+              exigência contratual da API, não um enfeite da home. */}
+          <Footer />
+          {modal}
+        </SmoothScroll>
       </body>
     </html>
   );

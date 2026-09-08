@@ -1,5 +1,6 @@
 "use client";
 
+import { useLenis } from "lenis/react";
 import { useEffect, useRef } from "react";
 
 import FilmStrip from "@/components/features/FilmStrip";
@@ -19,6 +20,7 @@ const MOCK = process.env.NEXT_PUBLIC_FILMPRO_MOCK === "1";
 export default function SearchResults() {
   const estado = useSearchStore((state) => state.estado);
   const secaoRef = useRef<HTMLElement>(null);
+  const lenis = useLenis();
 
   // Quando a curadoria fica pronta, joga a página direto nos filmes.
   //
@@ -28,13 +30,22 @@ export default function SearchResults() {
   // coleção; e instantâneo já é, por definição, o comportamento que
   // `prefers-reduced-motion` pediria, então não há caso especial a tratar.
   //
+  // Com o Lenis dirigindo o `<body>`, um `scrollIntoView` nativo deixaria a
+  // posição virtual dele dessincronizada — por isso o salto passa por
+  // `lenis.scrollTo(alvo, { immediate: true })`. O `-32` reproduz o
+  // `scroll-mt-8` da seção, que só o `scrollIntoView` respeitava. Sem Lenis
+  // (movimento reduzido), o caminho nativo continua valendo.
+  //
   // Depende de `estado` (o objeto inteiro, não da fase): `setEstado` cria um
   // objeto novo a cada busca, então uma segunda busca com o mesmo resultado
   // ainda dispara o salto.
   useEffect(() => {
     if (estado.fase !== "pronto") return;
-    secaoRef.current?.scrollIntoView({ behavior: "instant", block: "start" });
-  }, [estado]);
+    const alvo = secaoRef.current;
+    if (!alvo) return;
+    if (lenis) lenis.scrollTo(alvo, { immediate: true, offset: -32 });
+    else alvo.scrollIntoView({ behavior: "instant", block: "start" });
+  }, [estado, lenis]);
 
   if (estado.fase !== "pronto") return null;
 

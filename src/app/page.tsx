@@ -188,7 +188,7 @@ export default async function Home() {
               ROTULOS_FILEIRA[(secao.position - 1) % ROTULOS_FILEIRA.length];
 
             return (
-              <section key={secao.position}>
+              <section key={secao.position} className="fileira-revela">
                 <header className="mb-6 max-w-5xl">
                   <p
                     className={`font-display flex items-baseline gap-2 text-xs tracking-[0.16em] uppercase ${cor}`}

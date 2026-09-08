@@ -128,6 +128,20 @@ Exige guarda para dispositivo de toque e para navegação por teclado.
 **5. `mix-blend-mode: difference`** (Crying Glacier) — título sobre o trailer no
 hero da ficha, invertendo conforme a imagem passa.
 
+**6. Rolagem com inércia (Lenis) + fileira que entra na tela** — aprovado em
+08/09/2026. O `lenis` (`src/components/SmoothScroll.tsx`, `<ReactLenis root>`)
+embrulha a rolagem nativa no site inteiro — barra de rolagem real, âncoras e
+`sticky` intactos —, dando o peso de "sala de projeção" que a estética
+editorial pede. **Não monta sob `prefers-reduced-motion`** (não há animação
+presa ao scroll para dessincronizar, então o mais simples é não existir). O
+`<article>` da ficha leva `data-lenis-prevent`, e o modal pausa o Lenis
+enquanto está aberto. O único toque dirigido por rolagem é a **fileira de
+coleção que sobe e aparece ao entrar na viewport** (`.fileira-revela` em
+`globals.css`), em CSS scroll-driven nativo (`animation-timeline: view()`),
+guardado por `@supports` e por `prefers-reduced-motion: no-preference` — fora
+disso a fileira aparece estática e completa. É a linguagem "cor é recompensa
+por atenção" na escala da seção.
+
 ### O gesto central, confirmado
 
 A **coluna que acorda** continua sendo o gesto do produto, agora dentro de um
@@ -147,8 +161,16 @@ TMDB; sob foco a coluna vai de 12,5% para ~28% de largura e a cor volta
 - **Palco fixado de `2600vh`** — serve a manifesto de narrativa fixa, não a uma
   grade de resultados que muda a cada busca.
 - **GSAP Flip** (o pôster voando da tira para a ficha) — é a transição ideal
-  para a rota interceptadora, mas custa GSAP + plugin. Reavaliar depois de a
-  ficha existir.
+  para a rota interceptadora, mas custa GSAP + plugin. Reavaliado em
+  08/09/2026 e **mantido fora**: o projeto não tem nenhuma coordenação no
+  tempo que justifique GSAP (sem timeline, sem `setTimeout` de sequência, sem
+  scrub/reverse), e para transição entre rotas o caminho é testar as **View
+  Transitions nativas** primeiro (Next 16 + React 19 têm suporte, custo 0 KB).
+- **Parallax no still do herói** — tentado em 08/09/2026 junto com o Lenis e
+  recuado: o `.perfuracao` mora no rodapé do `.hero-still` de propósito (a
+  costura "tela↔sala", item 2 acima), e qualquer `translate` ou altura extra
+  no wrapper o arrasta para fora da dobra. Não valia reestruturar o herói por
+  um efeito sutil. Reabrir só junto de uma mudança no herói.
 
 ## Regras da casa
 
@@ -157,7 +179,8 @@ TMDB; sob foco a coluna vai de 12,5% para ~28% de largura e a cor volta
 3. Hierarquia por tamanho e peso, não por cor.
 4. Imagem sobre fundo claro **precisa de moldura**: no escuro o fotograma se
    fundia à página; no creme ele flutua sem um filete de contorno.
-5. `prefers-reduced-motion` corta trailer, colunas do loader e grão animado.
+5. `prefers-reduced-motion` corta trailer, colunas do loader, grão animado, a
+   inércia do Lenis (não monta) e a fileira que entra na tela.
 
 ## Procedência
 

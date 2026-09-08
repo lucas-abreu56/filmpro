@@ -1,5 +1,6 @@
 "use client";
 
+import { useLenis } from "lenis/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 
@@ -21,11 +22,19 @@ export default function Modal({
 }) {
   const router = useRouter();
   const dialogRef = useRef<HTMLDialogElement>(null);
+  // `undefined` quando o Lenis não está montado (movimento reduzido) — o `?.`
+  // abaixo vira no-op.
+  const lenis = useLenis();
 
   useEffect(() => {
     const dialog = dialogRef.current;
     if (dialog && !dialog.open) dialog.showModal();
-  }, []);
+    // O `<dialog>` nativo não trava a rolagem do fundo; com o Lenis dirigindo
+    // o `<body>`, rolar sobre o véu rolaria a página atrás. Pausa enquanto a
+    // ficha está aberta, retoma ao fechar — a posição fica onde estava.
+    lenis?.stop();
+    return () => lenis?.start();
+  }, [lenis]);
 
   // `back()` e não `push("/")`: o modal é uma camada sobre a página que estava
   // aberta, e voltar devolve exatamente ela, com a rolagem onde estava.
