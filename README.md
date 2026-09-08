@@ -137,6 +137,47 @@ de LLM mais até 16 chamadas ao TMDB.
 
 ---
 
+## Licenças e atribuição
+
+**O FilmPro é uma peça de portfólio e não é comercial.** Sem anúncio, sem
+cobrança, sem afiliado, sem venda do app. Isso não é uma preferência: é a
+condição que mantém válidas as duas APIs de dados do projeto.
+
+| Fonte | O que exige | Onde está cumprido |
+|---|---|---|
+| **TMDB** | aviso com redação literal + logo oficial, menos proeminente que a marca do app; uso não comercial | [`src/components/ui/Footer.tsx`](src/components/ui/Footer.tsx), persistente em toda rota |
+| **OMDb** | uso pessoal e não comercial. **Não exige atribuição** — o crédito vem da CC BY-NC 4.0 declarada no site deles, que pede link de volta | mesmo rodapé, com link |
+| **Tipografia** | Big Shoulders e Inter, ambas OFL | via `next/font/google`; nenhum arquivo de fonte no repositório |
+| **Dependências** | — | as cinco de produção são MIT (`next`, `react`, `react-dom`, `zustand`, `lenis`) |
+
+Os levantamentos de sistemas de design de terceiros que orientaram a identidade
+(`referencia/`, `docs/design-systems/`) são material de marca alheia e **não
+fazem parte deste repositório** — estão no `.gitignore` e nunca foram
+commitados. A procedência está registrada em
+[docs/identidade-visual.md](docs/identidade-visual.md).
+
+### A ordem do fluxo é uma decisão de licença, não só de produto
+
+Os termos do TMDB tratam como uso comercial o emprego do conteúdo deles "em
+conexão com" um sistema interativo de pergunta-resposta baseado em LLM. O que
+mantém o FilmPro fora disso é a ordem, e ela é deliberada:
+
+**o modelo escolhe títulos com o repertório dele → só então o TMDB é consultado
+para resolver aqueles títulos em fatos e imagens.**
+
+Nenhum conteúdo do TMDB entra no modelo. Ele não é treinado com aquilo, não lê
+aquilo e não responde a partir daquilo — o oposto do chatbot que usa o catálogo
+como base de conhecimento, que é o que a cláusula existe para barrar. O
+parágrafo de abertura de
+[`n8n/nos/curador.prompt.md`](n8n/nos/curador.prompt.md) é o que segura essa
+fronteira.
+
+Três mudanças quebrariam a conformidade: qualquer receita; alimentar o modelo
+com conteúdo do TMDB; ou deixar o modelo responder *sobre* os filmes usando
+dado do TMDB em vez de só escolher títulos.
+
+---
+
 ## Design
 
 Papel creme `#FDF6E4`, tinta marrom-vinho `#531A0F`, e um vermelho-sangue

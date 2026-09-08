@@ -32,6 +32,31 @@ Siga esta estrutura para manter o documento limpo:
 - **Poda de Código:** Procure ativamente e apague código morto, lógica duplicada ou abstrações inúteis. Manter é tão importante quanto criar.
 - **Design Responsável:** Foque na substância (resolução de problemas e dados reais) em vez de efeitos cosméticos pesados (ex: gradientes excessivos, bibliotecas 3D sem necessidade). O projeto deve ser maduro e performático.
 
+## Restrição de licença: o projeto é NÃO COMERCIAL
+
+Decidido pelo Lucas em 08/09/2026. O FilmPro é peça de portfólio, e isso não é
+preferência estética — é a condição que mantém válidas as APIs do TMDB e do
+OMDb, as duas gratuitas só para uso não comercial. O detalhe e as citações
+literais dos termos estão no `README.md`, seção "Licenças e atribuição".
+
+**Obrigação legal não quebra build, não falha teste e não aparece no lint.** Por
+isso ela mora aqui: se ninguém perguntar, ela nunca aparece. Três mudanças
+quebram a conformidade, e nenhuma delas dá erro:
+
+1. **Qualquer receita** — anúncio, plano pago, afiliado de streaming, venda do
+   app. Exige acordo comercial por escrito com o TMDB *antes*.
+2. **Alimentar o modelo com conteúdo do TMDB.** Hoje o curador escolhe títulos
+   com o repertório dele e o TMDB entra depois, só para resolver títulos em
+   fatos. Inverter essa ordem cruza a linha.
+3. **Deixar o modelo responder *sobre* os filmes** usando dado do TMDB, em vez
+   de só escolher títulos. O parágrafo de abertura de
+   `n8n/nos/curador.prompt.md` é o que segura isso, e tem um aviso no arquivo.
+
+Se uma tarefa pedir qualquer uma das três, **pare e levante com o Lucas** em vez
+de implementar. Ao acrescentar API, dataset, fonte ou mídia de terceiro, levante
+os termos na hora — a atribuição exigida entra junto com o código que a usa,
+nunca "depois".
+
 ## Auditoria pré-commit (obrigatória)
 
 Antes de todo `git commit`, revise o que está em `git diff --cached` — não o que "deveria" ter mudado, o que de fato está staged. Responda, por escrito, às 4 perguntas:
