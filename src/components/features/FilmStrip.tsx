@@ -177,59 +177,69 @@ const Tira = memo(function Tira({
             transform: `translateX(-${deslocamento}%)`,
           }}
         >
-          {movies.map((movie, i) => (
-            <li
-              key={movie.tmdbId}
-              className="coluna border-profundo relative border-l-2 first:border-l-0"
-              onMouseEnter={temHover ? () => aoFocar(movie.tmdbId) : undefined}
-            >
-              {/* Link, e não botão: a coluna leva à ficha, e ficha é uma rota.
-                  Botão que navega quebra abrir em nova aba e o clique do meio. */}
-              <Link
-                href={`/filme/${movie.tmdbId}`}
-                data-cursor="ver ficha"
-                onFocus={() => aoFocar(movie.tmdbId)}
-                className="absolute inset-0 block overflow-hidden outline-none"
+          {movies.map((movie, i) => {
+            // As oito colunas são renderizadas sempre, mas só `VISIVEIS` cabem
+            // na janela — o resto fica fora por `translateX` dentro de um
+            // `overflow: hidden`. Sem tirar as de fora da ordem de tabulação, o
+            // Tab levava o foco para um link invisível e o `overflow: hidden`
+            // rolava a trilha para alcançá-lo, quebrando o passo do carrossel.
+            const foraDaJanela = rola && (i < passo || i >= passo + VISIVEIS);
+            return (
+              <li
+                key={movie.tmdbId}
+                className="coluna border-profundo relative border-l-2 first:border-l-0"
+                aria-hidden={foraDaJanela || undefined}
+                onMouseEnter={temHover ? () => aoFocar(movie.tmdbId) : undefined}
               >
-                <span
-                  className="absolute inset-0 bg-cover bg-center"
-                  style={
-                    movie.backdropUrl ?? movie.posterUrl
-                      ? {
-                          backgroundImage: `url(${
-                            movie.backdropUrl
-                              ? backdropMenor(movie.backdropUrl)
-                              : movie.posterUrl
-                          })`,
-                        }
-                      : { backgroundImage: fotogramaProcedural(movie.tmdbId) }
-                  }
-                />
-                <span className="scrim absolute inset-0" />
-
-                <span
-                  className="text-papel/50 font-display absolute top-3 left-3 text-[11px]"
-                  aria-hidden="true"
+                {/* Link, e não botão: a coluna leva à ficha, e ficha é uma rota.
+                    Botão que navega quebra abrir em nova aba e o clique do meio. */}
+                <Link
+                  href={`/filme/${movie.tmdbId}`}
+                  data-cursor="ver ficha"
+                  tabIndex={foraDaJanela ? -1 : undefined}
+                  onFocus={() => aoFocar(movie.tmdbId)}
+                  className="absolute inset-0 block overflow-hidden outline-none"
                 >
-                  {String(i + 1).padStart(2, "0")}
-                </span>
+                  <span
+                    className="absolute inset-0 bg-cover bg-center"
+                    style={
+                      movie.backdropUrl ?? movie.posterUrl
+                        ? {
+                            backgroundImage: `url(${
+                              movie.backdropUrl
+                                ? backdropMenor(movie.backdropUrl)
+                                : movie.posterUrl
+                            })`,
+                          }
+                        : { backgroundImage: fotogramaProcedural(movie.tmdbId) }
+                    }
+                  />
+                  <span className="scrim absolute inset-0" />
 
-                <span className="absolute inset-x-3 bottom-3">
-                  <span className="text-papel font-display line-clamp-2 block text-[13px] leading-[1.05] tracking-tight uppercase">
-                    {movie.title}
+                  <span
+                    className="text-papel/50 font-display absolute top-3 left-3 text-[11px]"
+                    aria-hidden="true"
+                  >
+                    {String(i + 1).padStart(2, "0")}
                   </span>
-                  {movie.year && (
-                    <span
-                      className="coluna-ano text-papel/60 font-display mt-1 block text-[11px] tracking-[0.12em]"
-                      aria-hidden="true"
-                    >
-                      {movie.year}
+
+                  <span className="absolute inset-x-3 bottom-3">
+                    <span className="text-papel font-display line-clamp-2 block text-[13px] leading-[1.05] tracking-tight uppercase">
+                      {movie.title}
                     </span>
-                  )}
-                </span>
-              </Link>
-            </li>
-          ))}
+                    {movie.year && (
+                      <span
+                        className="coluna-ano text-papel/60 font-display mt-1 block text-[11px] tracking-[0.12em]"
+                        aria-hidden="true"
+                      >
+                        {movie.year}
+                      </span>
+                    )}
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
         </ul>
 
         <div className="perfuracao" aria-hidden="true" />
@@ -615,7 +625,7 @@ export function OndeAssistir({
         ))}
       </ul>
 
-      {data && <p className="text-apoio/70 mt-2 text-[10px]">Verificado em {data}</p>}
+      {data && <p className="text-apoio mt-2 text-[10px]">Verificado em {data}</p>}
     </div>
   );
 }

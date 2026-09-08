@@ -20,8 +20,14 @@
 
   /* Não existe escala de cinza neste sistema: a doc da Awwwocado é explícita
      que hierarquia vem do tamanho do tipo, não da cor. Os apoios saem da
-     própria tinta com alpha, para pertencerem à mesma família. */
-  --color-apoio: rgb(83 26 15 / 0.62);
+     própria tinta com alpha, para pertencerem à mesma família.
+
+     0.72, não 0.62: a 0.62 o texto de apoio dava 4,2:1 sobre o papel e falhava
+     WCAG AA (mín. 4,5:1) em ~15 pontos de texto pequeno. 0.72 = 5,66:1, ainda
+     visivelmente mais leve que a tinta cheia (~8,9:1), então a hierarquia por
+     tamanho+peso continua fazendo o trabalho. O `.tema-escuro` mantém 0.62
+     porque sobre o profundo aquilo já dá 7:1. */
+  --color-apoio: rgb(83 26 15 / 0.72);
   --color-fio: rgb(83 26 15 / 0.18);
   --color-fio-forte: rgb(83 26 15 / 0.42);
 
@@ -167,6 +173,16 @@ body {
   .fotograma:focus-within > a {
     filter: none;
   }
+}
+
+/* O único feedback de foco do card do celular era o `filter: none` acima, preso
+   dentro do `@media (hover)` — então teclado + toque ficava sem indicador
+   nenhum (falha WCAG 2.4.7). Um contorno creme (a imagem por baixo é escura),
+   fora de qualquer media query. O link tem `outline-none` na classe do
+   Tailwind; a especificidade daqui vence. */
+.fotograma > a:focus-visible {
+  outline: 2px solid var(--color-papel);
+  outline-offset: -3px;
 }
 
 /* ── A coluna que acorda ──────────────────────────────────────────────────
