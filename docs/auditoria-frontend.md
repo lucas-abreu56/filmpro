@@ -249,10 +249,11 @@ a cada quadro. É decisão de design ("cinco linhas e a tela ganha textura"). Se
 seção 4 apontar composição como gargalo, testar `opacity` menor + `will-change`
 ou trocar por um `::after` contido.
 
-**6.10 `Cursor`** (`Cursor.tsx:26`): `closest("[data-cursor]")` + dois `setState`
-**por amostra de `mousemove`**, sem `requestAnimationFrame`. Em ponteiro fino
-isso é trabalho de React a cada evento do mouse. Empacotar num rAF (guardar a
-última posição, aplicar uma vez por quadro) tira o React do caminho quente.
+**6.10 `Cursor`** ✅ **CORRIGIDO** (`7dd1658`) — `mousemove` só guarda a posição;
+`closest()` + os dois `setState` passam a rodar 1× por quadro via rAF, com
+`cancelAnimationFrame` no cleanup.
+~~`closest("[data-cursor]")` + dois `setState` por amostra de `mousemove`,
+sem `requestAnimationFrame`.~~
 
 **6.11 `useMedia` começa `false`** (`useMedia.ts:15`): o desktop monta a pilha
 mobile inteira do `FilmStrip` no primeiro render (SSR + primeiro quadro), depois
@@ -261,16 +262,17 @@ docblock documenta o trade-off; `useSyncExternalStore` daria o valor certo já n
 primeiro render do cliente. Mexe num hook compartilhado — passada própria, não
 contrabando.
 
-**6.12 `key={filme.tmdbId}` na `<Legenda>`** (`FilmStrip.tsx:131`): é
-intencional (reinicia a animação CSS), mas remonta ~30 nós e 6 `<img>` de logo
-**a cada hover**. Trocar por uma `key` no wrapper da animação e manter a
-`<Legenda>` montada, ou animar via classe adicionada/removida.
+**6.12 `key={filme.tmdbId}` na `<Legenda>`** ✅ **CORRIGIDO** (`7dd1658`) — a
+`key` saiu; o React reconcilia o texto no lugar e a animação é rearmada
+tirando/recolocando a classe (com reflow forçado). Verificado por CDP: Tab
+pela tira troca o texto e refaz a animação sem remontar o nó do DOM.
+~~Remontava ~30 nós e 6 `<img>` de logo a cada hover.~~
 
 ### Responsivo
 
-**6.13 ⚠️ 320 px**: `w-[9.5rem] shrink-0` no rótulo de "Onde assistir"
-(`FilmStrip.tsx:601`) ocupa 152 px de 320 — 47% da linha, e os logos espremem no
-resto. Abaixo de 360 px, empilhar rótulo e logos.
+**6.13 ⚠️ 320 px** ✅ **CORRIGIDO** (`7dd1658`) — `flex-wrap` no grupo: abaixo de
+~360 px os logos caem para a linha de baixo em vez de espremer ao lado do
+rótulo de 9,5 rem.
 
 ---
 
@@ -312,12 +314,13 @@ resto. Abaixo de 360 px, empilhar rótulo e logos.
 | 3 | Indicador de foco na pilha do celular (6.4) | a11y | ✅ `e55cc37` |
 | 4 | `tabindex={-1}`/`aria-hidden` nas colunas fora da janela (6.3) | a11y | ✅ `e55cc37` |
 | 5 | `h-24` + `decoding="async"` no letreiro (6.5) | perf/CLS | ✅ `8b9b58f` |
-| 6 | `transition: flex-grow` (6.7) | perf/sensação | ⏸ só se o engasgo voltar |
-| 7 | `mix-blend-mode` do herói (6.8) | perf/design | ⏸ Lucas decidiu manter |
-| 8 | rAF no `Cursor` (6.10), `key` da legenda (6.12) | perf | ⏳ aberto, baixo retorno |
-| 9 | n8n manda `path`, não URL `w1280` — tira `backdropMenor` | arquitetura | ⏳ aberto, exige reimportar workflow |
-| 10 | Rótulo real por fileira em vez de "Também da semana"×4 (§7) | conteúdo | ⏳ aberto |
-| 11 | 320px: empilhar rótulo+logos em "Onde assistir" (6.13) | responsivo | ⏳ aberto |
+| 6 | `transition: flex-grow` (6.7) | perf/sensação | ⏸ Lucas: só se o engasgo voltar |
+| 7 | `mix-blend-mode` do herói (6.8) | perf/design | ⏸ Lucas: manter |
+| 8 | rAF no `Cursor` (6.10), `key` da legenda (6.12) | perf | ✅ `7dd1658` |
+| 9 | 320px: `flex-wrap` em "Onde assistir" (6.13) | responsivo | ✅ `7dd1658` |
+| 10 | n8n manda `path`, não URL `w1280` — tira `backdropMenor` | arquitetura | ⏳ aberto; recomendação: não fazer — o `backdropMenor` já captura a economia |
+| 11 | Rótulo real por fileira em vez de "Também da semana"×4 (§7) | conteúdo/produto | ⏳ aberto |
+| 12 | `useMedia` → `useSyncExternalStore` (6.11) | perf | ⏳ aberto, mexe em hook compartilhado |
 
 ## 9. Fora de escopo
 
