@@ -179,6 +179,13 @@ Notas por dimensão (0–4):
 
 ### Acessibilidade
 
+> **08/09/2026 — 6.1 a 6.5 CORRIGIDOS** (`e55cc37`, `8b9b58f`). `--color-apoio`
+> subiu para alpha `0.72` (contraste medido **5,66:1**, era 4,20); `text-apoio/70`
+> perdeu o `/70`; as colunas fora da janela da tira ganham `aria-hidden` +
+> `tabIndex={-1}` conforme o passo; o card do celular ganha contorno creme via
+> `:focus-visible`; o letreiro do herói reserva `h-24` e ganha `decoding="async"`.
+> Verificado por CDP. O texto abaixo é o diagnóstico original.
+
 **6.1 🔴 `--color-apoio` falha WCAG AA no tema claro.**
 `rgb(83 26 15 / 0.62)` sobre o papel `#FDF6E4` dá contraste **≈ 4,1:1**
 (calculado à mão — confirmar com ferramenta). O mínimo AA para texto normal é
@@ -231,10 +238,10 @@ dele. Não mexido nesta passada de propósito.
 **6.8 `mix-blend-mode: difference` no `.hero-h1`** (`globals.css:139`). Um
 `<h1>` de ~280×672 px sobre o still que anima `scale()` 24 s em loop infinito:
 a área do h1 é **recomposta a cada quadro**, mesmo com a página parada. É item 5
-das animações aprovadas na `identidade-visual.md` — **não mexer sem o Lucas**.
-Alternativa que preserva a intenção: `#fff` com `text-shadow` sutil em vez do
-blend, ou `will-change: auto` e aceitar o custo só enquanto o herói está na
-dobra.
+das animações aprovadas na `identidade-visual.md`. **Decisão do Lucas em
+08/09/2026: manter** — o custo existe mas o herói só ocupa a primeira dobra, e
+o engasgo já está resolvido na prática. Se voltar, a alternativa é `#fff` com
+`text-shadow` sutil (preserva a leitura, sem o blend por quadro).
 
 **6.9 `.grao`** (`globals.css:49`): `position: fixed; inset: 0; z-index: 9999;
 opacity: 0.15` — SVG de turbulência na viewport inteira, blendado sobre a página
@@ -298,17 +305,19 @@ resto. Abaixo de 360 px, empilhar rótulo e logos.
 
 ## 8. Recomendações, em ordem
 
-| # | ação | tipo | onde |
+| # | ação | tipo | estado |
 |---|---|---|---|
-| 1 | **Confirmar o gargalo** (seção 4) | medição | máquina do Lucas |
-| 2 | Subir `--color-apoio` para ~`0.72`, remover `text-apoio/70` (6.1, 6.2) | a11y | `globals.css`, `FilmStrip.tsx` |
-| 3 | Indicador de foco na pilha do celular (6.4) | a11y | `globals.css` |
-| 4 | `tabindex={-1}`/`aria-hidden` nas colunas fora da janela (6.3) | a11y | `FilmStrip.tsx` |
-| 5 | `width`/`height` + `decoding="async"` no letreiro (6.5) | perf/CLS | `Hero.tsx` |
-| 6 | Decidir sobre `transition: flex-grow` (6.7) — sentir primeiro | perf/sensação | `globals.css` |
-| 7 | `mix-blend-mode` do herói — só com o Lucas (6.8) | perf/design | `globals.css` |
-| 8 | rAF no `Cursor` (6.10), `key` da legenda (6.12) | perf | componentes |
-| 9 | n8n manda `path`, não URL `w1280` — tira `backdropMenor` | arquitetura | n8n + `tmdb.ts` |
+| 1 | **Confirmar o gargalo** (seção 4) | medição | ✅ Lucas testou em produção: "muito fluido, não trava mais" |
+| 2 | Subir `--color-apoio` para `0.72`, remover `text-apoio/70` (6.1, 6.2) | a11y | ✅ `e55cc37` |
+| 3 | Indicador de foco na pilha do celular (6.4) | a11y | ✅ `e55cc37` |
+| 4 | `tabindex={-1}`/`aria-hidden` nas colunas fora da janela (6.3) | a11y | ✅ `e55cc37` |
+| 5 | `h-24` + `decoding="async"` no letreiro (6.5) | perf/CLS | ✅ `8b9b58f` |
+| 6 | `transition: flex-grow` (6.7) | perf/sensação | ⏸ só se o engasgo voltar |
+| 7 | `mix-blend-mode` do herói (6.8) | perf/design | ⏸ Lucas decidiu manter |
+| 8 | rAF no `Cursor` (6.10), `key` da legenda (6.12) | perf | ⏳ aberto, baixo retorno |
+| 9 | n8n manda `path`, não URL `w1280` — tira `backdropMenor` | arquitetura | ⏳ aberto, exige reimportar workflow |
+| 10 | Rótulo real por fileira em vez de "Também da semana"×4 (§7) | conteúdo | ⏳ aberto |
+| 11 | 320px: empilhar rótulo+logos em "Onde assistir" (6.13) | responsivo | ⏳ aberto |
 
 ## 9. Fora de escopo
 
