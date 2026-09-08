@@ -318,7 +318,7 @@ rótulo de 9,5 rem.
 | 7 | `mix-blend-mode` do herói (6.8) | perf/design | ⏸ Lucas: manter |
 | 8 | rAF no `Cursor` (6.10), `key` da legenda (6.12) | perf | ✅ `7dd1658` |
 | 9 | 320px: `flex-wrap` em "Onde assistir" (6.13) | responsivo | ✅ `7dd1658` |
-| 10 | n8n manda `path`, não URL `w1280` — tira `backdropMenor` | arquitetura | ⏳ aberto; recomendação: não fazer — o `backdropMenor` já captura a economia |
+| 10 | n8n manda `path`, não URL `w1280` — tira `backdropMenor` | arquitetura | ⏸ Lucas em 08/09/2026: **não fazer** — o `backdropMenor` já captura a economia e é reversível |
 | 11 | Rótulo real por fileira em vez de "Também da semana"×4 (§7) | conteúdo/produto | ⏳ aberto |
 | 12 | `useMedia` → `useSyncExternalStore` (6.11) | perf | ⏳ aberto, mexe em hook compartilhado |
 
