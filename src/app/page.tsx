@@ -2,6 +2,7 @@ import FilmStrip from "@/components/features/FilmStrip";
 import Hero from "@/components/features/Hero";
 import SearchPanel from "@/components/features/SearchPanel";
 import SearchResults from "@/components/features/SearchResults";
+import { enxugarFilmes } from "@/lib/enxugar";
 import { sanitizeAuthoredText, sanitizeReasonOrNull } from "@/lib/sanitize";
 import { LIMITS, type HomeSection, type HomeSectionsResponse } from "@/lib/types";
 
@@ -97,13 +98,16 @@ async function buscarFileiras(): Promise<Fileiras> {
     // fileiras` no n8n, e o `/api/recommendations` que gerou a curadoria
     // originalmente). A regra do projeto é que nada escrito por modelo chega
     // à tela só por já ter passado por outra camada antes.
+    // `enxugarFilmes` corta os campos que a interface não desenha antes de o
+    // objeto virar payload de RSC. Aqui é onde mais rende: cinco fileiras de
+    // oito filmes, e o corte tira 39% do peso da página.
     const sections = (corpo.sections ?? []).map((secao) => ({
       ...secao,
       collectionTitle: sanitizeAuthoredText(secao.collectionTitle, {
         maxLength: LIMITS.MAX_COLLECTION_TITLE,
         fallback: "Seleção da semana",
       }),
-      movies: secao.movies.map((m) => ({
+      movies: enxugarFilmes(secao.movies).map((m) => ({
         ...m,
         reason: sanitizeReasonOrNull(m.reason),
       })),

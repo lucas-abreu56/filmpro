@@ -128,10 +128,24 @@ export interface Movie {
   /** Chave do YouTube do trailer, de `/videos` via `append_to_response`. */
   trailerKey: string | null;
 
+  /**
+   * ── Campos que o n8n envia e a interface AINDA não desenha ──
+   *
+   * Os nove marcados com `?` daqui para baixo (`rating`, `voteCount`,
+   * `keywords`, `originalLanguage`, `spokenLanguages`, `cast`, `crew`,
+   * `collection`, `similar`) existem no banco e chegam do n8n, mas são
+   * removidos por `enxugarFilme` (`src/lib/enxugar.ts`) antes de cruzarem para
+   * o navegador — eles eram **39% do payload da home**, medidos em 08/09/2026.
+   *
+   * O `?` diz a verdade sobre o que o componente recebe, não sobre o que o n8n
+   * manda. Para reativar um campo, tire o nome da lista em `enxugar.ts` e o
+   * `?` daqui.
+   */
+
   /** Nota do próprio TMDB — NÃO é a do IMDB. */
-  rating: number | null;
+  rating?: number | null;
   /** Permite à UI esconder a nota quando a amostra é pequena demais. */
-  voteCount: number | null;
+  voteCount?: number | null;
   /** Nota do IMDB, do OMDB consultado por `imdbId`. O TMDB não fornece isto. */
   imdbRating: number | null;
   imdbVotes: number | null;
@@ -141,20 +155,20 @@ export interface Movie {
 
   runtime: number | null;
   genres: string[];
-  keywords: string[];
-  originalLanguage: string | null;
+  keywords?: string[];
+  originalLanguage?: string | null;
   /** Idiomas de áudio, para o selo "🔊 Inglês" da MUBI. */
-  spokenLanguages: string[];
+  spokenLanguages?: string[];
   /** Certificação brasileira: L, 10, 12, 14, 16, 18. */
   ageRating: string | null;
   director: string | null;
-  cast: CastMember[];
+  cast?: CastMember[];
   /** Direção, roteiro, fotografia, trilha — o bloco "Elenco e equipe". */
-  crew: CrewMember[];
+  crew?: CrewMember[];
   /** "Parte da coleção X", quando o filme pertence a uma franquia. */
-  collection: string | null;
+  collection?: string | null;
   /** Fileira "Títulos semelhantes". */
-  similar: RelatedMovie[];
+  similar?: RelatedMovie[];
 
   providers: WatchProvider[];
   /**

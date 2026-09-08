@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { enxugarFilme } from "@/lib/enxugar";
 import { clientIp, overLimit } from "@/lib/rateLimit";
 import { sanitizeAuthoredText } from "@/lib/sanitize";
 import { LIMITS, type Movie, type RecommendationsResponse } from "@/lib/types";
@@ -175,9 +176,11 @@ function limparTextoAutoral(
       maxLength: LIMITS.MAX_COLLECTION_TITLE,
       fallback: "Recomendações",
     }),
+    // `enxugarFilme` no mesmo passo: os campos que a interface não desenha
+    // saem aqui, antes de o JSON descer para o browser.
     movies: (data.movies ?? []).map(
       (movie: Movie): Movie => ({
-        ...movie,
+        ...enxugarFilme(movie),
         reason: sanitizeAuthoredText(movie.reason, {
           maxLength: LIMITS.MAX_REASON,
           fallback: "Escolhido pela curadoria para esta busca.",

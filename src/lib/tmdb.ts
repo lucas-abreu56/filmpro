@@ -13,16 +13,17 @@
 const IMAGE_BASE = "https://image.tmdb.org/t/p";
 
 /** Tamanhos que o TMDB publica para cada tipo. Não invente outros — um valor
- *  fora da lista devolve 404, não uma imagem redimensionada. */
+ *  fora da lista devolve 404, não uma imagem redimensionada.
+ *
+ *  Havia aqui `PROFILE_SIZES`/`LOGO_SIZES` e as funções `profileUrl` e
+ *  `providerLogoUrl`. Saíram em 08/09/2026 por não terem nenhum chamador: as
+ *  fotos de elenco nunca foram desenhadas, e o logo do provedor chega do n8n
+ *  como URL já montada. Voltam junto com a tela que precisar delas. */
 export const POSTER_SIZES = ["w185", "w342", "w500", "w780", "original"] as const;
 export const BACKDROP_SIZES = ["w300", "w780", "w1280", "original"] as const;
-export const PROFILE_SIZES = ["w45", "w185", "h632", "original"] as const;
-export const LOGO_SIZES = ["w45", "w92", "w154", "w185", "original"] as const;
 
 type PosterSize = (typeof POSTER_SIZES)[number];
 type BackdropSize = (typeof BACKDROP_SIZES)[number];
-type ProfileSize = (typeof PROFILE_SIZES)[number];
-type LogoSize = (typeof LOGO_SIZES)[number];
 
 function imageUrl(path: string | null | undefined, size: string): string | null {
   if (!path) return null;
@@ -38,15 +39,6 @@ export function posterUrl(path: string | null, size: PosterSize = "w500") {
 
 /** Fotograma 16:9 — a imagem base da coluna. */
 export function backdropUrl(path: string | null, size: BackdropSize = "w780") {
-  return imageUrl(path, size);
-}
-
-export function profileUrl(path: string | null, size: ProfileSize = "w185") {
-  return imageUrl(path, size);
-}
-
-/** Logo do provedor de streaming, para a fileira de "onde assistir". */
-export function providerLogoUrl(path: string | null, size: LogoSize = "w92") {
   return imageUrl(path, size);
 }
 

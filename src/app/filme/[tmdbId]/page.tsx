@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import MovieDetail from "@/components/features/MovieDetail";
+import { enxugarFilme } from "@/lib/enxugar";
 import { sanitizeReasonOrNull } from "@/lib/sanitize";
 import { type Movie } from "@/lib/types";
 
@@ -66,7 +67,8 @@ async function buscarFilme(tmdbId: string): Promise<Movie | null> {
     // `search_cache.picks`, e a defesa existia só de um dos dois lados da
     // mesma tabela. O porquê do `null` está no docblock de `sanitizeReasonOrNull`.
     const filme = (await res.json()) as Movie;
-    return { ...filme, reason: sanitizeReasonOrNull(filme.reason) };
+    // Mesmo corte da home (`enxugarFilme`): aqui vale 18% do peso da página.
+    return { ...enxugarFilme(filme), reason: sanitizeReasonOrNull(filme.reason) };
   } catch (err) {
     console.error("Falha ao buscar filme no webhook:", err);
     return null;

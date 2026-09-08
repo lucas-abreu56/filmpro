@@ -8,6 +8,10 @@ import { useSearchStore } from "@/lib/store";
 
 const MOCK = process.env.NEXT_PUBLIC_FILMPRO_MOCK === "1";
 
+/** Respiro acima da seção quando a página salta até ela, em px. Um número só,
+ *  lido pelos dois caminhos de rolagem — ver o efeito abaixo. */
+const RESPIRO_TOPO = 32;
+
 /**
  * A tira de resultados da busca — separada do `SearchPanel` em 07/09/2026.
  * Antes as duas coisas eram um componente só, e no herói (`Hero.tsx`) isso
@@ -21,6 +25,8 @@ export default function SearchResults() {
   const estado = useSearchStore((state) => state.estado);
   const secaoRef = useRef<HTMLElement>(null);
   const lenis = useLenis();
+  /** O último `estado` para o qual o salto já aconteceu. Ver o efeito abaixo. */
+  const jaSaltou = useRef<unknown>(null);
 
   // Quando a curadoria fica pronta, joga a página direto nos filmes.
   //
@@ -32,25 +38,38 @@ export default function SearchResults() {
   //
   // Com o Lenis dirigindo o `<body>`, um `scrollIntoView` nativo deixaria a
   // posição virtual dele dessincronizada — por isso o salto passa por
-  // `lenis.scrollTo(alvo, { immediate: true })`. O `-32` reproduz o
-  // `scroll-mt-8` da seção, que só o `scrollIntoView` respeitava. Sem Lenis
-  // (movimento reduzido), o caminho nativo continua valendo.
+  // `lenis.scrollTo(alvo, { immediate: true })`. Sem Lenis (movimento
+  // reduzido), o caminho nativo continua valendo, e aí quem dá o respiro é o
+  // `scrollMarginTop` — por isso os dois lados leem a MESMA constante
+  // `RESPIRO_TOPO`, em vez de um `scroll-mt-8` no JSX e um `-32` aqui, que
+  // eram dois números para manter em sincronia à mão.
   //
   // Depende de `estado` (o objeto inteiro, não da fase): `setEstado` cria um
   // objeto novo a cada busca, então uma segunda busca com o mesmo resultado
   // ainda dispara o salto.
+  //
+  // `lenis` também está nas deps, e é por isso que existe o `jaSaltou`: sem
+  // ele, o Lenis passando de `undefined` a instância — o que acontece se
+  // alguém liga/desliga `prefers-reduced-motion` no sistema com a coleção na
+  // tela — re-dispararia o salto e jogaria a leitura de volta para o topo.
   useEffect(() => {
     if (estado.fase !== "pronto") return;
+    if (jaSaltou.current === estado) return;
     const alvo = secaoRef.current;
     if (!alvo) return;
-    if (lenis) lenis.scrollTo(alvo, { immediate: true, offset: -32 });
+    jaSaltou.current = estado;
+    if (lenis) lenis.scrollTo(alvo, { immediate: true, offset: -RESPIRO_TOPO });
     else alvo.scrollIntoView({ behavior: "instant", block: "start" });
   }, [estado, lenis]);
 
   if (estado.fase !== "pronto") return null;
 
   return (
-    <section ref={secaoRef} className="scroll-mt-8 mt-16 w-full">
+    <section
+      ref={secaoRef}
+      style={{ scrollMarginTop: RESPIRO_TOPO }}
+      className="mt-16 w-full"
+    >
       <header className="mb-6 max-w-5xl">
         <p className="text-apoio font-display text-xs tracking-[0.16em] uppercase">
           Coleção
