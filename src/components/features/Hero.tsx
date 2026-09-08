@@ -65,7 +65,14 @@ export default function Hero({ movie, semanaLabel }: HeroProps) {
             <img
               src={movie.logoUrl}
               alt={movie.title}
-              className="mb-5 max-h-24 max-w-[70%] drop-shadow-[0_4px_18px_rgba(0,0,0,0.6)]"
+              // `h-24 w-auto`, não `max-h-24`: o TMDB não manda a dimensão do
+              // PNG, então sem altura fixa o `<img>` nasce com 0 de altura e
+              // empurra o layout ~116px quando carrega (CLS). Com `h-24` a
+              // caixa já ocupa 6rem antes de a imagem chegar; só a largura
+              // ainda varia, e ela não desloca nada abaixo. `decoding="async"`
+              // tira o decode do PNG da thread principal.
+              decoding="async"
+              className="mb-5 h-24 w-auto max-w-[70%] object-contain object-left drop-shadow-[0_4px_18px_rgba(0,0,0,0.6)]"
             />
           ) : (
             <p className="font-display mb-5 text-3xl leading-[0.95] font-medium uppercase">
