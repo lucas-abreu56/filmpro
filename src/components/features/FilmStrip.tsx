@@ -669,16 +669,16 @@ export function OndeAssistir({
  * O logo é o reconhecimento imediato; o nome fica no `title` e no leitor de
  * tela. Sem logo — acontece — o nome vira o próprio selo.
  *
- * ── Por que 24 px, e por que não adianta pedir maior ────────────────────────
+ * ── Por que 32 px, e por que não adianta pedir maior ────────────────────────
  * Os logos de provedor do TMDB **nascem com 100 × 100**. Medido em 04/09/2026
  * nos quatro provedores de uma ficha: `original` devolve 100 px, e `w154`,
  * `w185` e `w300` são o mesmo original ampliado — `w300` triplica os bytes
  * (3,7 KB → 11,3 KB) sem um pixel de detalhe a mais.
  *
- * A 24 px CSS, uma tela de 3× pede 72 px e o `w92` entrega 92. Já estamos
- * acima do que a tela mostra; não há alta definição a ganhar porque a fonte
- * não tem. **O teto é ~33 px CSS a 3×** — daí para cima o original de 100 px
- * acaba e a imagem começa a borrar de verdade.
+ * **O teto é ~33 px CSS a 3×** — daí para cima o original de 100 px acaba e a
+ * imagem começa a borrar de verdade. 32 px é o maior valor redondo abaixo
+ * desse teto; era 24 até 08/09/2026, pequeno demais para reconhecer o serviço
+ * num relance, mas sem margem para subir mais um passo.
  *
  * Passar isso pelo otimizador da Vercel gastaria invocação de função para
  * economizar quilobyte nenhum.
@@ -693,28 +693,27 @@ function Logo({ provedor, href }: { provedor: WatchProvider; href: string }) {
       // destino é a central do TMDB, que lista todas as plataformas.
       title={`${provedor.name} — onde assistir, no TMDB`}
       data-cursor="onde assistir"
-      // `p-2` não é respiro, é alvo: 24 + 16 = 40 px de área de toque, contra
-      // os 24 do logo cru. O espaçamento entre logos passa a vir do próprio
+      // `p-2` não é respiro, é alvo: 32 + 16 = 48 px de área de toque, contra
+      // os 32 do logo cru. O espaçamento entre logos passa a vir do próprio
       // padding, e por isso o contêiner não tem `gap` — assim as áreas se
       // encostam sem se sobrepor, e não existe faixa morta entre elas.
       //
-      // `-my-2` cancela só a altura: a área continua com 40 px, mas o layout
-      // volta a contar 24. Sem isso a legenda da tira ficava 1 px mais alta
-      // nos filmes COM provedor do que nos sem, e a página passava a ter duas
-      // alturas — 1777 e 1776. Um pixel não se vê, mas "uma combinação só" é a
-      // garantia que este redesenho inteiro existe para manter, e ela vale
-      // enquanto ninguém a afrouxa "porque é pouco".
-      className="hover:opacity-100 focus-visible:opacity-100 -my-2 flex items-center p-2 opacity-90 transition-opacity"
+      // `-my-3` cancela só a altura: a área continua com 48 px, mas o layout
+      // volta a contar 32 (48 - 2×12). Sem isso a legenda da tira ficava mais
+      // alta nos filmes COM provedor do que nos sem, e a página passava a ter
+      // duas alturas. "Uma combinação só" é a garantia que este redesenho
+      // inteiro existe para manter — ver o docblock de `OndeAssistir`.
+      className="hover:opacity-100 focus-visible:opacity-100 -my-3 flex items-center p-2 opacity-90 transition-opacity"
     >
       {provedor.logoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={provedor.logoUrl}
           alt={provedor.name}
-          width={24}
-          height={24}
+          width={32}
+          height={32}
           loading="lazy"
-          className="border-fio h-6 w-6 rounded-[4px] border object-cover"
+          className="border-fio h-8 w-8 rounded-[4px] border object-cover"
         />
       ) : (
         <Selo>{provedor.name}</Selo>

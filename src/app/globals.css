@@ -62,6 +62,20 @@ body {
   background-size: 250px 250px;
 }
 
+/* ── Cursor customizado ────────────────────────────────────────────────────
+   `body.style.cursor = "none"` (em `Cursor.tsx`) não basta sozinho: um link
+   ou botão carrega `cursor: pointer` do próprio user-agent stylesheet (ou de
+   `cursor-pointer` do Tailwind), que é mais específico que o valor herdado do
+   body e vence ele. Resultado medido em 09/09/2026: a seta do sistema
+   reaparecia sobre qualquer elemento clicável, ao lado do anel customizado.
+   `!important` num seletor universal, escopado a esta classe, é o único jeito
+   de vencer TODAS as declarações de `cursor` do projeto (presentes e
+   futuras) sem caçar `cursor-pointer` uma por uma. */
+.cursor-custom-ativo,
+.cursor-custom-ativo * {
+  cursor: none !important;
+}
+
 /* ── Tira de filme ────────────────────────────────────────────────────────
    As colunas de resultado são fotogramas de uma tira real. A perfuração é o
    que faz a metáfora funcionar; sem ela são só cartões colados. */

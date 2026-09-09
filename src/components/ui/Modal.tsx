@@ -2,7 +2,9 @@
 
 import { useLenis } from "lenis/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+import { useCursorTracking } from "@/lib/useCursorTracking";
 
 /**
  * O `<dialog>` nativo, e não uma `<div>` com `z-index`: ele entra na top
@@ -22,6 +24,13 @@ export default function Modal({
 }) {
   const router = useRouter();
   const dialogRef = useRef<HTMLDialogElement>(null);
+  // Espelha `dialogRef` em estado só para `CursorNoDialog` saber, via render,
+  // quando o nó existe — um `ref` sozinho não dispara re-render.
+  const [dialogEl, setDialogEl] = useState<HTMLDialogElement | null>(null);
+  const setRefs = useCallback((el: HTMLDialogElement | null) => {
+    dialogRef.current = el;
+    setDialogEl(el);
+  }, []);
   // `undefined` quando o Lenis não está montado (movimento reduzido) — o `?.`
   // abaixo vira no-op.
   const lenis = useLenis();
@@ -44,7 +53,7 @@ export default function Modal({
 
   return (
     <dialog
-      ref={dialogRef}
+      ref={setRefs}
       aria-label={rotulo ? `Ficha de ${rotulo}` : "Ficha do filme"}
       // `onClose` cobre o Esc, que fecha o diálogo sem passar por `fechar`.
       onClose={fechar}
@@ -109,6 +118,40 @@ export default function Modal({
         </div>
         {children}
       </div>
+      <CursorNoDialog dialog={dialogEl} />
     </dialog>
+  );
+}
+
+/**
+ * O anel de `Cursor.tsx`, redesenhado aqui dentro por causa da top layer.
+ *
+ * `showModal()` põe o `<dialog>` numa camada acima de QUALQUER z-index do
+ * documento normal — inclusive o do `Cursor` global, que vive fora dele em
+ * `layout.tsx`. Ser filho do próprio `<dialog>` é o que basta para herdar a
+ * top layer sem portal manual.
+ *
+ * Cor invertida (`border-papel`/`text-papel`) porque o painel aqui dentro é
+ * escuro (`bg-profundo`); o anel escuro do cursor global sumiria de novo,
+ * agora por contraste, e não por camada.
+ */
+function CursorNoDialog({ dialog }: { dialog: HTMLDialogElement | null }) {
+  const { pos, rotulo } = useCursorTracking(dialog);
+
+  if (!pos) return null;
+
+  return (
+    <div
+      className="pointer-events-none fixed top-0 left-0 z-[60]"
+      style={{ transform: `translate3d(${pos.x}px, ${pos.y}px, 0)` }}
+      aria-hidden="true"
+    >
+      <span className="border-papel absolute -top-[26px] -left-[26px] block h-[52px] w-[52px] rounded-full border" />
+      {rotulo && (
+        <span className="text-papel font-display absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 text-[11px] font-medium tracking-wide whitespace-nowrap uppercase">
+          {rotulo}
+        </span>
+      )}
+    </div>
   );
 }

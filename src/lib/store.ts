@@ -4,12 +4,32 @@ import { type Movie, type RecommendationsResponse } from "./types";
 interface MovieStore {
   movies: Movie[];
   setMovies: (movies: Movie[]) => void;
+  adicionarMovies: (movies: Movie[]) => void;
   getMovieById: (id: number) => Movie | undefined;
 }
 
 export const useMovieStore = create<MovieStore>((set, get) => ({
   movies: [],
   setMovies: (movies) => set({ movies }),
+  /**
+   * Junta sem substituir — é o que as fileiras da home usam.
+   *
+   * `setMovies` continua sendo o certo para a busca: resultado novo troca o
+   * anterior inteiro. Mas a home e a busca coexistem na mesma tela, e quem
+   * busca, fecha a ficha e depois abre um filme da semana precisa dos dois
+   * conjuntos no store ao mesmo tempo. Substituir ali derrubaria um dos lados
+   * e a ficha voltaria a cair na página inteira.
+   *
+   * A entrada que já está no store vence a repetida: o `reason` da busca é
+   * escrito para aquela busca, e a fileira da semana traz outro para o mesmo
+   * filme. Preservar o que estava evita a frase trocar sob quem já a leu.
+   */
+  adicionarMovies: (movies) =>
+    set((estado) => {
+      const conhecidos = new Set(estado.movies.map((m) => m.tmdbId));
+      const novos = movies.filter((m) => !conhecidos.has(m.tmdbId));
+      return novos.length ? { movies: [...estado.movies, ...novos] } : estado;
+    }),
   getMovieById: (id) => get().movies.find((m) => m.tmdbId === id),
 }));
 

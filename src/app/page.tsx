@@ -1,5 +1,6 @@
 import FilmStrip from "@/components/features/FilmStrip";
 import Hero from "@/components/features/Hero";
+import HidratarStore from "@/components/features/HidratarStore";
 import SearchPanel from "@/components/features/SearchPanel";
 import SearchResults from "@/components/features/SearchResults";
 import { enxugarFilmes } from "@/lib/enxugar";
@@ -200,6 +201,11 @@ export default async function Home() {
           Sem ele, as duas coleções se encostam e leem como uma lista só. */}
       {fileiras.length > 0 && (
         <div className="mt-24 flex w-full flex-col gap-20">
+          {/* Sem isto o `useMovieStore` fica vazio para quem clica num filme
+              daqui: a ficha cairia na página inteira em vez do modal. Ver
+              `HidratarStore`. */}
+          <HidratarStore movies={fileiras.flatMap((secao) => secao.movies)} />
+
           <header className="border-fio-forte -mb-8 border-t pt-6">
             <p className="text-apoio font-display text-xs tracking-[0.16em] uppercase">
               Escolhas da semana
