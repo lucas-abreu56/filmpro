@@ -20,6 +20,7 @@ Siga esta estrutura para manter o documento limpo:
 3. **Decisões tomadas (com o porquê):** Registre por que uma solução foi escolhida (especialmente se contrariar convenções padrão ou envolver performance).
 4. **Limpeza do Pendente:** Marque itens resolvidos do roadmap ou dos defeitos como CONCLUÍDO. Não apague os defeitos passados silenciosamente; documente a resolução.
 5. **Próximo passo:** Deixe claro o que deve ser feito na próxima sessão para quem assumir o projeto.
+6. **Buffer Rolante e Poda (Teto de 400 linhas):** O `NOTES.local.md` deve conter no máximo as últimas 2 a 3 sessões (~400 linhas). Ao ultrapassar esse limite, transfira o histórico antigo para `docs/NOTES-historico.local.md`. Nunca deixe o arquivo acumular logs fósseis.
 
 ## Diretrizes de Governança e Arquitetura (Vibecoding & SDD)
 
