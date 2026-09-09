@@ -20,19 +20,59 @@ function normalizar(s) {
 // E comparar titulo exato NAO resolveria: o titulo original do filme certo
 // esta em japones. O que separa os dois e a popularidade. Dai a pontuacao:
 // ano e titulo entram, mas votos desempatam, e e o desempate que decide.
+//
+// ── Recalibrado em 09/09/2026, com os payloads das execucoes 2318/2328/2329 ──
+//
+// A versao anterior errava DOIS casos reais, e por motivos opostos:
+//
+// 1. Pedido 'The Assassin' (2015), o de Hou Hsiao-hsien. NINGUEM casava exato
+//    (o original e chines, e o TMDB devolveu 'A Assassina' em pt-BR). A decisao
+//    caiu inteira na popularidade, e 'The Sand' — terror B, IMDb 3.8 — ganhou
+//    por 14.1 a 7.8. Um filme errado venceu um vencedor de Cannes porque
+//    'popularity' do TMDB mede acesso recente, nao importancia.
+//
+// 2. Pedido 'Burning' (2018), o de Lee Chang-dong. Um registro hindi vazio
+//    (id 813106: SEM genero, SEM sinopse, 6 votos) tem original_title
+//    literalmente 'Burning' e levou o +60 de exato, fechando 103.2 contra 64.4
+//    do filme certo (id 491584, 1883 votos) — cujo original_title e '버닝' e
+//    portanto NAO casa. Titulo exato premiava o homonimo obscuro.
+//
+// As tres mudancas, cada uma contra um desses numeros:
+//
+// a) 'popularity' cai de *2 (ate +40) para *0.5 (ate +10). Ela e o sinal mais
+//    volatil do TMDB e era o maior peso da formula; virou desempate, que e o
+//    papel que o comentario acima ja dizia que ela tinha.
+// b) 'vote_count' passa a valer ate +45, por log. Votos sao o sinal que melhor
+//    separa filme real de registro-fantasma, e valiam no maximo +20 — na
+//    pratica, decimos. Log e nao linear porque a diferenca que importa e entre
+//    6 e 1883 votos, nao entre 3000 e 5000.
+// c) Casamento exato com registro SEM GENERO nao ganha o bonus cheio. Medicao
+//    de 09/09/2026 sobre 56 filmes legitimos — incluindo cinema africano e
+//    tailandes com 1 a 39 votos: NENHUM tinha genre_ids vazio. Registro sem
+//    genero no TMDB e cadastro incompleto, nao filme obscuro, e essa e a
+//    distincao que um piso de votos nao conseguiria fazer sem cortar o acervo
+//    de arte que o produto existe para defender (por isso piso foi descartado).
 function pontuar(r, pedido) {
   const alvo = normalizar(pedido.originalTitle);
   const ano = Number(String(r.release_date || '').slice(0, 4)) || null;
   const distancia = (pedido.year && ano) ? Math.abs(ano - pedido.year) : 99;
   const exato = normalizar(r.original_title) === alvo || normalizar(r.title) === alvo;
 
+  // Cadastro incompleto: sem genero E sem voto nenhum. Os dois juntos, porque
+  // filme de arte recem-catalogado pode ter zero voto e ainda ter genero.
+  const generos = Array.isArray(r.genre_ids) ? r.genre_ids : [];
+  const votos = Math.max(Number(r.vote_count) || 0, 0);
+  const fantasma = generos.length === 0 && votos < 10;
+
   let nota = 0;
-  if (exato) nota += 60;
+  if (exato) nota += fantasma ? 15 : 60;
   if (distancia === 0) nota += 40;
   else if (distancia <= 1) nota += 20;
   else if (distancia > 3) nota -= 40;
-  nota += Math.min(Number(r.popularity) || 0, 20) * 2;
-  nota += Math.min(Number(r.vote_count) || 0, 5000) / 250;
+  nota += Math.min(Number(r.popularity) || 0, 20) * 0.5;
+  // log10(1884) ~ 3.27, entao ~+45 para um filme muito votado e ~+8 para 6
+  // votos. O +1 evita log(0).
+  nota += Math.min(Math.log10(votos + 1) * 14, 45);
   return { r: r, nota: nota, exato: exato, distancia: distancia };
 }
 

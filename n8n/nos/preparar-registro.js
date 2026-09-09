@@ -43,6 +43,11 @@ return [{ json: {
   // O valor da string em si nao importa para o SQL, so o null-ou-nao.
   modelUsed: doCache ? null : 'gemini',
   cacheHit: !!doCache,
+  // 'human' | 'robot', decidido pelo 'Validar entrada' a partir de body.source.
+  // So a telemetria em 'searches' le isto (5.3) — search_cache continua sem
+  // marca, de proposito: a curadoria de um recorte do robo serve normalmente
+  // se uma pessoa buscar as mesmas palavras depois.
+  source: entrada.source,
   movieCount: (resp.movies || []).length,
   notFoundCount: (resp.notFound || []).length,
   latencyMs: Date.now() - Number(entrada.inicio || Date.now()),

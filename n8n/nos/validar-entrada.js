@@ -8,6 +8,14 @@ const bruto = Number(body.limit);
 const limit = Math.min(Math.max(Number.isInteger(bruto) ? bruto : 8, 1), 12);
 const texto = preferences.slice(0, 500);
 
+// 'human' | 'robot'. Decidido em 05/09/2026: o workflow de fileiras semanais
+// manda 'robot' em cada uma das 5 chamadas por semana ('Curar tema'), para a
+// telemetria em 'searches' distinguir uso de gente de verdade da home
+// gerando a si mesma. Qualquer valor que nao seja exatamente 'robot' vira
+// 'human' — inclusive ausente, que e o caso de todo trafego de producao ja
+// existente, que nunca vai mandar este campo.
+const source = String(body.source || '').trim() === 'robot' ? 'robot' : 'human';
+
 // ESPELHA src/lib/sanitize.ts::normalizeQuery CARACTERE POR CARACTERE.
 // Se as duas divergirem, o cache erra em SILENCIO: nenhum erro, so um hash
 // diferente e um acerto que nunca acontece. A ordem importa — o trim vem
@@ -56,7 +64,16 @@ const queryNorm = texto
 // Chefao — a curadoria era boa, mas quem digita o titulo costuma querer o
 // titulo. Agora o citado abre a lista. Sem este bump, toda busca ja gravada
 // continuaria sem o titulo pedido por ate 30 dias.
-const promptVersion = 7;
+//
+// v8 (09/09/2026): o prompt NAO mudou — mudou 'Escolher correspondencia', que
+// e o no que resolve o titulo do curador em filme do TMDB. A pontuacao dele
+// escolhia o filme errado quando havia homonimo: 'The Assassin' (2015) virava
+// 'The Sand' (terror B, IMDb 3.8) e 'Burning' (2018) virava um registro hindi
+// vazio de 6 votos, em vez do Lee Chang-dong de 1883. Bumpar aqui porque o
+// cache guarda o RESULTADO da resolucao: sem isto, toda busca ja gravada
+// continuaria servindo o filme errado por ate 30 dias. O material hasheado nao
+// distingue prompt de pipeline — o que importa e que a saida mudou.
+const promptVersion = 8;
 
 return [{ json: {
   preferences: texto,
@@ -64,6 +81,7 @@ return [{ json: {
   promptVersion: promptVersion,
   material: queryNorm + '|' + limit + '|' + promptVersion,
   limit: limit,
+  source: source,
   // Folga sobre o que o usuario pediu, por dois motivos que se somam.
   //
   // Verificacao: nem todo titulo do curador sobrevive ao TMDB. Era +2, e a
