@@ -53,7 +53,17 @@ const MESA = "(min-width: 64rem)";
 
 export default function FilmStrip({ movies }: { movies: Movie[] }) {
   /** Começa `false` (o caso do toque) porque no servidor não há `matchMedia`.
-   *  A tira só renderiza depois do fetch, então nada disso é hidratado. */
+   *
+   *  ATENÇÃO: isto FICA no `useMedia`, e não é só convenção — é o que evita
+   *  quebrar hidratação. No caminho da busca (`SearchResults`) a tira só
+   *  renderiza depois do fetch, então não é hidratada de fato; mas no
+   *  caminho da HOME (`src/app/page.tsx`) `FilmStrip` é renderizado no
+   *  servidor com as fileiras da semana, e `mesa` decide qual markup sai —
+   *  `MesaDeMontagem` ou `Pilha`. Trocar por `useSyncExternalStore` (que dá
+   *  o valor real já no primeiro quadro do cliente) faria o servidor
+   *  desenhar um markup e o cliente montar outro por cima: mismatch de
+   *  hidratação. Ver `SmoothScroll.tsx` para o caso em que a troca É segura
+   *  (quando o valor não decide markup). */
   const temHover = useMedia("(hover: hover) and (pointer: fine)");
   const mesa = useMedia(MESA);
 

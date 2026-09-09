@@ -28,6 +28,13 @@ import { useMedia } from "@/lib/useMedia";
  * largura toda e não sobra nada.
  */
 export default function MovieDetail({ movie }: { movie: Movie }) {
+  // Fica no `useMedia` de propósito (rec 12 / 6.11 avaliou e descartou a
+  // troca aqui). Em `/filme/[tmdbId]` este componente é renderizado no
+  // servidor, e `semMovimento` decide se o `<iframe>` do trailer entra no
+  // markup (abaixo). `useSyncExternalStore` daria o valor real já no
+  // primeiro quadro do cliente — mas o servidor já terá desenhado o outro
+  // caminho, o que quebra hidratação. Ver `SmoothScroll.tsx` para o caso em
+  // que a troca É segura (quando o valor não decide markup).
   const semMovimento = useMedia("(prefers-reduced-motion: reduce)");
 
   const meta = [
