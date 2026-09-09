@@ -8,9 +8,14 @@ let picks;
 if (doCache) {
   picks = l1[0].json.picks;
 } else {
-  picks = $('Escolher correspondencia').all().map(function (i) {
-    return { tmdb_id: i.json.tmdbId, reason: i.json.reason, rank: i.json.rank };
-  });
+  // Mesmo filtro de 'Montar resposta': a sentinela { vazio: true } de
+  // 'Escolher correspondencia' nao e filme e nao pode virar pick.
+  picks = $('Escolher correspondencia').all()
+    .map(function (i) { return i.json; })
+    .filter(function (c) { return c && c.tmdbId != null; })
+    .map(function (c) {
+      return { tmdb_id: c.tmdbId, reason: c.reason, rank: c.rank };
+    });
 }
 
 // searches.request_id e uuid NOT NULL. O BFF sempre manda um; chamada de
@@ -48,6 +53,18 @@ return [{ json: {
   // marca, de proposito: a curadoria de um recorte do robo serve normalmente
   // se uma pessoa buscar as mesmas palavras depois.
   source: entrada.source,
+  // Lido pelo IF 'Vale cachear?', que decide se 'Gravar L1' roda. Zero filmes
+  // NAO pode entrar no search_cache: 'Cache L1' nao filtra por picks vazio,
+  // mas 'Tem cache?' exige picks notEmpty — a linha nunca serviria de cache e
+  // ainda assim ocuparia o query_hash por 30 dias, mandando toda busca daquela
+  // consulta pelo curador de novo. Cache miss permanente COM custo de LLM, que
+  // e o pior dos dois mundos e foi o defeito consertado em 03/09/2026 por
+  // outro caminho. Zero confirmados costuma ser transitorio (TMDB fora, uma
+  // curadoria ruim): a proxima busca merece tentar de novo, fresca.
+  //
+  // A telemetria em 'searches' continua gravando normalmente — e justamente
+  // dela que sai a contagem de movie_count = 0.
+  valeCachear: (resp.movies || []).length > 0,
   movieCount: (resp.movies || []).length,
   notFoundCount: (resp.notFound || []).length,
   latencyMs: Date.now() - Number(entrada.inicio || Date.now()),

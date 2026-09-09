@@ -1,8 +1,18 @@
 // Nó "Validar entrada" — n8n-nodes-base.code
 const body = $input.first().json.body || {};
 const preferences = String(body.preferences || '').trim();
+// Ate 09/09/2026 este throw matava o workflow sem resposta: o webhook
+// pendurava e o BFF desistia em 45 s com "A busca demorou demais" — mentira
+// sobre um erro de cliente que o sistema soube na hora. Agora o no tem
+// onError: continueErrorOutput ligado ao 'Responder erro', que responde 400.
+//
+// A MENSAGEM E O QUE O USUARIO LE: o 'Responder erro' a repassa como veio.
+// Nao tente embutir o codigo HTTP aqui — MEDIDO na execucao 2359: o no Code
+// do n8n REESCREVE a mensagem do throw, tirando qualquer prefixo e anexando
+// ' [line N]'. Um contrato por texto nao sobrevive ao runtime. O codigo vem
+// do NOME DO NO de origem, que o n8n preserva.
 if (preferences.length < 10) {
-  throw new Error('preferences precisa de ao menos 10 caracteres.');
+  throw new Error('Descreva o que voce quer assistir em pelo menos 10 caracteres.');
 }
 const bruto = Number(body.limit);
 const limit = Math.min(Math.max(Number.isInteger(bruto) ? bruto : 8, 1), 12);

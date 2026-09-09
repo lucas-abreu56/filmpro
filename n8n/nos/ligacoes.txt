@@ -1,9 +1,12 @@
+Achou algum?[0] -> TMDB detalhes
+Achou algum?[1] -> Montar resposta
 Cache L1 -> Tem cache?
 Cache L2 -> Montar resposta
 Curador[0] -> Enfileirar titulos
 Curador[1] -> Responder erro
-Enfileirar titulos -> TMDB busca
-Escolher correspondencia -> TMDB detalhes
+Enfileirar titulos[0] -> TMDB busca
+Enfileirar titulos[1] -> Responder erro
+Escolher correspondencia -> Achou algum?
 Formato da resposta (ai_outputParser) -> Curador
 Gemini (ai_languageModel) -> Curador
 Gemini (ai_languageModel) -> Formato da resposta
@@ -11,14 +14,18 @@ Gravar L1 -> Telemetria
 Gravar L2 -> Montar resposta
 Groq (reserva) (ai_languageModel) -> Curador
 Hash -> Cache L1
-Montar fatos -> Gravar L2
+Montar fatos[0] -> Gravar L2
+Montar fatos[1] -> Responder erro
 Montar resposta -> Responder
 OMDB -> Montar fatos
-Preparar registro -> Gravar L1
+Preparar registro -> Vale cachear?
 Responder -> Preparar registro
 TMDB busca -> Escolher correspondencia
 TMDB detalhes -> OMDB
 Tem cache?[0] -> Cache L2
 Tem cache?[1] -> Curador
-Validar entrada -> Hash
+Vale cachear?[0] -> Gravar L1
+Vale cachear?[1] -> Telemetria
+Validar entrada[0] -> Hash
+Validar entrada[1] -> Responder erro
 Webhook -> Validar entrada

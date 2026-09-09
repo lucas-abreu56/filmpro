@@ -109,7 +109,23 @@ for (let i = 0; i < pedidos.length; i++) {
 
   saida.push({ json: Object.assign({}, pedido, { tmdbId: melhor.r.id }) });
 }
+
+// Zero confirmados NAO e erro — e o caso-limite da mesma regra da linha 105.
+// "Buraco assumido e melhor que card errado" vale para um titulo e vale para
+// todos: se nenhum passou, a resposta honesta e uma colecao vazia com a lista
+// do que foi descartado, que e exatamente o que types.ts:287 ja documenta como
+// "200, nao erro". Ate 09/09/2026 isto lancava, e o throw tornava aquele 200
+// inalcancavel — o contrato se contradizia, e quem pagava era o usuario: o
+// workflow morria sem passar pelo 'Responder', o webhook pendurava, e o BFF
+// desistia em 45 s dizendo "A busca demorou demais" sobre uma falha que o
+// sistema conheceu em ~3 s.
+//
+// Devolver [] aqui NAO resolveria: um no Code que devolve zero itens interrompe
+// o ramo em silencio e reproduz o mesmo 504. Por isso sai um item marcado, e um
+// IF ('Achou algum?') desvia para 'Montar resposta', que ja sabe montar este
+// caso — o bloco naoAchados filtra pedidos sem correspondencia, e com zero
+// casados devolve todos naturalmente.
 if (!saida.length) {
-  throw new Error('Nenhum titulo do agente foi confirmado no TMDB.');
+  return [{ json: { vazio: true } }];
 }
 return saida;

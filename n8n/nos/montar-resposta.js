@@ -32,7 +32,14 @@ if (doCache) {
   colecao = l1[0].json.collection_title;
   naoAchados = l1[0].json.not_found || [];
 } else {
-  const casados = $('Escolher correspondencia').all().map(function (i) { return i.json; });
+  // O item { vazio: true } e a sentinela que 'Escolher correspondencia' emite
+  // quando NENHUM titulo confirmou no TMDB. Ela existe so para o ramo nao
+  // morrer em silencio (no Code que devolve [] interrompe o fluxo e o webhook
+  // pendura); nao e um filme, e nao pode virar pick. Filtrar por tmdbId em vez
+  // de por 'vazio' porque qualquer item sem id e igualmente inutil aqui.
+  const casados = $('Escolher correspondencia').all()
+    .map(function (i) { return i.json; })
+    .filter(function (c) { return c && c.tmdbId != null; });
   const pedidos = $('Enfileirar titulos').all().map(function (i) { return i.json; });
   picks = casados.map(function (c) {
     return { tmdb_id: c.tmdbId, reason: c.reason, rank: c.rank };

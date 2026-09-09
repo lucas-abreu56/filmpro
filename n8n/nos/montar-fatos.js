@@ -3,7 +3,14 @@
 // Tamanho de imagem (w342, w500) e decisao de apresentacao e e montado em
 // 'Montar resposta'; congelar a URL no banco significa reescrever a tabela
 // inteira so para trocar de tamanho.
-const casados = $('Escolher correspondencia').all().map(function (i) { return i.json; });
+// Mesmo filtro de 'Montar resposta' e 'Preparar registro': a sentinela
+// { vazio: true } de 'Escolher correspondencia' nao e filme. O IF 'Achou
+// algum?' ja impede que ela chegue ate aqui; o filtro fica porque este laco
+// pareia casados[i] com fichas[i] POR INDICE, e um item a mais no comeco
+// desalinharia todos os pares em silencio.
+const casados = $('Escolher correspondencia').all()
+  .map(function (i) { return i.json; })
+  .filter(function (c) { return c && c.tmdbId != null; });
 const fichas = $('TMDB detalhes').all().map(function (i) { return i.json; });
 const notas = $input.all().map(function (i) { return i.json; });
 
@@ -94,7 +101,17 @@ for (let i = 0; i < casados.length; i++) {
     trailer_key: (trailer && trailer.key) || null,
   });
 }
-if (!linhas.length) throw new Error('Nenhum filme sobreviveu ao enriquecimento.');
+// Chegar aqui com zero linhas significa que os titulos JA tinham sido
+// confirmados no TMDB ('Escolher correspondencia' passou) e mesmo assim o
+// enriquecimento nao produziu nada — ou seja, o TMDB caiu no meio do caminho.
+// Upstream fora, nao defeito nosso: o 'Responder erro' devolve 502 para este
+// no. Ate 09/09/2026 este throw pendurava o webhook ate o teto de 45 s do BFF.
+//
+// A mensagem e o que o usuario le, e o codigo vem do NOME DO NO — nao do
+// texto: medido na execucao 2359, o no Code reescreve a mensagem do throw.
+if (!linhas.length) {
+  throw new Error('Nao consegui buscar os dados dos filmes agora. Tente de novo em instantes.');
+}
 
 // Um unico item com o array dentro: o no Postgres roda a query uma vez so,
 // com um parametro jsonb, em vez de uma query por filme.
