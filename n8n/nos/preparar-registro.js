@@ -1,5 +1,36 @@
 // Nó "Preparar registro" — n8n-nodes-base.code
 const entrada = $('Validar entrada').first().json;
+// Corrige por TABELA palavras que o modelo escreve sem acento no `reason`.
+// Medido em 09/09/2026: 8/8, 5/8 e 1/8 sem acento em tres baterias da mesma
+// intencao. Reforcar o prompt (a v5 ja fez isso) e trocar de modelo (o
+// 3.1-flash-lite foi escolhido por latencia, 03/09/2026) foram descartados por
+// medicao. So entram palavras cuja forma sem acento NAO existe como outra
+// palavra valida em portugues — "atmosfera" nao leva acento e por isso nao
+// esta aqui. Espelha n8n/logica/corrigir-acentuacao.js.
+//
+// Aplicado ANTES de persistir: sem isto, um acerto de cache voltaria a servir
+// o texto sem acento que o curador gerou antes desta correcao existir.
+var LEXICO_ACENTUACAO = {
+  nao: "não",
+  psicologico: "psicológico",
+  decada: "década",
+  japones: "japonês",
+  historia: "história",
+  familia: "família",
+  tragedia: "tragédia",
+  solidao: "solidão",
+};
+function corrigirAcentuacao(texto) {
+  var s = String(texto == null ? "" : texto);
+  return s.replace(/[A-Za-zÀ-ÿ]+/g, function (palavra) {
+    var certa = LEXICO_ACENTUACAO[palavra.toLowerCase()];
+    if (!certa) return palavra;
+    if (palavra[0] === palavra[0].toUpperCase()) {
+      return certa[0].toUpperCase() + certa.slice(1);
+    }
+    return certa;
+  });
+}
 const resp = $('Montar resposta').first().json;
 const l1 = $('Cache L1').all();
 const doCache = l1.length > 0 && l1[0].json && Array.isArray(l1[0].json.picks) && l1[0].json.picks.length > 0;
@@ -14,7 +45,7 @@ if (doCache) {
     .map(function (i) { return i.json; })
     .filter(function (c) { return c && c.tmdbId != null; })
     .map(function (c) {
-      return { tmdb_id: c.tmdbId, reason: c.reason, rank: c.rank };
+      return { tmdb_id: c.tmdbId, reason: corrigirAcentuacao(c.reason), rank: c.rank };
     });
 }
 
@@ -69,4 +100,4 @@ return [{ json: {
   notFoundCount: (resp.notFound || []).length,
   latencyMs: Date.now() - Number(entrada.inicio || Date.now()),
   requestId: requestId,
-} }];
+} }]

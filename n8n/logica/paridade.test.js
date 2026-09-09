@@ -273,7 +273,56 @@ describe("paridade — n8n/logica/ contra o nó que roda em produção", () => {
 });
 
 // ---------------------------------------------------------------------------
-// 5. Lixo do ciclo export → cola → export
+// 5. A correção de acentuação do `reason` (sexta cópia)
+// ---------------------------------------------------------------------------
+
+describe("paridade — o léxico de acentuação e a função que o aplica", () => {
+  // `corrigirAcentuacao()` roda em preparar-registro.js (antes de persistir) e
+  // em montar-resposta.js (apresentação) — mesma dupla passagem que
+  // sanitize.ts já defende. O módulo em n8n/logica/ é a fonte; o corpo é
+  // COPIADO para os dois nós, então a paridade é o que garante que a cópia
+  // não divergiu.
+  function corpoDe(fonte, assinatura) {
+    const i = fonte.indexOf(assinatura);
+    if (i === -1) return null;
+    const resto = fonte.slice(i);
+    const fim = resto.indexOf("\n}");
+    return fim === -1 ? null : resto.slice(0, fim + 2).replace(/\s+/g, " ").trim();
+  }
+
+  function objetoDe(fonte) {
+    const m = fonte.match(/LEXICO_ACENTUACAO\s*=\s*\{([^}]*)\}/);
+    return m ? m[1].replace(/\s+/g, " ").trim() : null;
+  }
+
+  const modulo = ler("n8n/logica/corrigir-acentuacao.js");
+  const registro = ler("n8n/nos/preparar-registro.js");
+  const resposta = ler("n8n/nos/montar-resposta.js");
+
+  for (const [nome, fonte] of [
+    ["n8n/nos/preparar-registro.js", registro],
+    ["n8n/nos/montar-resposta.js", resposta],
+  ]) {
+    it(`${nome} tem o mesmo LEXICO_ACENTUACAO do módulo`, () => {
+      const doModulo = objetoDe(modulo);
+      const doNo = objetoDe(fonte);
+      assert.ok(doModulo, "não achei LEXICO_ACENTUACAO em n8n/logica/");
+      assert.ok(doNo, `não achei LEXICO_ACENTUACAO em ${nome}`);
+      assert.equal(doNo, doModulo, `${nome} divergiu do léxico em n8n/logica/`);
+    });
+
+    it(`${nome} tem a mesma função corrigirAcentuacao()`, () => {
+      const doModulo = corpoDe(modulo, "function corrigirAcentuacao(");
+      const doNo = corpoDe(fonte, "function corrigirAcentuacao(");
+      assert.ok(doModulo, "não achei corrigirAcentuacao() em n8n/logica/");
+      assert.ok(doNo, `não achei corrigirAcentuacao() em ${nome}`);
+      assert.equal(doNo, doModulo, `${nome} divergiu da função em n8n/logica/`);
+    });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// 6. Lixo do ciclo export → cola → export
 // ---------------------------------------------------------------------------
 
 describe("higiene dos arquivos gerados", () => {

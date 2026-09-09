@@ -26,6 +26,35 @@ function limpar(t, max) {
   return s.slice(0, max);
 }
 
+// Corrige por TABELA palavras que o modelo escreve sem acento no `reason`.
+// Medido em 09/09/2026: 8/8, 5/8 e 1/8 sem acento em tres baterias da mesma
+// intencao. Reforcar o prompt (a v5 ja fez isso) e trocar de modelo (o
+// 3.1-flash-lite foi escolhido por latencia, 03/09/2026) foram descartados por
+// medicao. So entram palavras cuja forma sem acento NAO existe como outra
+// palavra valida em portugues — "atmosfera" nao leva acento e por isso nao
+// esta aqui. Espelha n8n/logica/corrigir-acentuacao.js.
+var LEXICO_ACENTUACAO = {
+  nao: "não",
+  psicologico: "psicológico",
+  decada: "década",
+  japones: "japonês",
+  historia: "história",
+  familia: "família",
+  tragedia: "tragédia",
+  solidao: "solidão",
+};
+function corrigirAcentuacao(texto) {
+  var s = String(texto == null ? "" : texto);
+  return s.replace(/[A-Za-zÀ-ÿ]+/g, function (palavra) {
+    var certa = LEXICO_ACENTUACAO[palavra.toLowerCase()];
+    if (!certa) return palavra;
+    if (palavra[0] === palavra[0].toUpperCase()) {
+      return certa[0].toUpperCase() + certa.slice(1);
+    }
+    return certa;
+  });
+}
+
 let picks, colecao, naoAchados;
 if (doCache) {
   picks = l1[0].json.picks;
@@ -136,7 +165,7 @@ const indisponiveis = [];
 ordenados.forEach(function (p) {
   const d = fatos[p.tmdb_id];
   if (!d) return;
-  const filme = montar(d, p.reason);
+  const filme = montar(d, corrigirAcentuacao(p.reason));
   if (filme.providers.length > 0) disponiveis.push(filme);
   else indisponiveis.push(filme);
 });
@@ -150,4 +179,4 @@ return [{ json: {
   generatedAt: new Date().toISOString(),
   movies: filmes.slice(0, entrada.limit),
   notFound: naoAchados,
-} }];
+} }]

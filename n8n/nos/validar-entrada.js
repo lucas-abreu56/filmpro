@@ -83,7 +83,14 @@ const queryNorm = texto
 // cache guarda o RESULTADO da resolucao: sem isto, toda busca ja gravada
 // continuaria servindo o filme errado por ate 30 dias. O material hasheado nao
 // distingue prompt de pipeline — o que importa e que a saida mudou.
-const promptVersion = 8;
+//
+// v9 (09/09/2026): 'Preparar registro' e 'Montar resposta' passam a corrigir
+// por TABELA um lexico pequeno e inequivoco de palavras que o modelo escreve
+// sem acento no reason ("nao", "psicologico", "decada", "japones" e outras —
+// ver n8n/logica/corrigir-acentuacao.js). Bumpar aqui porque o cache guarda o
+// RESULTADO da correcao: sem isto, toda busca ja gravada continuaria servindo
+// o reason sem acento por ate 30 dias.
+const promptVersion = 9;
 
 return [{ json: {
   preferences: texto,
