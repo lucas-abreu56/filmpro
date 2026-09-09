@@ -55,7 +55,9 @@ export default function SearchPanel() {
     }
   }
 
-  async function buscar(e: React.FormEvent) {
+  // Aceita os dois: o submit do <form> e o clique do "Tentar de novo", que
+  // vive fora dele.
+  async function buscar(e: React.SyntheticEvent) {
     e.preventDefault();
     if (curto || buscando) return;
 
@@ -75,29 +77,45 @@ export default function SearchPanel() {
       return;
     }
 
+    let resposta: Response;
     try {
-      const resposta = await fetch("/api/recommendations", {
+      resposta = await fetch("/api/recommendations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ preferences: texto.trim() }),
       });
-      const corpo = await resposta.json();
-
-      if (!resposta.ok) {
-        setEstado({
-          fase: "erro",
-          mensagem: corpo?.error ?? "Não foi possível buscar agora.",
-        });
-        return;
-      }
-      setEstado({
-        fase: "pronto",
-        dados: corpo,
-        ms: Math.round(performance.now() - inicio),
-      });
     } catch {
+      // Só aqui é falha de rede de verdade: o pedido não chegou a ter resposta.
       setEstado({ fase: "erro", mensagem: "Falha de rede." });
+      return;
     }
+
+    // O parse fica FORA do try do fetch, e depois dele. Quando os dois estavam
+    // juntos — e o `json()` vinha antes do `!ok` — um corpo não-JSON derrubava
+    // tudo no mesmo catch, e o servidor que respondeu 500, ou o webhook que
+    // morreu devolvendo 200 vazio, apareciam para o usuário como "Falha de
+    // rede". A rede tinha funcionado; a mensagem culpava ela.
+    const corpo = await resposta.json().catch(() => null);
+
+    if (!resposta.ok) {
+      setEstado({
+        fase: "erro",
+        mensagem: corpo?.error ?? "Não foi possível buscar agora.",
+      });
+      return;
+    }
+    if (!corpo) {
+      setEstado({
+        fase: "erro",
+        mensagem: "O servidor respondeu de um jeito inesperado. Tente de novo.",
+      });
+      return;
+    }
+    setEstado({
+      fase: "pronto",
+      dados: corpo,
+      ms: Math.round(performance.now() - inicio),
+    });
   }
 
   return (
@@ -152,10 +170,24 @@ export default function SearchPanel() {
           ))}
         </div>
 
+        {/* `role="alert"` porque o erro aparece longe do botão: sem ele, quem
+            usa leitor de tela submete e não recebe retorno nenhum. E o botão
+            existe porque a busca falhada não deixava saída — o texto continua
+            no campo, mas era preciso descobrir sozinho que bastava reenviar. */}
         {estado.fase === "erro" && (
-          <p className="border-acento text-tinta mt-8 border-l-2 py-2 pl-4 text-sm">
-            {estado.mensagem}
-          </p>
+          <div role="alert" className="border-acento mt-8 border-l-2 py-2 pl-4">
+            <p className="text-tinta text-sm">{estado.mensagem}</p>
+            {/* `type="button"` chamando o handler: este bloco fica FORA do
+                <form>, então submit nativo não o alcançaria. */}
+            <button
+              type="button"
+              onClick={buscar}
+              disabled={curto}
+              className="text-apoio hover:text-tinta mt-2 text-xs underline underline-offset-4 disabled:no-underline disabled:opacity-50"
+            >
+              Tentar de novo
+            </button>
+          </div>
         )}
       </div>
     </>

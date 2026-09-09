@@ -3,7 +3,12 @@ import { NextResponse } from "next/server";
 import { enxugarFilme } from "@/lib/enxugar";
 import { clientIp, overLimit } from "@/lib/rateLimit";
 import { sanitizeAuthoredText } from "@/lib/sanitize";
-import { LIMITS, type Movie, type RecommendationsResponse } from "@/lib/types";
+import {
+  ehRespostaValida,
+  LIMITS,
+  type Movie,
+  type RecommendationsResponse,
+} from "@/lib/types";
 
 /**
  * O agente mais o enriquecimento no TMDB não cabem no teto padrão de função
@@ -145,8 +150,26 @@ export async function POST(request: Request) {
       );
     }
 
-    const data = (await response.json()) as RecommendationsResponse;
-    return NextResponse.json(limparTextoAutoral(data));
+    // O `json()` também pode lançar aqui: 200 com corpo vazio é o sintoma
+    // conhecido de workflow que morreu no meio (ver o comentário sobre isso em
+    // `n8n/nos/escolher-correspondencia.js`). Sem o catch, viraria 500 "Erro
+    // interno" — que culpa o nosso servidor por uma resposta ruim do upstream.
+    const bruto = await response.json().catch(() => null);
+
+    if (!ehRespostaValida(bruto)) {
+      console.error(
+        `n8n devolveu 200 com corpo inesperado (requestId ${requestId})`,
+      );
+      return NextResponse.json(
+        {
+          error:
+            "O serviço de recomendação devolveu uma resposta inesperada. Tente de novo.",
+        },
+        { status: 502 },
+      );
+    }
+
+    return NextResponse.json(limparTextoAutoral(bruto));
   } catch (error) {
     if (error instanceof Error && error.name === "TimeoutError") {
       console.error("n8n estourou o tempo na busca de recomendações");
@@ -172,6 +195,10 @@ function limparTextoAutoral(
 ): RecommendationsResponse {
   return {
     ...data,
+    // Redundante depois do `ehRespostaValida`, e de propósito: se um caminho
+    // novo alcançar esta função sem passar pelo guard, o cliente ainda recebe
+    // um array em vez de `undefined` — que é o que quebrava a tela.
+    notFound: Array.isArray(data.notFound) ? data.notFound : [],
     collectionTitle: sanitizeAuthoredText(data.collectionTitle, {
       maxLength: LIMITS.MAX_COLLECTION_TITLE,
       fallback: "Recomendações",

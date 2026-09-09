@@ -1,5 +1,4 @@
 // Nó "Escolher correspondencia" — n8n-nodes-base.code
-// Nó "Escolher correspondencia" — n8n-nodes-base.code
 // O no HTTP devolve um item por item de entrada, na mesma ordem, e
 // continueRegularOutput preserva essa ordem tambem em falha. E o que permite
 // reassociar cada resposta ao pedido que a gerou.

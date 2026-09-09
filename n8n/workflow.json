@@ -3,8 +3,8 @@
   "name": "FilmPro — Recomendações",
   "active": true,
   "isArchived": false,
-  "versionId": "4928add4-072c-4d50-9fac-6a8a3648d1c6",
-  "activeVersionId": "4928add4-072c-4d50-9fac-6a8a3648d1c6",
+  "versionId": "8595918e-fa53-41cd-bad1-e6a1ab524ce3",
+  "activeVersionId": "8595918e-fa53-41cd-bad1-e6a1ab524ce3",
   "triggerCount": 1,
   "nodeCount": 23,
   "createdAt": "2026-09-01T21:57:23.029Z",
@@ -302,7 +302,10 @@
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "position": [112, 96],
+      "position": [
+        112,
+        96
+      ],
       "webhookId": "58792c88-5aae-42ef-80d8-d7c66a2987fc",
       "credentials": {
         "httpHeaderAuth": {
@@ -319,7 +322,10 @@
       "name": "Validar entrada",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [272, 96]
+      "position": [
+        272,
+        96
+      ]
     },
     {
       "parameters": {
@@ -337,7 +343,10 @@
       "name": "Curador",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
-      "position": [960, 192],
+      "position": [
+        960,
+        192
+      ],
       "onError": "continueErrorOutput"
     },
     {
@@ -352,7 +361,10 @@
       "name": "Gemini",
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1.1,
-      "position": [1008, 640],
+      "position": [
+        1008,
+        640
+      ],
       "credentials": {
         "googlePalmApi": {
           "id": "HCBJoiOy5wfezWIE",
@@ -370,7 +382,10 @@
       "name": "Formato da resposta",
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
       "typeVersion": 1.3,
-      "position": [1232, 480]
+      "position": [
+        1232,
+        480
+      ]
     },
     {
       "parameters": {
@@ -380,7 +395,10 @@
       "name": "Enfileirar titulos",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1344, 128]
+      "position": [
+        1344,
+        128
+      ]
     },
     {
       "parameters": {
@@ -416,7 +434,10 @@
       "name": "TMDB busca",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
-      "position": [1488, 128],
+      "position": [
+        1488,
+        128
+      ],
       "onError": "continueRegularOutput",
       "credentials": {
         "httpHeaderAuth": {
@@ -427,13 +448,16 @@
     },
     {
       "parameters": {
-        "jsCode": "// Nó \"Escolher correspondencia\" — n8n-nodes-base.code\n// O no HTTP devolve um item por item de entrada, na mesma ordem, e\n// continueRegularOutput preserva essa ordem tambem em falha. E o que permite\n// reassociar cada resposta ao pedido que a gerou.\nconst pedidos = $('Enfileirar titulos').all();\nconst respostas = $input.all();\n\nfunction normalizar(s) {\n  return String(s == null ? '' : s)\n    .normalize('NFD').replace(/[̀-ͯ]/g, '')\n    .toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();\n}\n\n// Medido na execucao 1660 (01/09/2026). Para 'Cure' (1997) o TMDB devolveu\n// tres candidatos: 'The Cure' (1995), 'Say It, Fight It, Cure It' (1997, UM\n// voto, documentario) e o do Kurosawa (1997, 856 votos), que era o pedido.\n// Pegar o primeiro com o ano batendo escolhia o documentario.\n//\n// E comparar titulo exato NAO resolveria: o titulo original do filme certo\n// esta em japones. O que separa os dois e a popularidade. Dai a pontuacao:\n// ano e titulo entram, mas votos desempatam, e e o desempate que decide.\n//\n// ── Recalibrado em 09/09/2026, com os payloads das execucoes 2318/2328/2329 ──\n//\n// A versao anterior errava DOIS casos reais, e por motivos opostos:\n//\n// 1. Pedido 'The Assassin' (2015), o de Hou Hsiao-hsien. NINGUEM casava exato\n//    (o original e chines, e o TMDB devolveu 'A Assassina' em pt-BR). A decisao\n//    caiu inteira na popularidade, e 'The Sand' — terror B, IMDb 3.8 — ganhou\n//    por 14.1 a 7.8. Um filme errado venceu um vencedor de Cannes porque\n//    'popularity' do TMDB mede acesso recente, nao importancia.\n//\n// 2. Pedido 'Burning' (2018), o de Lee Chang-dong. Um registro hindi vazio\n//    (id 813106: SEM genero, SEM sinopse, 6 votos) tem original_title\n//    literalmente 'Burning' e levou o +60 de exato, fechando 103.2 contra 64.4\n//    do filme certo (id 491584, 1883 votos) — cujo original_title e '버닝' e\n//    portanto NAO casa. Titulo exato premiava o homonimo obscuro.\n//\n// As tres mudancas, cada uma contra um desses numeros:\n//\n// a) 'popularity' cai de *2 (ate +40) para *0.5 (ate +10). Ela e o sinal mais\n//    volatil do TMDB e era o maior peso da formula; virou desempate, que e o\n//    papel que o comentario acima ja dizia que ela tinha.\n// b) 'vote_count' passa a valer ate +45, por log. Votos sao o sinal que melhor\n//    separa filme real de registro-fantasma, e valiam no maximo +20 — na\n//    pratica, decimos. Log e nao linear porque a diferenca que importa e entre\n//    6 e 1883 votos, nao entre 3000 e 5000.\n// c) Casamento exato com registro SEM GENERO nao ganha o bonus cheio. Medicao\n//    de 09/09/2026 sobre 56 filmes legitimos — incluindo cinema africano e\n//    tailandes com 1 a 39 votos: NENHUM tinha genre_ids vazio. Registro sem\n//    genero no TMDB e cadastro incompleto, nao filme obscuro, e essa e a\n//    distincao que um piso de votos nao conseguiria fazer sem cortar o acervo\n//    de arte que o produto existe para defender (por isso piso foi descartado).\nfunction pontuar(r, pedido) {\n  const alvo = normalizar(pedido.originalTitle);\n  const ano = Number(String(r.release_date || '').slice(0, 4)) || null;\n  const distancia = (pedido.year && ano) ? Math.abs(ano - pedido.year) : 99;\n  const exato = normalizar(r.original_title) === alvo || normalizar(r.title) === alvo;\n\n  // Cadastro incompleto: sem genero E sem voto nenhum. Os dois juntos, porque\n  // filme de arte recem-catalogado pode ter zero voto e ainda ter genero.\n  const generos = Array.isArray(r.genre_ids) ? r.genre_ids : [];\n  const votos = Math.max(Number(r.vote_count) || 0, 0);\n  const fantasma = generos.length === 0 && votos < 10;\n\n  let nota = 0;\n  if (exato) nota += fantasma ? 15 : 60;\n  if (distancia === 0) nota += 40;\n  else if (distancia <= 1) nota += 20;\n  else if (distancia > 3) nota -= 40;\n  nota += Math.min(Number(r.popularity) || 0, 20) * 0.5;\n  // log10(1884) ~ 3.27, entao ~+45 para um filme muito votado e ~+8 para 6\n  // votos. O +1 evita log(0).\n  nota += Math.min(Math.log10(votos + 1) * 14, 45);\n  return { r: r, nota: nota, exato: exato, distancia: distancia };\n}\n\n// Dois titulos DIFERENTES do curador podem cair no mesmo filme. Aconteceu na\n// execucao 1874 (03/09/2026): 'Sombras' e outro pedido resolveram ambos para\n// o tmdb_id 84956 (Schatten). O prompt proibe repetir filme, mas a colisao\n// nasce DEPOIS, na resolucao do TMDB, onde o prompt nao alcanca.\n//\n// E nao era so um card repetido: o 'Gravar L2' faz INSERT ... ON CONFLICT DO\n// UPDATE, e o Postgres recusa a mesma chave duas vezes no mesmo comando com\n// \"cannot affect row a second time\". O workflow morria, e o webhook devolvia\n// 200 com corpo VAZIO — que no BFF vira \"Falha de rede\", mensagem que nao\n// tem nada a ver com o que aconteceu. Deduplicar aqui e o unico lugar que\n// conserta os dois sintomas de uma vez: e aqui que o id passa a existir.\n//\n// Fica o de melhor rank, que e a ordem em que o curador defenderia.\nconst vistos = Object.create(null);\nconst saida = [];\nfor (let i = 0; i < pedidos.length; i++) {\n  const pedido = pedidos[i].json;\n  const corpo = (respostas[i] && respostas[i].json) || {};\n  const resultados = Array.isArray(corpo.results) ? corpo.results : [];\n  if (!resultados.length) continue;\n\n  const melhor = resultados\n    .map(function (r) { return pontuar(r, pedido); })\n    .sort(function (a, b) { return b.nota - a.nota; })[0];\n\n  // Sem titulo exato E sem ano proximo, e outro filme. Buraco assumido e\n  // melhor que card errado — a interface conta quantos foram descartados.\n  if (!melhor.exato && melhor.distancia > 1) continue;\n\n  if (vistos[melhor.r.id]) continue;\n  vistos[melhor.r.id] = true;\n\n  saida.push({ json: Object.assign({}, pedido, { tmdbId: melhor.r.id }) });\n}\nif (!saida.length) {\n  throw new Error('Nenhum titulo do agente foi confirmado no TMDB.');\n}\nreturn saida;\n"
+        "jsCode": "// O no HTTP devolve um item por item de entrada, na mesma ordem, e\n// continueRegularOutput preserva essa ordem tambem em falha. E o que permite\n// reassociar cada resposta ao pedido que a gerou.\nconst pedidos = $('Enfileirar titulos').all();\nconst respostas = $input.all();\n\nfunction normalizar(s) {\n  return String(s == null ? '' : s)\n    .normalize('NFD').replace(/[̀-ͯ]/g, '')\n    .toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();\n}\n\n// Medido na execucao 1660 (01/09/2026). Para 'Cure' (1997) o TMDB devolveu\n// tres candidatos: 'The Cure' (1995), 'Say It, Fight It, Cure It' (1997, UM\n// voto, documentario) e o do Kurosawa (1997, 856 votos), que era o pedido.\n// Pegar o primeiro com o ano batendo escolhia o documentario.\n//\n// E comparar titulo exato NAO resolveria: o titulo original do filme certo\n// esta em japones. O que separa os dois e a popularidade. Dai a pontuacao:\n// ano e titulo entram, mas votos desempatam, e e o desempate que decide.\n//\n// ── Recalibrado em 09/09/2026, com os payloads das execucoes 2318/2328/2329 ──\n//\n// A versao anterior errava DOIS casos reais, e por motivos opostos:\n//\n// 1. Pedido 'The Assassin' (2015), o de Hou Hsiao-hsien. NINGUEM casava exato\n//    (o original e chines, e o TMDB devolveu 'A Assassina' em pt-BR). A decisao\n//    caiu inteira na popularidade, e 'The Sand' — terror B, IMDb 3.8 — ganhou\n//    por 14.1 a 7.8. Um filme errado venceu um vencedor de Cannes porque\n//    'popularity' do TMDB mede acesso recente, nao importancia.\n//\n// 2. Pedido 'Burning' (2018), o de Lee Chang-dong. Um registro hindi vazio\n//    (id 813106: SEM genero, SEM sinopse, 6 votos) tem original_title\n//    literalmente 'Burning' e levou o +60 de exato, fechando 103.2 contra 64.4\n//    do filme certo (id 491584, 1883 votos) — cujo original_title e '버닝' e\n//    portanto NAO casa. Titulo exato premiava o homonimo obscuro.\n//\n// As tres mudancas, cada uma contra um desses numeros:\n//\n// a) 'popularity' cai de *2 (ate +40) para *0.5 (ate +10). Ela e o sinal mais\n//    volatil do TMDB e era o maior peso da formula; virou desempate, que e o\n//    papel que o comentario acima ja dizia que ela tinha.\n// b) 'vote_count' passa a valer ate +45, por log. Votos sao o sinal que melhor\n//    separa filme real de registro-fantasma, e valiam no maximo +20 — na\n//    pratica, decimos. Log e nao linear porque a diferenca que importa e entre\n//    6 e 1883 votos, nao entre 3000 e 5000.\n// c) Casamento exato com registro SEM GENERO nao ganha o bonus cheio. Medicao\n//    de 09/09/2026 sobre 56 filmes legitimos — incluindo cinema africano e\n//    tailandes com 1 a 39 votos: NENHUM tinha genre_ids vazio. Registro sem\n//    genero no TMDB e cadastro incompleto, nao filme obscuro, e essa e a\n//    distincao que um piso de votos nao conseguiria fazer sem cortar o acervo\n//    de arte que o produto existe para defender (por isso piso foi descartado).\nfunction pontuar(r, pedido) {\n  const alvo = normalizar(pedido.originalTitle);\n  const ano = Number(String(r.release_date || '').slice(0, 4)) || null;\n  const distancia = (pedido.year && ano) ? Math.abs(ano - pedido.year) : 99;\n  const exato = normalizar(r.original_title) === alvo || normalizar(r.title) === alvo;\n\n  // Cadastro incompleto: sem genero E sem voto nenhum. Os dois juntos, porque\n  // filme de arte recem-catalogado pode ter zero voto e ainda ter genero.\n  const generos = Array.isArray(r.genre_ids) ? r.genre_ids : [];\n  const votos = Math.max(Number(r.vote_count) || 0, 0);\n  const fantasma = generos.length === 0 && votos < 10;\n\n  let nota = 0;\n  if (exato) nota += fantasma ? 15 : 60;\n  if (distancia === 0) nota += 40;\n  else if (distancia <= 1) nota += 20;\n  else if (distancia > 3) nota -= 40;\n  nota += Math.min(Number(r.popularity) || 0, 20) * 0.5;\n  // log10(1884) ~ 3.27, entao ~+45 para um filme muito votado e ~+8 para 6\n  // votos. O +1 evita log(0).\n  nota += Math.min(Math.log10(votos + 1) * 14, 45);\n  return { r: r, nota: nota, exato: exato, distancia: distancia };\n}\n\n// Dois titulos DIFERENTES do curador podem cair no mesmo filme. Aconteceu na\n// execucao 1874 (03/09/2026): 'Sombras' e outro pedido resolveram ambos para\n// o tmdb_id 84956 (Schatten). O prompt proibe repetir filme, mas a colisao\n// nasce DEPOIS, na resolucao do TMDB, onde o prompt nao alcanca.\n//\n// E nao era so um card repetido: o 'Gravar L2' faz INSERT ... ON CONFLICT DO\n// UPDATE, e o Postgres recusa a mesma chave duas vezes no mesmo comando com\n// \"cannot affect row a second time\". O workflow morria, e o webhook devolvia\n// 200 com corpo VAZIO — que no BFF vira \"Falha de rede\", mensagem que nao\n// tem nada a ver com o que aconteceu. Deduplicar aqui e o unico lugar que\n// conserta os dois sintomas de uma vez: e aqui que o id passa a existir.\n//\n// Fica o de melhor rank, que e a ordem em que o curador defenderia.\nconst vistos = Object.create(null);\nconst saida = [];\nfor (let i = 0; i < pedidos.length; i++) {\n  const pedido = pedidos[i].json;\n  const corpo = (respostas[i] && respostas[i].json) || {};\n  const resultados = Array.isArray(corpo.results) ? corpo.results : [];\n  if (!resultados.length) continue;\n\n  const melhor = resultados\n    .map(function (r) { return pontuar(r, pedido); })\n    .sort(function (a, b) { return b.nota - a.nota; })[0];\n\n  // Sem titulo exato E sem ano proximo, e outro filme. Buraco assumido e\n  // melhor que card errado — a interface conta quantos foram descartados.\n  if (!melhor.exato && melhor.distancia > 1) continue;\n\n  if (vistos[melhor.r.id]) continue;\n  vistos[melhor.r.id] = true;\n\n  saida.push({ json: Object.assign({}, pedido, { tmdbId: melhor.r.id }) });\n}\nif (!saida.length) {\n  throw new Error('Nenhum titulo do agente foi confirmado no TMDB.');\n}\nreturn saida;\n"
       },
       "id": "4fc57697-3095-43e6-bab8-1e4bc8d22315",
       "name": "Escolher correspondencia",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1632, 128]
+      "position": [
+        1632,
+        128
+      ]
     },
     {
       "parameters": {
@@ -469,7 +493,10 @@
       "name": "TMDB detalhes",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
-      "position": [1776, 128],
+      "position": [
+        1776,
+        128
+      ],
       "onError": "continueRegularOutput",
       "credentials": {
         "httpHeaderAuth": {
@@ -500,7 +527,10 @@
       "name": "OMDB",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
-      "position": [1920, 128],
+      "position": [
+        1920,
+        128
+      ],
       "onError": "continueRegularOutput",
       "credentials": {
         "httpQueryAuth": {
@@ -511,13 +541,16 @@
     },
     {
       "parameters": {
-        "jsCode": "// Nó \"Montar resposta\" — n8n-nodes-base.code\n// Apresentacao, e so isso. Recebe linhas da tabela movies — do upsert no\n// caminho vivo, ou do SELECT num acerto de cache — e monta as URLs. Um unico\n// lugar decide como um filme vira JSON, para os dois caminhos.\nconst IMG = 'https://image.tmdb.org/t/p/';\nconst entrada = $('Validar entrada').first().json;\nconst l1 = $('Cache L1').all();\nconst doCache = l1.length > 0 && l1[0].json\n  && Array.isArray(l1[0].json.picks) && l1[0].json.picks.length > 0;\n\n// Espelha src/lib/sanitize.ts. O texto autoral e a unica superficie de\n// injecao que sobra, porque e a unica coisa do modelo que e renderizada.\n//\n// A lista de invisiveis vem por NUMERO, e nao escrita como caractere. Em\n// 02/09/2026 alinhei este conjunto entre sanitize.ts e o no Validar entrada,\n// e ESTE arquivo passou batido: ficou sem o U+00AD por mais um dia, com um\n// comentario dizendo que espelhava. Ninguem confere a olho o que nao ve.\nconst PROIBIDO = /https?:\\/\\/|www\\.|<[a-z\\/]|\\[[^\\]]*\\]\\([^)]*\\)|javascript:|data:/i;\nconst PROIBIDO_INVISIVEL = [0x200b, 0x200c, 0x200d, 0x2060, 0xfeff, 0x00ad];\nconst INVISIVEL = new RegExp('[' + PROIBIDO_INVISIVEL.map(function (c) {\n  return String.fromCharCode(c);\n}).join('') + ']', 'g');\nfunction limpar(t, max) {\n  const s = String(t == null ? '' : t).replace(INVISIVEL, '').trim();\n  if (!s || PROIBIDO.test(s)) return null;\n  return s.slice(0, max);\n}\n\nlet picks, colecao, naoAchados;\nif (doCache) {\n  picks = l1[0].json.picks;\n  colecao = l1[0].json.collection_title;\n  naoAchados = l1[0].json.not_found || [];\n} else {\n  const casados = $('Escolher correspondencia').all().map(function (i) { return i.json; });\n  const pedidos = $('Enfileirar titulos').all().map(function (i) { return i.json; });\n  picks = casados.map(function (c) {\n    return { tmdb_id: c.tmdbId, reason: c.reason, rank: c.rank };\n  });\n  // notFound e so o que o TMDB nao confirmou — calculado antes de qualquer\n  // corte. Os excedentes do limit+2 sao folga, nao descarte.\n  const conf = {};\n  casados.forEach(function (c) { conf[c.rank] = true; });\n  naoAchados = pedidos\n    .filter(function (p) { return !conf[p.rank]; })\n    .map(function (p) { return limpar(p.title, 120) || 'titulo invalido'; });\n  colecao = (($('Curador').first().json || {}).output || {}).collectionTitle;\n}\n\nconst fatos = {};\n$input.all().forEach(function (i) {\n  const j = i.json;\n  if (j && j.tmdb_id != null) fatos[j.tmdb_id] = j;\n});\n\nfunction url(base, caminho) { return caminho ? IMG + base + caminho : null; }\nfunction num(v) { return v == null ? null : Number(v); }\n\n// NUMERIC volta como string do no Postgres (largeNumbersOutput = text por\n// padrao). Sem o Number(), rating viraria \"8.3\" e a UI compararia string.\nfunction montar(d, reason) {\n  return {\n    tmdbId: d.tmdb_id,\n    tmdbUrl: 'https://www.themoviedb.org/movie/' + d.tmdb_id,\n    imdbId: d.imdb_id || null,\n    title: d.title,\n    originalTitle: d.original_title || null,\n    year: num(d.release_year),\n    tagline: d.tagline || null,\n    overview: d.overview || null,\n    posterUrl: url('w500', d.poster_path),\n    backdropUrl: url('w1280', d.backdrop_path),\n    logoUrl: url('w300', d.logo_path),\n    trailerKey: d.trailer_key || null,\n    rating: num(d.rating),\n    voteCount: num(d.vote_count),\n    imdbRating: num(d.imdb_rating),\n    imdbVotes: num(d.imdb_votes),\n    awards: d.awards || null,\n    runtime: num(d.runtime),\n    genres: d.genres || [],\n    keywords: d.keywords || [],\n    originalLanguage: d.original_language || null,\n    spokenLanguages: d.spoken_languages || [],\n    ageRating: d.age_rating || null,\n    director: d.director || null,\n    cast: (d.cast_members || []).map(function (a) {\n      return { name: a.name, character: a.character || null, profileUrl: url('w185', a.profile_path) };\n    }),\n    crew: (d.crew_members || []).map(function (c) {\n      return { name: c.name, role: c.role, profileUrl: url('w185', c.profile_path) };\n    }),\n    collection: d.collection_name || null,\n    similar: (d.similar_movies || []).map(function (r) {\n      return {\n        tmdbId: r.tmdb_id, title: r.title, year: num(r.year),\n        backdropUrl: url('w780', r.backdrop_path),\n        posterUrl: url('w342', r.poster_path),\n        director: null,\n      };\n    }),\n    providers: (d.providers || []).map(function (p) {\n      return { type: p.type, name: p.name, logoUrl: url('w92', p.logo_path) };\n    }),\n    // A UI mostra \"disponibilidade verificada em {data}\": provedor e nota\n    // mudam, e datar a informacao e mais honesto que fingir que e de agora.\n    fetchedAt: d.fetched_at ? new Date(d.fetched_at).toISOString() : new Date().toISOString(),\n    reason: limpar(reason, 220) || 'Escolha do curador para o que voce pediu.',\n  };\n}\n\n// A ordem do curador e informacao: o primeiro e o que ele defenderia\n// primeiro. Nem o banco nem os nos HTTP garantem ordem.\nconst ordenados = picks.slice().sort(function (a, b) {\n  return Number(a.rank || 0) - Number(b.rank || 0);\n});\n// Disponibilidade decide a ORDEM, nunca o tamanho da lista.\n//\n// O pedido era descartar quem nao tem onde ser assistido no Brasil. Descarte\n// puro acontece DEPOIS do slice(limit) la embaixo: sobrando menos que o\n// pedido, a colecao encolhe em silencio — e a colecao de teste do projeto tem\n// 3 de 8 filmes sem provedor no BR. Aqui o indisponivel so ocupa vaga que\n// nenhum disponivel reclamou, e chega rotulado: a UI escreve \"Sem streaming\n// no Brasil segundo o TMDB em {data}\" em vez de sumir com o filme.\n//\n// Dentro de cada grupo o rank do curador continua mandando.\nconst disponiveis = [];\nconst indisponiveis = [];\nordenados.forEach(function (p) {\n  const d = fatos[p.tmdb_id];\n  if (!d) return;\n  const filme = montar(d, p.reason);\n  if (filme.providers.length > 0) disponiveis.push(filme);\n  else indisponiveis.push(filme);\n});\nconst filmes = disponiveis.concat(indisponiveis);\n\nreturn [{ json: {\n  requestId: entrada.requestId,\n  query: entrada.preferences,\n  collectionTitle: limpar(colecao, 60) || 'Selecao do curador',\n  cached: !!doCache,\n  generatedAt: new Date().toISOString(),\n  movies: filmes.slice(0, entrada.limit),\n  notFound: naoAchados,\n} }];"
+        "jsCode": "// Apresentacao, e so isso. Recebe linhas da tabela movies — do upsert no\n// caminho vivo, ou do SELECT num acerto de cache — e monta as URLs. Um unico\n// lugar decide como um filme vira JSON, para os dois caminhos.\nconst IMG = 'https://image.tmdb.org/t/p/';\nconst entrada = $('Validar entrada').first().json;\nconst l1 = $('Cache L1').all();\nconst doCache = l1.length > 0 && l1[0].json\n  && Array.isArray(l1[0].json.picks) && l1[0].json.picks.length > 0;\n\n// Espelha src/lib/sanitize.ts. O texto autoral e a unica superficie de\n// injecao que sobra, porque e a unica coisa do modelo que e renderizada.\n//\n// A lista de invisiveis vem por NUMERO, e nao escrita como caractere. Em\n// 02/09/2026 alinhei este conjunto entre sanitize.ts e o no Validar entrada,\n// e ESTE arquivo passou batido: ficou sem o U+00AD por mais um dia, com um\n// comentario dizendo que espelhava. Ninguem confere a olho o que nao ve.\nconst PROIBIDO = /https?:\\/\\/|www\\.|<[a-z\\/]|\\[[^\\]]*\\]\\([^)]*\\)|javascript:|data:/i;\nconst PROIBIDO_INVISIVEL = [0x200b, 0x200c, 0x200d, 0x2060, 0xfeff, 0x00ad];\nconst INVISIVEL = new RegExp('[' + PROIBIDO_INVISIVEL.map(function (c) {\n  return String.fromCharCode(c);\n}).join('') + ']', 'g');\nfunction limpar(t, max) {\n  const s = String(t == null ? '' : t).replace(INVISIVEL, '').trim();\n  if (!s || PROIBIDO.test(s)) return null;\n  return s.slice(0, max);\n}\n\nlet picks, colecao, naoAchados;\nif (doCache) {\n  picks = l1[0].json.picks;\n  colecao = l1[0].json.collection_title;\n  naoAchados = l1[0].json.not_found || [];\n} else {\n  const casados = $('Escolher correspondencia').all().map(function (i) { return i.json; });\n  const pedidos = $('Enfileirar titulos').all().map(function (i) { return i.json; });\n  picks = casados.map(function (c) {\n    return { tmdb_id: c.tmdbId, reason: c.reason, rank: c.rank };\n  });\n  // notFound e so o que o TMDB nao confirmou — calculado antes de qualquer\n  // corte. Os excedentes do limit+2 sao folga, nao descarte.\n  const conf = {};\n  casados.forEach(function (c) { conf[c.rank] = true; });\n  naoAchados = pedidos\n    .filter(function (p) { return !conf[p.rank]; })\n    .map(function (p) { return limpar(p.title, 120) || 'titulo invalido'; });\n  colecao = (($('Curador').first().json || {}).output || {}).collectionTitle;\n}\n\nconst fatos = {};\n$input.all().forEach(function (i) {\n  const j = i.json;\n  if (j && j.tmdb_id != null) fatos[j.tmdb_id] = j;\n});\n\nfunction url(base, caminho) { return caminho ? IMG + base + caminho : null; }\nfunction num(v) { return v == null ? null : Number(v); }\n\n// NUMERIC volta como string do no Postgres (largeNumbersOutput = text por\n// padrao). Sem o Number(), rating viraria \"8.3\" e a UI compararia string.\nfunction montar(d, reason) {\n  return {\n    tmdbId: d.tmdb_id,\n    tmdbUrl: 'https://www.themoviedb.org/movie/' + d.tmdb_id,\n    imdbId: d.imdb_id || null,\n    title: d.title,\n    originalTitle: d.original_title || null,\n    year: num(d.release_year),\n    tagline: d.tagline || null,\n    overview: d.overview || null,\n    posterUrl: url('w500', d.poster_path),\n    backdropUrl: url('w1280', d.backdrop_path),\n    logoUrl: url('w300', d.logo_path),\n    trailerKey: d.trailer_key || null,\n    rating: num(d.rating),\n    voteCount: num(d.vote_count),\n    imdbRating: num(d.imdb_rating),\n    imdbVotes: num(d.imdb_votes),\n    awards: d.awards || null,\n    runtime: num(d.runtime),\n    genres: d.genres || [],\n    keywords: d.keywords || [],\n    originalLanguage: d.original_language || null,\n    spokenLanguages: d.spoken_languages || [],\n    ageRating: d.age_rating || null,\n    director: d.director || null,\n    cast: (d.cast_members || []).map(function (a) {\n      return { name: a.name, character: a.character || null, profileUrl: url('w185', a.profile_path) };\n    }),\n    crew: (d.crew_members || []).map(function (c) {\n      return { name: c.name, role: c.role, profileUrl: url('w185', c.profile_path) };\n    }),\n    collection: d.collection_name || null,\n    similar: (d.similar_movies || []).map(function (r) {\n      return {\n        tmdbId: r.tmdb_id, title: r.title, year: num(r.year),\n        backdropUrl: url('w780', r.backdrop_path),\n        posterUrl: url('w342', r.poster_path),\n        director: null,\n      };\n    }),\n    providers: (d.providers || []).map(function (p) {\n      return { type: p.type, name: p.name, logoUrl: url('w92', p.logo_path) };\n    }),\n    // A UI mostra \"disponibilidade verificada em {data}\": provedor e nota\n    // mudam, e datar a informacao e mais honesto que fingir que e de agora.\n    fetchedAt: d.fetched_at ? new Date(d.fetched_at).toISOString() : new Date().toISOString(),\n    reason: limpar(reason, 220) || 'Escolha do curador para o que voce pediu.',\n  };\n}\n\n// A ordem do curador e informacao: o primeiro e o que ele defenderia\n// primeiro. Nem o banco nem os nos HTTP garantem ordem.\nconst ordenados = picks.slice().sort(function (a, b) {\n  return Number(a.rank || 0) - Number(b.rank || 0);\n});\n// Disponibilidade decide a ORDEM, nunca o tamanho da lista.\n//\n// O pedido era descartar quem nao tem onde ser assistido no Brasil. Descarte\n// puro acontece DEPOIS do slice(limit) la embaixo: sobrando menos que o\n// pedido, a colecao encolhe em silencio — e a colecao de teste do projeto tem\n// 3 de 8 filmes sem provedor no BR. Aqui o indisponivel so ocupa vaga que\n// nenhum disponivel reclamou, e chega rotulado: a UI escreve \"Sem streaming\n// no Brasil segundo o TMDB em {data}\" em vez de sumir com o filme.\n//\n// Dentro de cada grupo o rank do curador continua mandando.\nconst disponiveis = [];\nconst indisponiveis = [];\nordenados.forEach(function (p) {\n  const d = fatos[p.tmdb_id];\n  if (!d) return;\n  const filme = montar(d, p.reason);\n  if (filme.providers.length > 0) disponiveis.push(filme);\n  else indisponiveis.push(filme);\n});\nconst filmes = disponiveis.concat(indisponiveis);\n\nreturn [{ json: {\n  requestId: entrada.requestId,\n  query: entrada.preferences,\n  collectionTitle: limpar(colecao, 60) || 'Selecao do curador',\n  cached: !!doCache,\n  generatedAt: new Date().toISOString(),\n  movies: filmes.slice(0, entrada.limit),\n  notFound: naoAchados,\n} }];"
       },
       "id": "c20d9bfd-c856-4882-a477-061ab23a8db0",
       "name": "Montar resposta",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2240, 16]
+      "position": [
+        2240,
+        16
+      ]
     },
     {
       "parameters": {
@@ -530,7 +563,10 @@
       "name": "Responder",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
-      "position": [2400, 16]
+      "position": [
+        2400,
+        16
+      ]
     },
     {
       "parameters": {
@@ -544,7 +580,10 @@
       "name": "Groq (reserva)",
       "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
       "typeVersion": 1,
-      "position": [1088, 480],
+      "position": [
+        1088,
+        480
+      ],
       "credentials": {
         "groqApi": {
           "id": "czpWnTUxULZCgAiI",
@@ -565,7 +604,10 @@
       "name": "Responder erro",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
-      "position": [1376, 304]
+      "position": [
+        1376,
+        304
+      ]
     },
     {
       "parameters": {
@@ -576,7 +618,10 @@
       "name": "Hash",
       "type": "n8n-nodes-base.crypto",
       "typeVersion": 2,
-      "position": [448, 96]
+      "position": [
+        448,
+        96
+      ]
     },
     {
       "parameters": {
@@ -590,7 +635,10 @@
       "name": "Cache L1",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.7,
-      "position": [608, 96],
+      "position": [
+        608,
+        96
+      ],
       "alwaysOutputData": true,
       "onError": "continueRegularOutput",
       "credentials": {
@@ -628,7 +676,10 @@
       "name": "Tem cache?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [768, 96]
+      "position": [
+        768,
+        96
+      ]
     },
     {
       "parameters": {
@@ -642,7 +693,10 @@
       "name": "Cache L2",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.7,
-      "position": [992, 16],
+      "position": [
+        992,
+        16
+      ],
       "credentials": {
         "postgres": {
           "id": "MPPgMCgqs6cXNHDh",
@@ -658,12 +712,16 @@
       "name": "Montar fatos",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1728, 352]
+      "position": [
+        1728,
+        352
+      ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO movies (\n  tmdb_id, imdb_id, title, original_title, release_year, tagline, overview,\n  poster_path, backdrop_path, logo_path, rating, vote_count,\n  imdb_rating, imdb_votes, awards, runtime, genres, keywords,\n  original_language, spoken_languages, age_rating, director,\n  cast_members, crew_members, collection_name, similar_movies, providers,\n  trailer_key, fetched_at\n)\nSELECT\n  (m->>'tmdb_id')::int, m->>'imdb_id', m->>'title', m->>'original_title',\n  (m->>'release_year')::smallint, m->>'tagline', m->>'overview',\n  m->>'poster_path', m->>'backdrop_path', m->>'logo_path',\n  (m->>'rating')::numeric, (m->>'vote_count')::int,\n  (m->>'imdb_rating')::numeric, (m->>'imdb_votes')::int, m->>'awards',\n  (m->>'runtime')::smallint, m->'genres', m->'keywords',\n  m->>'original_language', m->'spoken_languages', m->>'age_rating',\n  m->>'director', m->'cast_members', m->'crew_members',\n  m->>'collection_name', m->'similar_movies', m->'providers',\n  m->>'trailer_key', now()\nFROM jsonb_array_elements($1::jsonb) AS m\nON CONFLICT (tmdb_id) DO UPDATE SET\n  imdb_id = EXCLUDED.imdb_id, title = EXCLUDED.title,\n  original_title = EXCLUDED.original_title, release_year = EXCLUDED.release_year,\n  tagline = EXCLUDED.tagline, overview = EXCLUDED.overview,\n  poster_path = EXCLUDED.poster_path, backdrop_path = EXCLUDED.backdrop_path,\n  logo_path = EXCLUDED.logo_path, rating = EXCLUDED.rating,\n  vote_count = EXCLUDED.vote_count, imdb_rating = EXCLUDED.imdb_rating,\n  imdb_votes = EXCLUDED.imdb_votes, awards = EXCLUDED.awards,\n  runtime = EXCLUDED.runtime, genres = EXCLUDED.genres,\n  keywords = EXCLUDED.keywords, original_language = EXCLUDED.original_language,\n  spoken_languages = EXCLUDED.spoken_languages, age_rating = EXCLUDED.age_rating,\n  director = EXCLUDED.director, cast_members = EXCLUDED.cast_members,\n  crew_members = EXCLUDED.crew_members, collection_name = EXCLUDED.collection_name,\n  similar_movies = EXCLUDED.similar_movies, providers = EXCLUDED.providers,\n  trailer_key = EXCLUDED.trailer_key, fetched_at = now()\nRETURNING *","options": {
+        "query": "INSERT INTO movies (\n  tmdb_id, imdb_id, title, original_title, release_year, tagline, overview,\n  poster_path, backdrop_path, logo_path, rating, vote_count,\n  imdb_rating, imdb_votes, awards, runtime, genres, keywords,\n  original_language, spoken_languages, age_rating, director,\n  cast_members, crew_members, collection_name, similar_movies, providers,\n  trailer_key, fetched_at\n)\nSELECT\n  (m->>'tmdb_id')::int, m->>'imdb_id', m->>'title', m->>'original_title',\n  (m->>'release_year')::smallint, m->>'tagline', m->>'overview',\n  m->>'poster_path', m->>'backdrop_path', m->>'logo_path',\n  (m->>'rating')::numeric, (m->>'vote_count')::int,\n  (m->>'imdb_rating')::numeric, (m->>'imdb_votes')::int, m->>'awards',\n  (m->>'runtime')::smallint, m->'genres', m->'keywords',\n  m->>'original_language', m->'spoken_languages', m->>'age_rating',\n  m->>'director', m->'cast_members', m->'crew_members',\n  m->>'collection_name', m->'similar_movies', m->'providers',\n  m->>'trailer_key', now()\nFROM jsonb_array_elements($1::jsonb) AS m\nON CONFLICT (tmdb_id) DO UPDATE SET\n  imdb_id = EXCLUDED.imdb_id, title = EXCLUDED.title,\n  original_title = EXCLUDED.original_title, release_year = EXCLUDED.release_year,\n  tagline = EXCLUDED.tagline, overview = EXCLUDED.overview,\n  poster_path = EXCLUDED.poster_path, backdrop_path = EXCLUDED.backdrop_path,\n  logo_path = EXCLUDED.logo_path, rating = EXCLUDED.rating,\n  vote_count = EXCLUDED.vote_count, imdb_rating = EXCLUDED.imdb_rating,\n  imdb_votes = EXCLUDED.imdb_votes, awards = EXCLUDED.awards,\n  runtime = EXCLUDED.runtime, genres = EXCLUDED.genres,\n  keywords = EXCLUDED.keywords, original_language = EXCLUDED.original_language,\n  spoken_languages = EXCLUDED.spoken_languages, age_rating = EXCLUDED.age_rating,\n  director = EXCLUDED.director, cast_members = EXCLUDED.cast_members,\n  crew_members = EXCLUDED.crew_members, collection_name = EXCLUDED.collection_name,\n  similar_movies = EXCLUDED.similar_movies, providers = EXCLUDED.providers,\n  trailer_key = EXCLUDED.trailer_key, fetched_at = now()\nRETURNING *",
+        "options": {
           "queryReplacement": "={{ JSON.stringify($json.linhas) }}"
         }
       },
@@ -671,7 +729,10 @@
       "name": "Gravar L2",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.7,
-      "position": [1888, 352],
+      "position": [
+        1888,
+        352
+      ],
       "credentials": {
         "postgres": {
           "id": "MPPgMCgqs6cXNHDh",
@@ -687,12 +748,16 @@
       "name": "Preparar registro",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2544, 16]
+      "position": [
+        2544,
+        16
+      ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- Um unico parametro jsonb, e nao uma lista separada por virgula: query_text\n-- e texto livre do usuario e QUALQUER virgula nele quebraria a separacao.\nINSERT INTO search_cache (\n  query_hash, query_text, query_norm, limit_n, prompt_version,\n  picks, not_found, collection_title, model_used\n)\nSELECT\n  d->>'queryHash', d->>'queryText', d->>'queryNorm',\n  (d->>'limitN')::smallint, (d->>'promptVersion')::smallint,\n  d->'picks', d->'notFound', d->>'collectionTitle', d->>'modelUsed'\nFROM jsonb_array_elements($1::jsonb) AS d\n-- Este no roda nos DOIS caminhos, e ate 03/09/2026 o ON CONFLICT so tocava em\n-- hit_count e last_hit_at. A consequencia so aparecia depois de 30 dias, que e\n-- a janela do SELECT em cache-l1.sql:\n--\n--   dia 31  -> o SELECT nao acha (created_at velho), o caminho vivo roda,\n--              gasta a chamada de LLM, e o INSERT cai no ON CONFLICT\n--   ON CONFLICT -> descarta a curadoria nova e NAO renova created_at\n--   dia 32  -> exatamente a mesma coisa. E no dia 33. Para sempre.\n--\n-- Ou seja: cache miss PERMANENTE, com custo de modelo em TODA requisicao\n-- daquela consulta, e o resultado jogado fora toda vez. Provado em tabela\n-- temporaria: depois de regravar, colecao continuava 'VELHA' e idade 40 dias.\n--\n-- O sinal para distinguir os dois caminhos e model_used: 'Preparar registro'\n-- envia null quando serviu do cache e o nome do modelo quando o curador rodou.\n-- SE ALGUEM MUDAR AQUILO, ISTO AQUI QUEBRA EM SILENCIO.\nON CONFLICT (query_hash) DO UPDATE\n   SET hit_count = search_cache.hit_count + 1,\n       last_hit_at = now(),\n       picks            = CASE WHEN EXCLUDED.model_used IS NULL THEN search_cache.picks            ELSE EXCLUDED.picks            END,\n       not_found        = CASE WHEN EXCLUDED.model_used IS NULL THEN search_cache.not_found        ELSE EXCLUDED.not_found        END,\n       collection_title = CASE WHEN EXCLUDED.model_used IS NULL THEN search_cache.collection_title ELSE EXCLUDED.collection_title END,\n       model_used       = COALESCE(EXCLUDED.model_used, search_cache.model_used),\n       created_at       = CASE WHEN EXCLUDED.model_used IS NULL THEN search_cache.created_at       ELSE now()                     END","options": {
+        "query": "-- Um unico parametro jsonb, e nao uma lista separada por virgula: query_text\n-- e texto livre do usuario e QUALQUER virgula nele quebraria a separacao.\nINSERT INTO search_cache (\n  query_hash, query_text, query_norm, limit_n, prompt_version,\n  picks, not_found, collection_title, model_used\n)\nSELECT\n  d->>'queryHash', d->>'queryText', d->>'queryNorm',\n  (d->>'limitN')::smallint, (d->>'promptVersion')::smallint,\n  d->'picks', d->'notFound', d->>'collectionTitle', d->>'modelUsed'\nFROM jsonb_array_elements($1::jsonb) AS d\n-- Este no roda nos DOIS caminhos, e ate 03/09/2026 o ON CONFLICT so tocava em\n-- hit_count e last_hit_at. A consequencia so aparecia depois de 30 dias, que e\n-- a janela do SELECT em cache-l1.sql:\n--\n--   dia 31  -> o SELECT nao acha (created_at velho), o caminho vivo roda,\n--              gasta a chamada de LLM, e o INSERT cai no ON CONFLICT\n--   ON CONFLICT -> descarta a curadoria nova e NAO renova created_at\n--   dia 32  -> exatamente a mesma coisa. E no dia 33. Para sempre.\n--\n-- Ou seja: cache miss PERMANENTE, com custo de modelo em TODA requisicao\n-- daquela consulta, e o resultado jogado fora toda vez. Provado em tabela\n-- temporaria: depois de regravar, colecao continuava 'VELHA' e idade 40 dias.\n--\n-- O sinal para distinguir os dois caminhos e model_used: 'Preparar registro'\n-- envia null quando serviu do cache e o nome do modelo quando o curador rodou.\n-- SE ALGUEM MUDAR AQUILO, ISTO AQUI QUEBRA EM SILENCIO.\nON CONFLICT (query_hash) DO UPDATE\n   SET hit_count = search_cache.hit_count + 1,\n       last_hit_at = now(),\n       picks            = CASE WHEN EXCLUDED.model_used IS NULL THEN search_cache.picks            ELSE EXCLUDED.picks            END,\n       not_found        = CASE WHEN EXCLUDED.model_used IS NULL THEN search_cache.not_found        ELSE EXCLUDED.not_found        END,\n       collection_title = CASE WHEN EXCLUDED.model_used IS NULL THEN search_cache.collection_title ELSE EXCLUDED.collection_title END,\n       model_used       = COALESCE(EXCLUDED.model_used, search_cache.model_used),\n       created_at       = CASE WHEN EXCLUDED.model_used IS NULL THEN search_cache.created_at       ELSE now()                     END",
+        "options": {
           "queryReplacement": "={{ JSON.stringify([$json]) }}"
         }
       },
@@ -700,7 +765,10 @@
       "name": "Gravar L1",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.7,
-      "position": [2704, 16],
+      "position": [
+        2704,
+        16
+      ],
       "onError": "continueRegularOutput",
       "credentials": {
         "postgres": {
@@ -712,7 +780,8 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO searches (\n  request_id, query_hash, query_text, cache_hit, model_used,\n  movie_count, not_found_count, latency_ms, source\n)\nSELECT\n  (d->>'requestId')::uuid, d->>'queryHash', d->>'queryText',\n  (d->>'cacheHit')::boolean, d->>'modelUsed',\n  (d->>'movieCount')::smallint, (d->>'notFoundCount')::smallint,\n  (d->>'latencyMs')::int, coalesce(d->>'source', 'human')\nFROM jsonb_array_elements($1::jsonb) AS d","options": {
+        "query": "INSERT INTO searches (\n  request_id, query_hash, query_text, cache_hit, model_used,\n  movie_count, not_found_count, latency_ms, source\n)\nSELECT\n  (d->>'requestId')::uuid, d->>'queryHash', d->>'queryText',\n  (d->>'cacheHit')::boolean, d->>'modelUsed',\n  (d->>'movieCount')::smallint, (d->>'notFoundCount')::smallint,\n  (d->>'latencyMs')::int, coalesce(d->>'source', 'human')\nFROM jsonb_array_elements($1::jsonb) AS d",
+        "options": {
           "queryReplacement": "={{ JSON.stringify([$('Preparar registro').first().json]) }}"
         }
       },
@@ -720,7 +789,10 @@
       "name": "Telemetria",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.7,
-      "position": [2848, 16],
+      "position": [
+        2848,
+        16
+      ],
       "onError": "continueRegularOutput",
       "credentials": {
         "postgres": {

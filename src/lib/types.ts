@@ -292,3 +292,28 @@ export type RecommendationsResult = RecommendationsResponse | ApiError;
 export function isApiError(value: RecommendationsResult): value is ApiError {
   return "error" in value;
 }
+
+/**
+ * O n8n respondeu 200 — mas respondeu o quê?
+ *
+ * O route handler fazia `(await response.json()) as RecommendationsResponse`, e
+ * asserção de tipo é uma promessa que o TypeScript acredita e o runtime não
+ * verifica. Um corpo `{}` — que acontece: o workflow morrendo num `throw` já
+ * devolveu 200 vazio antes — passava adiante com `notFound: undefined`, e
+ * `SearchResults` fazia `.length` nisso: TypeError, tela branca, e o usuário
+ * sem ver nem erro.
+ *
+ * Verifica só o que a interface indexa direto. Validar `Movie` campo a campo
+ * viraria um segundo schema mantido à mão, que diverge do `types.ts` do mesmo
+ * jeito que as cópias do n8n divergiram — e os filmes já passam por
+ * `enxugarFilme` e `sanitizeAuthoredText` depois.
+ */
+export function ehRespostaValida(v: unknown): v is RecommendationsResponse {
+  if (typeof v !== "object" || v === null || Array.isArray(v)) return false;
+  const r = v as Record<string, unknown>;
+  return (
+    Array.isArray(r.movies) &&
+    Array.isArray(r.notFound) &&
+    typeof r.collectionTitle === "string"
+  );
+}

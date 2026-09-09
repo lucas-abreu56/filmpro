@@ -1,5 +1,4 @@
 // Nó "Montar resposta" — n8n-nodes-base.code
-// Nó "Montar resposta" — n8n-nodes-base.code
 // Apresentacao, e so isso. Recebe linhas da tabela movies — do upsert no
 // caminho vivo, ou do SELECT num acerto de cache — e monta as URLs. Um unico
 // lugar decide como um filme vira JSON, para os dois caminhos.
