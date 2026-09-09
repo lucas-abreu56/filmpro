@@ -4,7 +4,14 @@
 // uma sessão antiga (ver docs/NOTES.local.md). Desta vez fica em scripts/.
 //
 // Uso:
-//   node scripts/shot.mjs <url> <saida.png> [--width=1440] [--height=900] [--reduced-motion] [--delay=800]
+//   node scripts/shot.mjs <url> <saida.jpg> [--width=1440] [--height=900] [--reduced-motion] [--delay=800] [--png]
+//
+// Grava JPEG por padrão. Medido em 09/09/2026: a mesma tela em PNG sem
+// compressão dá 5.455 KB e em JPEG q72 dá 207 KB — 96% menor, sem perder o que
+// se julga numa captura (tipografia, hierarquia, espaçamento, contraste). Como
+// toda captura é lida de volta por um modelo, esses megabytes viram contexto:
+// eram 92% de tudo que este projeto consumia. Use --png só quando o pixel exato
+// for a pergunta (comparar antialiasing, renderização de fonte).
 
 import { spawn } from "node:child_process";
 import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
@@ -24,18 +31,27 @@ function analisarArgumentos(argv) {
   const [url, saida, ...resto] = argv;
   if (!url || !saida) {
     console.error(
-      "Uso: node scripts/shot.mjs <url> <saida.png> [--width=1440] [--height=900] [--reduced-motion]",
+      "Uso: node scripts/shot.mjs <url> <saida.jpg> [--width=1440] [--height=900] [--reduced-motion] [--png]",
     );
     process.exit(1);
   }
-  const opcoes = { width: 1440, height: 900, reducedMotion: false, delay: 800 };
+  const opcoes = {
+    width: 1440,
+    height: 900,
+    reducedMotion: false,
+    delay: 800,
+    png: false,
+  };
   for (const arg of resto) {
     if (arg === "--reduced-motion") opcoes.reducedMotion = true;
+    else if (arg === "--png") opcoes.png = true;
     else if (arg.startsWith("--width=")) opcoes.width = Number(arg.slice(8));
     else if (arg.startsWith("--height=")) opcoes.height = Number(arg.slice(9));
     else if (arg.startsWith("--delay=")) opcoes.delay = Number(arg.slice(8));
   }
-  return { url, saida, ...opcoes };
+  // A extensão do arquivo decide junto com a flag: quem pede .png quer PNG.
+  const png = opcoes.png || saida.toLowerCase().endsWith(".png");
+  return { url, saida, ...opcoes, png };
 }
 
 function encontrarChrome() {
@@ -59,7 +75,7 @@ async function esperarCdp(porta, tentativas = 60) {
 }
 
 async function main() {
-  const { url, saida, width, height, reducedMotion, delay } = analisarArgumentos(
+  const { url, saida, width, height, reducedMotion, delay, png } = analisarArgumentos(
     process.argv.slice(2),
   );
 
@@ -167,12 +183,16 @@ async function main() {
     // serve para capturar um ponto específico de um ciclo de animação.
     await new Promise((r) => setTimeout(r, delay));
 
-    const screenshot = await enviar("Page.captureScreenshot", {
-      format: "png",
-    });
+    const screenshot = await enviar(
+      "Page.captureScreenshot",
+      png ? { format: "png" } : { format: "jpeg", quality: 72 },
+    );
 
     writeFileSync(saida, Buffer.from(screenshot.result.data, "base64"));
-    console.log(`Screenshot salva em ${saida}`);
+    const kb = Math.round(
+      Buffer.from(screenshot.result.data, "base64").length / 1024,
+    );
+    console.log(`Screenshot salva em ${saida} (${png ? "PNG" : "JPEG q72"}, ${kb} KB)`);
     if (mensagensConsole.length > 0) {
       console.log("Console do navegador:");
       for (const m of mensagensConsole) console.log(`  [${m.tipo}] ${m.texto}`);

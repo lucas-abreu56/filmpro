@@ -21,6 +21,9 @@ Siga esta estrutura para manter o documento limpo:
 4. **Limpeza do Pendente:** Marque itens resolvidos do roadmap ou dos defeitos como CONCLUÍDO. Não apague os defeitos passados silenciosamente; documente a resolução.
 5. **Próximo passo:** Deixe claro o que deve ser feito na próxima sessão para quem assumir o projeto.
 6. **Buffer Rolante e Poda (Teto de 400 linhas):** O `NOTES.local.md` deve conter no máximo as últimas 2 a 3 sessões (~400 linhas). Ao ultrapassar esse limite, transfira o histórico antigo para `docs/NOTES-historico.local.md`. Nunca deixe o arquivo acumular logs fósseis.
+7. **Leia o `NOTES.local.md` UMA vez por sessão.** Medido em 09/09/2026: ele foi lido **25 vezes numa única sessão**, e as releituras de arquivo custaram 205k tokens no total — o segundo maior desperdício do projeto, atrás só das imagens. Leia no início; no meio da sessão, se precisar conferir um ponto específico, use `Grep` em vez de `Read` do arquivo inteiro; no fim, atualize por `Edit` sem reler.
+
+   O mesmo vale para arquivo de código em iteração (`FilmStrip.tsx` foi lido 22x): depois do primeiro `Read`, siga por `Edit`. **Não releia para "conferir se aplicou"** — um `Edit` que falha retorna erro, então silêncio já é confirmação.
 
 ## Diretrizes de Governança e Arquitetura (Vibecoding & SDD)
 
