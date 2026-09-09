@@ -228,7 +228,52 @@ describe("paridade — os limites de tamanho", () => {
 });
 
 // ---------------------------------------------------------------------------
-// 4. Lixo do ciclo export → cola → export
+// 4. O módulo testável contra o nó publicado
+// ---------------------------------------------------------------------------
+
+describe("paridade — n8n/logica/ contra o nó que roda em produção", () => {
+  // `pontuar()` é testada em pontuar-correspondencia.test.js, mas quem roda em
+  // produção é a cópia dentro do `jsCode`. Sem esta comparação, o teste de
+  // mesa passaria verde enquanto o nó fizesse outra conta — que é a ilusão
+  // mais perigosa que um teste pode dar.
+  //
+  // Compara o corpo com espaço colapsado: indentação difere sem mudar
+  // comportamento, e um teste que falha por espaço acaba desligado.
+  function corpoDe(fonte, assinatura) {
+    const i = fonte.indexOf(assinatura);
+    if (i === -1) return null;
+    // Do início da função até a linha que fecha na coluna 0.
+    const resto = fonte.slice(i);
+    const fim = resto.indexOf("\n}");
+    return fim === -1 ? null : resto.slice(0, fim + 2).replace(/\s+/g, " ").trim();
+  }
+
+  const modulo = ler("n8n/logica/pontuar-correspondencia.js");
+  const no = ler("n8n/nos/escolher-correspondencia.js");
+
+  it("a função pontuar() é idêntica nos dois lados", () => {
+    const doModulo = corpoDe(modulo, "function pontuar(");
+    const doNo = corpoDe(no, "function pontuar(");
+    assert.ok(doModulo, "não achei pontuar() em n8n/logica/");
+    assert.ok(doNo, "não achei pontuar() no nó");
+    assert.equal(
+      doNo,
+      doModulo,
+      "a pontuação do nó divergiu do módulo testado. Os testes de mesa estariam " +
+        "validando código que não é o que roda em produção.",
+    );
+  });
+
+  it("a função normalizar() é idêntica nos dois lados", () => {
+    const doModulo = corpoDe(modulo, "function normalizar(");
+    const doNo = corpoDe(no, "function normalizar(");
+    assert.ok(doModulo && doNo, "não achei normalizar() em um dos lados");
+    assert.equal(doNo, doModulo, "normalizar() divergiu entre módulo e nó");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 5. Lixo do ciclo export → cola → export
 // ---------------------------------------------------------------------------
 
 describe("higiene dos arquivos gerados", () => {
