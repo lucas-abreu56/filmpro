@@ -139,8 +139,17 @@ export default function SearchPanel() {
             onFocus={() => setPretende(true)}
             rows={2}
             maxLength={LIMITS.MAX_PREFERENCES}
-            placeholder="Um suspense claustrofóbico, poucos personagens, final que incomoda…"
-            className="border-fio-forte text-tinta placeholder:text-apoio focus:border-acento w-full resize-none border-b bg-transparent py-3 text-2xl leading-snug outline-none"
+            // O anterior tinha 68 caracteres e passava de três linhas num
+            // aparelho de 412px, cortado no meio pelas duas `rows` — quem
+            // abria a página lia "final que incomo" e mais nada. Este cabe em
+            // duas linhas no celular e continua dizendo o que o campo espera:
+            // sensação, não título.
+            placeholder="Um suspense claustrofóbico, final que incomoda…"
+            // `text-lg` no celular, `text-2xl` a partir de `sm`. A 24px o
+            // placeholder de 68 caracteres passava de três linhas num aparelho
+            // de 412px e ficava cortado pelas duas `rows` — a frase que explica
+            // o que digitar aparecia pela metade. A 18px ele cabe.
+            className="border-fio-forte text-tinta placeholder:text-apoio focus:border-acento w-full resize-none border-b bg-transparent py-3 text-lg leading-snug outline-none sm:text-2xl"
           />
 
           <div className="text-apoio mt-3 flex items-center justify-between text-xs">
@@ -157,13 +166,19 @@ export default function SearchPanel() {
           </div>
         </form>
 
-        <div className="mt-6 flex flex-wrap gap-2">
+        {/* Faixa rolável de uma linha no celular, quebra normal a partir de
+            `sm`. Os quatro exemplos empilhavam em QUATRO linhas num aparelho de
+            412px, e dentro do herói isso somava altura em cima da imagem sem
+            acrescentar sugestão nenhuma. `-mx-6 px-6` sangra até a borda do
+            cartão para a faixa não parecer cortada no meio do padding, e
+            `snap-x` faz cada chip parar inteiro em vez de meio fora da tela. */}
+        <div className="faixa-chips -mx-6 mt-6 flex snap-x snap-mandatory gap-2 overflow-x-auto px-6 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
           {EXEMPLOS.map((exemplo) => (
             <button
               key={exemplo}
               type="button"
               onClick={() => usarExemplo(exemplo)}
-              className="border-fio text-apoio hover:border-tinta hover:text-tinta border px-3 py-1.5 text-xs transition-colors"
+              className="border-fio text-apoio hover:border-tinta hover:text-tinta shrink-0 snap-start border px-3 py-1.5 text-xs whitespace-nowrap transition-colors sm:shrink sm:whitespace-normal"
             >
               {exemplo}
             </button>

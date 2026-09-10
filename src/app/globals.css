@@ -138,6 +138,21 @@ body {
   left: 0;
   right: 0;
 }
+/* ── O scrim, direcional ──────────────────────────────────────────────────
+   A versão anterior escurecia as DUAS pontas (0.7 no topo, 0.88 na base) e
+   deixava legível só a janela de 38% a 55% — 17% da altura. Medido em
+   10/09/2026 (412×915), somando o conteúdo que fica por cima, sobrava quase
+   nada do still: 49,5% da tela do herói coberta, sendo 35,1% só o cartão da
+   busca.
+
+   Agora escurece só onde há texto de verdade, que é a base. O topo carrega
+   apenas "FILMPRO" e "SEMANA DE 07.09" em 12px, e esses dois se resolvem com
+   sombra local no próprio texto (`.hero-marca`), não com um véu sobre a
+   imagem inteira.
+
+   É o mesmo desenho que a ficha já usa há mais tempo
+   (`MovieDetail.tsx`: `from-[#250701] via-[#250701]/55 to-transparent`), e
+   pelo mesmo motivo: o palco é o assunto, não a textura. */
 .hero-scrim {
   position: absolute;
   inset: 0;
@@ -145,18 +160,54 @@ body {
   background:
     linear-gradient(
       180deg,
-      rgb(37 7 1 / 0.7) 0%,
-      transparent 38%,
-      transparent 55%,
-      rgb(37 7 1 / 0.88) 100%
+      transparent 0%,
+      transparent 42%,
+      rgb(37 7 1 / 0.55) 68%,
+      rgb(37 7 1 / 0.92) 100%
     );
 }
+
+/* A marca e a semana ficam no topo, onde não há mais véu. Sombra local em vez
+   de escurecer a imagem toda por causa de duas linhas de 12px. */
+.hero-marca {
+  text-shadow: 0 1px 12px rgb(37 7 1 / 0.9);
+}
 /* O H1 do herói lê por cima da imagem sem scrim pesado — item 5 das
-   animações aprovadas em `docs/identidade-visual.md` desde 01/09/2026 e
-   nunca implementado até aqui. */
+   animações aprovadas em `docs/identidade-visual.md` desde 01/09/2026.
+
+   ── Só da tela média para cima ────────────────────────────────────────────
+   No celular ele custava 10,4% da tela (medido em 10/09/2026, 412×915) para
+   repetir o que o placeholder da busca diz logo abaixo, e o still ficava sem
+   espaço. Abaixo de 640px ele vira texto de leitor de tela: a página continua
+   tendo um `h1` de verdade na árvore de acessibilidade e no HTML que o
+   buscador lê, mas não ocupa pixel nenhum.
+
+   O recorte é o mesmo do `sr-only` do Tailwind, escrito à mão porque o
+   elemento precisa VOLTAR a ser visível em `sm:` — e `not-sr-only` no JSX
+   junto de `hero-h1` deixaria a regra espalhada em dois lugares. */
 .hero-h1 {
-  color: #fff;
-  mix-blend-mode: difference;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border-width: 0;
+}
+@media (min-width: 40rem) {
+  .hero-h1 {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
+    color: #fff;
+    mix-blend-mode: difference;
+  }
 }
 
 /* Quem pede menos movimento recebe o still parado — a deriva já é o único
@@ -449,6 +500,23 @@ body {
 }
 ::-webkit-scrollbar-thumb {
   background: var(--color-fio-forte);
+}
+
+/* A faixa de exemplos do `SearchPanel` rola na horizontal só no celular. A
+   barra some porque a lista tem quatro itens e o corte no último já anuncia
+   que há mais para o lado; uma barra de 10px sob os chips só somaria altura
+   dentro do cartão do herói, que é justamente o que estamos economizando.
+   Continua rolável por toque, por roda e por teclado. */
+.faixa-chips {
+  scrollbar-width: none;
+}
+.faixa-chips::-webkit-scrollbar {
+  display: none;
+}
+@media (min-width: 40rem) {
+  .faixa-chips {
+    scrollbar-width: auto;
+  }
 }
 
 /* Quem pediu menos movimento recebe o layout parado e o fotograma estático —

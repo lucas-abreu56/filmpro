@@ -46,6 +46,12 @@ docs/design-systems/
 # código do produto — e num repositório público seria só ruído.
 .agents/
 
+# Trava do `npx skills add` (taste-skill, instalado em 10/09/2026 para a
+# revisão do herói). Aponta para o conteúdo de `.agents/`, que é ignorado logo
+# acima — versionar só a trava deixaria uma referência a arquivos que o
+# repositório não tem. Mesma razão: ferramenta da máquina, não do produto.
+skills-lock.json
+
 # Config local do Claude Code nesta máquina: allowlist de permissões, hook da
 # auditoria pré-commit e o aval de uso único que ele consome. Ferramenta da
 # máquina — a regra que importa vive versionada em AGENTS.md.

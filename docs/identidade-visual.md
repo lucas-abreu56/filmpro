@@ -51,13 +51,17 @@ Quatro regras comuns, e todas valem para o FilmPro:
 --acento:   #C52E2E;  /* vermelho-sangue. Valor real da Awwwocado */
 
 /* Apoios derivados da tinta — nenhum cinza inventado */
---apoio:  rgba(83, 26, 15, 0.62);  /* texto secundário */
+--apoio:  rgba(83, 26, 15, 0.72);  /* texto secundário */
 --fio:    rgba(83, 26, 15, 0.18);  /* filetes e molduras */
 --fio-forte: rgba(83, 26, 15, 0.42);
 ```
 
 O acento é vermelho-sangue, não o amarelo da kirlian: escolha do Lucas em
 01/09/2026. Regra de uso herdada da Awwwocado — **uma palavra por tela**.
+
+`--apoio` está em `0.72`, não nos `0.62` que esta tabela trazia até 10/09/2026:
+a 0.62 o texto secundário dava 4,2:1 sobre o papel e reprovava no AA. O CSS já
+usava o valor certo; era a tabela que mentia.
 
 ### Rotação cromática por coleção
 
@@ -141,6 +145,53 @@ coleção que sobe e aparece ao entrar na viewport** (`.fileira-revela` em
 guardado por `@supports` e por `prefers-reduced-motion: no-preference` — fora
 disso a fileira aparece estática e completa. É a linguagem "cor é recompensa
 por atenção" na escala da seção.
+
+> **Correção (10/09/2026): a fileira que entra vale só a partir de 64rem.**
+> No celular ela produzia um defeito visível — o primeiro filme de cada fileira
+> aparecia lavado e só normalizava ao rolar mais. Medido em produção (412×915):
+> ~200px de rolagem com o fotograma entre 0,56 e 0,87 de opacidade, deixando o
+> `--papel` atravessar por baixo. A causa é geométrica: `entry` termina quando o
+> topo do elemento alcança o topo da viewport, então numa `Pilha` de ~4800px
+> (5x a tela) a rampa inteira se concentra nos primeiros ~400px da seção. Acima
+> de 64rem a fileira é uma tira de ~800px e a animação faz o que devia. Abaixo,
+> "fileira" é uma pilha vertical, e revelar a pilha inteira de uma vez nunca foi
+> o gesto aprovado aqui.
+
+### O herói: o still é o assunto (10/09/2026)
+
+O scrim do herói nunca esteve registrado aqui, e tinha virado o oposto do que
+o item 5 pedia. Ele escurecia as **duas** pontas (0,7 no topo, 0,88 na base) e
+deixava legível só a janela de 38% a 55% — 17% da altura. Somado ao que fica
+por cima, medido em 412×915: **49,5% da tela do herói coberta**, sendo 35,1%
+só o cartão da busca, que era `bg-profundo/95`. O filme em destaque virava
+mancha.
+
+O que passa a valer:
+
+1. **Scrim direcional.** Transparente no topo, escuro só na base, onde o texto
+   mora. É o mesmo desenho que a ficha já usava (`MovieDetail`), e pelo mesmo
+   motivo: o palco é o assunto, não a textura. A marca e a semana, no topo, se
+   resolvem com `text-shadow` local (`.hero-marca`), não com véu sobre a
+   imagem inteira.
+2. **O cartão da busca é vidro fosco**, não bloco opaco: `--profundo` a 62%
+   com `backdrop-blur`. O still continua existindo atrás dele, desfocado. Onde
+   `backdrop-filter` não existe, a opacidade sobe para 85% — ali o contraste
+   precisa do fundo sólido.
+3. **O H1 não aparece no celular.** Abaixo de 640px ele custava 10,4% da tela
+   para repetir o que o placeholder da busca diz logo abaixo. Vira texto de
+   leitor de tela: a página continua tendo um `h1` de verdade na árvore de
+   acessibilidade e no HTML, sem ocupar pixel. No desktop segue como está, com
+   as três linhas e o `mix-blend-mode`.
+4. **Os exemplos da busca são uma faixa rolável de uma linha** no celular
+   (`.faixa-chips`), em vez de quatro linhas empilhadas.
+
+Resultado medido: conteúdo sobre a imagem cai de **49,5% para 26,9%** no
+celular. O desktop não muda (27,9%).
+
+O **parallax do still continua descartado** — a porta que esta seção abria
+("reabrir só junto de uma mudança no herói") não foi usada: nenhuma das quatro
+mudanças acima mexe na altura do wrapper, que era o motivo do recuo, e o efeito
+não era necessário para resolver a legibilidade.
 
 ### O gesto central, confirmado
 

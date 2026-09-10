@@ -69,8 +69,14 @@ export default function Hero({ movie, semanaLabel }: HeroProps) {
       </div>
       <div className="hero-scrim" />
 
-      <div className="relative z-10 flex min-h-screen flex-col justify-end px-6 pt-24 pb-24 sm:px-12 sm:pb-32">
-        <div className="absolute top-8 right-6 left-6 flex items-center justify-between text-xs tracking-[0.16em] uppercase sm:right-12 sm:left-12">
+      {/* `pb-12` no celular, não `pb-24`: com o H1 fora e os exemplos numa
+          faixa só, o respiro de 6rem embaixo virava vão morto entre o cartão e
+          a perfuração. No desktop o valor original continua. */}
+      <div className="relative z-10 flex min-h-screen flex-col justify-end px-6 pt-24 pb-12 sm:px-12 sm:pb-32">
+        {/* `hero-marca` põe sombra nestas duas linhas. O scrim não escurece
+            mais o topo, e 12px claros sobre um still qualquer não se sustentam
+            sozinhos. */}
+        <div className="hero-marca absolute top-8 right-6 left-6 flex items-center justify-between text-xs tracking-[0.16em] uppercase sm:right-12 sm:left-12">
           <span>FilmPro</span>
           {semanaLabel && <span>Semana de {semanaLabel}</span>}
         </div>
@@ -107,15 +113,32 @@ export default function Hero({ movie, semanaLabel }: HeroProps) {
             </p>
           )}
 
-          <h1 className="hero-h1 font-display mb-8 text-[clamp(2.5rem,6.5vw,5.5rem)] leading-[0.9] font-medium uppercase">
-            O que você
-            <br />
-            quer sentir
-            <br />
+          {/* O H1 só existe da tela média para cima. No celular ele custava
+              10,4% da tela (medido em 10/09/2026, 412×915) para repetir o que
+              o placeholder da busca já diz, logo abaixo — e o que sobrava para
+              o still era quase nada. Continua no DOM em toda largura: `hidden`
+              tira da árvore de acessibilidade junto, e a página precisa de um
+              `h1`, então quem some é a versão grande e entra a de leitor de
+              tela (`sr-only`) no celular. */}
+          {/* As quebras são `<br className="hidden sm:inline">` porque no
+              celular o h1 é lido por leitor de tela, e ali a frase precisa
+              soar como uma frase, não como três fragmentos. */}
+          <h1 className="hero-h1 font-display sm:mb-8 sm:text-[clamp(2.5rem,6.5vw,5.5rem)] sm:leading-[0.9] sm:font-medium sm:uppercase">
+            O que você <br className="hidden sm:inline" />
+            quer sentir <br className="hidden sm:inline" />
             hoje?
           </h1>
 
-          <div className="tema-escuro bg-profundo/95 max-w-xl rounded-[2px] border border-papel/15 p-6">
+          {/* Vidro fosco, não bloco opaco. O `bg-profundo/95` que estava aqui
+              tapava 35,1% da tela do herói no celular — mais que o scrim, o
+              letreiro e o H1 somados. A `--color-profundo` a 62% com blur
+              separa o campo de entrada da fotografia sem apagá-la: o still
+              continua existindo atrás do cartão, desfocado.
+
+              `supports-[backdrop-filter]` mantém a opacidade alta onde o blur
+              não existe (Firefox com a flag desligada), porque ali o texto
+              precisaria do fundo sólido para ter contraste. */}
+          <div className="tema-escuro bg-profundo/85 supports-[backdrop-filter]:bg-profundo/62 max-w-xl rounded-[2px] border border-papel/15 p-6 backdrop-blur-md">
             <SearchPanel />
           </div>
         </div>
