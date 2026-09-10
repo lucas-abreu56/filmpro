@@ -290,8 +290,9 @@ describe("paridade — o léxico de acentuação e a função que o aplica", () 
     return fim === -1 ? null : resto.slice(0, fim + 2).replace(/\s+/g, " ").trim();
   }
 
-  function objetoDe(fonte) {
-    const m = fonte.match(/LEXICO_ACENTUACAO\s*=\s*\{([^}]*)\}/);
+  /** Extrai o corpo `{...}` do objeto `nome`, com espaço colapsado. */
+  function objetoDe(fonte, nome) {
+    const m = fonte.match(new RegExp(nome + "\\s*=\\s*\\{([^}]*)\\}"));
     return m ? m[1].replace(/\s+/g, " ").trim() : null;
   }
 
@@ -299,17 +300,22 @@ describe("paridade — o léxico de acentuação e a função que o aplica", () 
   const registro = ler("n8n/nos/preparar-registro.js");
   const resposta = ler("n8n/nos/montar-resposta.js");
 
+  // Os três mapas que a correção usa, todos copiados nos dois nós.
+  const MAPAS = ["LEXICO_ACENTUACAO", "SUFIXO_ATONO", "PALAVRA_ATONA"];
+
   for (const [nome, fonte] of [
     ["n8n/nos/preparar-registro.js", registro],
     ["n8n/nos/montar-resposta.js", resposta],
   ]) {
-    it(`${nome} tem o mesmo LEXICO_ACENTUACAO do módulo`, () => {
-      const doModulo = objetoDe(modulo);
-      const doNo = objetoDe(fonte);
-      assert.ok(doModulo, "não achei LEXICO_ACENTUACAO em n8n/logica/");
-      assert.ok(doNo, `não achei LEXICO_ACENTUACAO em ${nome}`);
-      assert.equal(doNo, doModulo, `${nome} divergiu do léxico em n8n/logica/`);
-    });
+    for (const mapa of MAPAS) {
+      it(`${nome} tem o mesmo ${mapa} do módulo`, () => {
+        const doModulo = objetoDe(modulo, mapa);
+        const doNo = objetoDe(fonte, mapa);
+        assert.ok(doModulo, `não achei ${mapa} em n8n/logica/`);
+        assert.ok(doNo, `não achei ${mapa} em ${nome}`);
+        assert.equal(doNo, doModulo, `${nome} divergiu de ${mapa} em n8n/logica/`);
+      });
+    }
 
     it(`${nome} tem a mesma função corrigirAcentuacao()`, () => {
       const doModulo = corpoDe(modulo, "function corrigirAcentuacao(");

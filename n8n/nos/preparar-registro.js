@@ -19,12 +19,78 @@ var LEXICO_ACENTUACAO = {
   familia: "família",
   tragedia: "tragédia",
   solidao: "solidão",
+  espetaculo: "espetáculo",
+  espetaculos: "espetáculos",
+  ruina: "ruína",
+  ruinas: "ruínas",
+  fantastico: "fantástico",
+  fantastica: "fantástica",
+  fantasticos: "fantásticos",
+  fantasticas: "fantásticas",
+  coreografico: "coreográfico",
+  coreografica: "coreográfica",
+  cenario: "cenário",
+  cenarios: "cenários",
+  solitario: "solitário",
+  solitaria: "solitária",
+  espaco: "espaço",
+  pastelao: "pastelão",
+  vinganca: "vingança",
+  imersao: "imersão",
+  estetica: "estética",
+  esteticas: "estéticas",
+  definicao: "definição",
+  definicoes: "definições",
+  construcao: "construção",
+  construcoes: "construções",
+  observacao: "observação",
+  observacoes: "observações",
+  logica: "lógica",
 };
+// Fase 6c (10/09/2026): toda palavra terminada em "cao"/"sao"/"xao" (e plurais)
+// ganha o til — "reflexao"→"reflexão". Em PT essas terminacoes sao SEMPRE til
+// faltando. "cao"/"sao" isoladas viram "cão"/"são" (sem "ç").
+var SUFIXO_ATONO = {
+  coes: "ções",
+  soes: "sões",
+  xoes: "xões",
+  cao: "ção",
+  sao: "são",
+  xao: "xão",
+};
+var PALAVRA_ATONA = { cao: "cão", sao: "são" };
 function corrigirAcentuacao(texto) {
   var s = String(texto == null ? "" : texto);
   return s.replace(/[A-Za-zÀ-ÿ]+/g, function (palavra) {
-    var certa = LEXICO_ACENTUACAO[palavra.toLowerCase()];
-    if (!certa) return palavra;
+    var minuscula = palavra.toLowerCase();
+
+    var certa = LEXICO_ACENTUACAO[minuscula];
+    if (!certa) {
+      // "cao"/"sao" isoladas: só o til, sem "ç".
+      if (PALAVRA_ATONA[minuscula]) {
+        certa = PALAVRA_ATONA[minuscula];
+      } else {
+        // Regra de padrão: a palavra TERMINA numa terminação átona.
+        var sufixos = Object.keys(SUFIXO_ATONO);
+        for (var i = 0; i < sufixos.length; i++) {
+          var atono = sufixos[i];
+          if (
+            minuscula.length > atono.length &&
+            minuscula.slice(-atono.length) === atono
+          ) {
+            certa = palavra.slice(0, palavra.length - atono.length) + SUFIXO_ATONO[atono];
+            break;
+          }
+        }
+        if (!certa) return palavra;
+      }
+      // A caixa do miolo já vem de `palavra`; só a inicial precisa de cuidado.
+      if (palavra[0] === palavra[0].toUpperCase()) {
+        return certa[0].toUpperCase() + certa.slice(1);
+      }
+      return certa;
+    }
+
     if (palavra[0] === palavra[0].toUpperCase()) {
       return certa[0].toUpperCase() + certa.slice(1);
     }
@@ -65,7 +131,7 @@ return [{ json: {
   promptVersion: entrada.promptVersion,
   picks: picks,
   notFound: resp.notFound || [],
-  collectionTitle: resp.collectionTitle,
+  collectionTitle: corrigirAcentuacao(resp.collectionTitle),
   // ATENCAO: este null NAO e so telemetria, e contrato.
   //
   // O ON CONFLICT do no 'Gravar L1' usa `EXCLUDED.model_used IS NULL` para

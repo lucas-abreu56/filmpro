@@ -90,7 +90,18 @@ const queryNorm = texto
 // ver n8n/logica/corrigir-acentuacao.js). Bumpar aqui porque o cache guarda o
 // RESULTADO da correcao: sem isto, toda busca ja gravada continuaria servindo
 // o reason sem acento por ate 30 dias.
-const promptVersion = 9;
+//
+// v10 (10/09/2026, Fase 6b): o mesmo lexico ganhou 19 chaves (espetaculo,
+// ruina, coreografica, cenario, definicao...) e passou a rodar TAMBEM no
+// collectionTitle — a home mostrava "Espetaculos em Movimento", "Ruinas da
+// Memoria" porque o titulo da colecao nunca passava pela correcao. Mesmo
+// motivo do bump: search_cache.collection_title guarda o resultado.
+//
+// v11 (10/09/2026, Fase 6c): a v10 ainda deixava passar "Reflexao",
+// "Descompressao" — o lexico palavra-a-palavra nunca cobre as centenas de
+// "-ção". Agora `corrigirAcentuacao()` tem uma REGRA DE PADRAO: toda palavra
+// terminada em "cao"/"sao"/"xao" (e plurais) ganha o til. Mesmo motivo do bump.
+const promptVersion = 11;
 
 return [{ json: {
   preferences: texto,

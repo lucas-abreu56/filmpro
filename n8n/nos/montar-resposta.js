@@ -31,8 +31,10 @@ function limpar(t, max) {
 // intencao. Reforcar o prompt (a v5 ja fez isso) e trocar de modelo (o
 // 3.1-flash-lite foi escolhido por latencia, 03/09/2026) foram descartados por
 // medicao. So entram palavras cuja forma sem acento NAO existe como outra
-// palavra valida em portugues — "atmosfera" nao leva acento e por isso nao
-// esta aqui. Espelha n8n/logica/corrigir-acentuacao.js.
+// palavra valida em portugues — "atmosfera" nao leva acento, "referencia" e
+// "sequencia" sao conjugacao, "memoria"/"acao"/"genero" colidem com titulo de
+// filme BR sem acento. Espelha n8n/logica/corrigir-acentuacao.js. Fase 6b
+// (10/09/2026): 19 chaves novas + aplicado tambem ao collectionTitle.
 var LEXICO_ACENTUACAO = {
   nao: "não",
   psicologico: "psicológico",
@@ -42,12 +44,78 @@ var LEXICO_ACENTUACAO = {
   familia: "família",
   tragedia: "tragédia",
   solidao: "solidão",
+  espetaculo: "espetáculo",
+  espetaculos: "espetáculos",
+  ruina: "ruína",
+  ruinas: "ruínas",
+  fantastico: "fantástico",
+  fantastica: "fantástica",
+  fantasticos: "fantásticos",
+  fantasticas: "fantásticas",
+  coreografico: "coreográfico",
+  coreografica: "coreográfica",
+  cenario: "cenário",
+  cenarios: "cenários",
+  solitario: "solitário",
+  solitaria: "solitária",
+  espaco: "espaço",
+  pastelao: "pastelão",
+  vinganca: "vingança",
+  imersao: "imersão",
+  estetica: "estética",
+  esteticas: "estéticas",
+  definicao: "definição",
+  definicoes: "definições",
+  construcao: "construção",
+  construcoes: "construções",
+  observacao: "observação",
+  observacoes: "observações",
+  logica: "lógica",
 };
+// Fase 6c (10/09/2026): toda palavra terminada em "cao"/"sao"/"xao" (e plurais)
+// ganha o til — "reflexao"→"reflexão". Em PT essas terminacoes sao SEMPRE til
+// faltando. "cao"/"sao" isoladas viram "cão"/"são" (sem "ç").
+var SUFIXO_ATONO = {
+  coes: "ções",
+  soes: "sões",
+  xoes: "xões",
+  cao: "ção",
+  sao: "são",
+  xao: "xão",
+};
+var PALAVRA_ATONA = { cao: "cão", sao: "são" };
 function corrigirAcentuacao(texto) {
   var s = String(texto == null ? "" : texto);
   return s.replace(/[A-Za-zÀ-ÿ]+/g, function (palavra) {
-    var certa = LEXICO_ACENTUACAO[palavra.toLowerCase()];
-    if (!certa) return palavra;
+    var minuscula = palavra.toLowerCase();
+
+    var certa = LEXICO_ACENTUACAO[minuscula];
+    if (!certa) {
+      // "cao"/"sao" isoladas: só o til, sem "ç".
+      if (PALAVRA_ATONA[minuscula]) {
+        certa = PALAVRA_ATONA[minuscula];
+      } else {
+        // Regra de padrão: a palavra TERMINA numa terminação átona.
+        var sufixos = Object.keys(SUFIXO_ATONO);
+        for (var i = 0; i < sufixos.length; i++) {
+          var atono = sufixos[i];
+          if (
+            minuscula.length > atono.length &&
+            minuscula.slice(-atono.length) === atono
+          ) {
+            certa = palavra.slice(0, palavra.length - atono.length) + SUFIXO_ATONO[atono];
+            break;
+          }
+        }
+        if (!certa) return palavra;
+      }
+      // A caixa do miolo já vem de `palavra`; só a inicial precisa de cuidado.
+      if (palavra[0] === palavra[0].toUpperCase()) {
+        return certa[0].toUpperCase() + certa.slice(1);
+      }
+      return certa;
+    }
+
     if (palavra[0] === palavra[0].toUpperCase()) {
       return certa[0].toUpperCase() + certa.slice(1);
     }
@@ -174,7 +242,7 @@ const filmes = disponiveis.concat(indisponiveis);
 return [{ json: {
   requestId: entrada.requestId,
   query: entrada.preferences,
-  collectionTitle: limpar(colecao, 60) || 'Selecao do curador',
+  collectionTitle: limpar(corrigirAcentuacao(colecao), 60) || 'Selecao do curador',
   cached: !!doCache,
   generatedAt: new Date().toISOString(),
   movies: filmes.slice(0, entrada.limit),
