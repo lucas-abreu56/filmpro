@@ -44,13 +44,17 @@ export default function Hero({ movie, semanaLabel }: HeroProps) {
       <div className="hero-still">
         {/* eslint-disable-next-line @next/next/no-img-element -- backdrop do TMDB, sem next/image neste projeto */}
         <img
-          src={backdropMenor(movie.backdropUrl, "w1280")}
-          // `srcSet` reaproveitando `backdropMenor`: o n8n assa `w1280` na URL,
-          // e num celular de 412px isso são ~98 KB de imagem que ninguém vê
-          // inteira. `w780` cobre o mobile; `w1280` fica para telas largas.
-          // `sizes="100vw"` é literal — o herói sangra de ponta a ponta.
-          srcSet={`${backdropMenor(movie.backdropUrl, "w780")} 780w, ${backdropMenor(movie.backdropUrl, "w1280")} 1280w`}
-          sizes="100vw"
+          // Sempre `w780`, sem `srcSet`. O n8n assa `w1280` na URL; aqui isso
+          // vira ~55% menos bytes (ver `backdropMenor` em `tmdb.ts`). O fundo é
+          // decorativo — `alt=""`, atrás do scrim — e a `w1280` esticada num
+          // desktop de 1920px é indistinguível da `w780` sob o escurecimento.
+          //
+          // `srcSet` + `sizes` foi tentado e piorou: o React 19 emite um
+          // `<link rel=preload as=image imageSrcSet>` para este `<img>`, e o
+          // candidato do preload não bate com o do elemento — o browser
+          // baixava `w780` E `w1280`, e a `w1280` competia com o letreiro (o
+          // LCP desta tela) na mesma conexão com o TMDB. Uma URL só resolve.
+          src={backdropMenor(movie.backdropUrl, "w780")}
           width={1280}
           height={720}
           alt=""
