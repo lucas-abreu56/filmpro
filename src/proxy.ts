@@ -36,12 +36,14 @@ const MAX_POR_MINUTO = 30;
 /**
  * A resposta do 429, em HTML.
  *
- * **Era `text/plain`, e isso quebrava no Safari.** O comentário antigo dizia
+ * **Era `text/plain`, e isso quebrava no iPhone.** O comentário antigo dizia
  * "texto puro porque, na prática, só robô chega aqui" — falso, e o Lucas topou
- * com isso no iPhone em 10/09/2026: numa NAVEGAÇÃO, o Safari não exibe
- * `text/plain`, ele **baixa**. A tela ficou preta e apareceu um `530385.txt` na
- * barra de download — o id da ficha que ele tinha acabado de tocar. Nada ali
- * indicava um limite de requisições; parecia a página ter quebrado.
+ * com isso no iPhone em 10/09/2026, no Chrome. Vale para qualquer navegador do
+ * iOS: todos rodam sobre o WebKit (a Apple obriga), e o WebKit, numa
+ * NAVEGAÇÃO, não exibe `text/plain` — ele **baixa**. A tela ficou preta e
+ * apareceu um `530385.txt` na barra de download — o id da ficha que ele tinha
+ * acabado de tocar. Nada ali indicava um limite de requisições; parecia a
+ * página ter quebrado.
  *
  * Ele chegou ao teto porque cada ficha que o modal abandonava virava uma
  * navegação extra por esta rota (ver `InterceptedModal.tsx`). Aquilo está
