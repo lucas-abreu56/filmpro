@@ -4,8 +4,10 @@ const nextConfig: NextConfig = {
   // Sem `images.remotePatterns`: os pôsteres vêm do CDN do TMDB, que já serve
   // tamanhos pré-renderizados (/t/p/w342, /t/p/w780). Passar por `next/image`
   // faria cada pôster virar uma invocação de Image Optimization — cota gasta
-  // para otimizar o que já está otimizado. Os cards usam <img> com width e
-  // height explícitos para não causar layout shift.
+  // para otimizar o que já está otimizado. Os cards (`FilmStrip`, `Footer`)
+  // usam <img> com width e height explícitos para não causar layout shift; o
+  // backdrop do herói também os tem, e o letreiro reserva altura por CSS
+  // (`h-24`) porque o TMDB não manda a dimensão do PNG.
   async headers() {
     return [
       {

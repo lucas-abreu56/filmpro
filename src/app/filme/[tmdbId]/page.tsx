@@ -96,10 +96,33 @@ export async function generateMetadata(props: PageProps<"/filme/[tmdbId]">) {
   const movie = await buscarFilme(tmdbId);
   const robots = { index: false, follow: true };
   if (!movie) return { title: "Filme não encontrado — FilmPro", robots };
+
+  // O template `%s — FilmPro` do layout cuida do sufixo — aqui só o nome.
+  const titulo = movie.year ? `${movie.title} (${movie.year})` : movie.title;
+  const descricao = movie.overview ?? undefined;
+
+  // `og:image` só com FATOS do filme — backdrop, pôster, título, ano. Nunca o
+  // `reason` do curador: o `AGENTS.md` separa "escolher títulos" de "responder
+  // sobre os filmes", e um card social com a justificativa cruzaria essa linha.
+  const imagem = movie.backdropUrl ?? movie.posterUrl ?? undefined;
+
   return {
-    title: `${movie.title} — FilmPro`,
-    description: movie.overview ?? undefined,
+    title: titulo,
+    description: descricao,
     robots,
+    // `index: false` continua valendo, e OG funciona mesmo assim: o unfurl do
+    // WhatsApp/Slack lê os `<meta>`, não consulta o robots.
+    openGraph: {
+      type: "video.movie",
+      title: `${titulo} — FilmPro`,
+      description: descricao,
+      ...(imagem ? { images: [{ url: imagem }] } : {}),
+    },
+    twitter: {
+      card: imagem ? "summary_large_image" : "summary",
+      title: `${titulo} — FilmPro`,
+      description: descricao,
+    },
   };
 }
 
