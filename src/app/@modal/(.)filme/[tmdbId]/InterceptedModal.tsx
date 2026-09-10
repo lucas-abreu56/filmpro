@@ -5,25 +5,47 @@ import { useEffect, useSyncExternalStore } from "react";
 import MovieDetail from "@/components/features/MovieDetail";
 import Modal from "@/components/ui/Modal";
 import { useMovieStore } from "@/lib/store";
+import type { Movie } from "@/lib/types";
 
 /**
- * A ficha por cima da tira, sem ida ao servidor.
+ * A ficha por cima da tira.
  *
- * O filme já foi baixado inteiro pela busca — pedir de novo só para abrir o
- * modal seria pagar duas vezes pelo mesmo JSON. O store é a fonte aqui; o
- * `/filme/[tmdbId]` de verdade é para link direto e refresh.
+ * O store é a via rápida: o filme já foi baixado inteiro pela busca ou pelas
+ * fileiras da semana, e pedir de novo seria pagar duas vezes pelo mesmo JSON.
  *
- * **Quando o store não tem o filme.** Acontece de fato: recarregar em cima do
- * modal esvazia o store, e voltar/avançar no histórico traz a URL de volta por
- * navegação de cliente — que a rota interceptadora captura outra vez. Antes
- * isto renderizava `null`: a URL mudava e a tela não. `location.replace` sai
- * disso indo para a página real; é navegação de documento, então o
- * interceptador não roda de novo e não há laço.
+ * ── A reserva, e por que ela existe ─────────────────────────────────────────
+ * Quando o store não tem o filme, este componente respondia com
+ * `location.replace('/filme/…')`. Trocado em 10/09/2026, por dois estragos:
+ *
+ * 1. **Abandonava o modal.** A pessoa tocava num filme e recebia a página
+ *    inteira, creme, com "← Voltar para a busca" no lugar do "Fechar" — a
+ *    mesma ficha em duas roupas, sem padrão visível de qual viria. E o
+ *    `replace` ainda comia a entrada do histórico, então o gesto de voltar
+ *    deixava de devolver a home.
+ * 2. **Gastava o limitador.** Cada `replace` é navegação de documento, e passa
+ *    pelo `proxy.ts`, que corta em 30 fichas por minuto. Testar a interface no
+ *    celular batia no teto sozinho, e o 429 chegava como download de `.txt`.
+ *
+ * Agora a rota interceptadora busca o filme no servidor e entrega aqui. O store
+ * continua vencendo quando tem o filme: zero latência, e preserva o `reason`
+ * daquela busca — a reserva traz o do L1 mais recente, que pode ser outro.
+ *
+ * ── Quando ainda vale ir para a página real ─────────────────────────────────
+ * Só quando não há filme nenhum: id que não existe, webhook fora do ar. Aí a
+ * página real é quem sabe responder — ela chama `notFound()` e mostra o 404 do
+ * projeto, que um modal não tem como desenhar por cima de uma home.
  */
-export default function InterceptedModal({ tmdbId }: { tmdbId: number }) {
-  const movie = useMovieStore((estado) =>
+export default function InterceptedModal({
+  tmdbId,
+  reserva,
+}: {
+  tmdbId: number;
+  reserva: Movie | null;
+}) {
+  const doStore = useMovieStore((estado) =>
     estado.movies.find((m) => m.tmdbId === tmdbId),
   );
+  const movie = doStore ?? reserva;
 
   // O store nasce vazio no servidor, então o primeiro render do cliente tem
   // que ser igual ao dele ou a hidratação quebra. Isto é a forma canônica de

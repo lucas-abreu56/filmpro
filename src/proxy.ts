@@ -33,21 +33,77 @@ import { clientIp, overLimit } from "@/lib/rateLimit";
  *  primeira dúzia de ids. */
 const MAX_POR_MINUTO = 30;
 
+/**
+ * A resposta do 429, em HTML.
+ *
+ * **Era `text/plain`, e isso quebrava no Safari.** O comentário antigo dizia
+ * "texto puro porque, na prática, só robô chega aqui" — falso, e o Lucas topou
+ * com isso no iPhone em 10/09/2026: numa NAVEGAÇÃO, o Safari não exibe
+ * `text/plain`, ele **baixa**. A tela ficou preta e apareceu um `530385.txt` na
+ * barra de download — o id da ficha que ele tinha acabado de tocar. Nada ali
+ * indicava um limite de requisições; parecia a página ter quebrado.
+ *
+ * Ele chegou ao teto porque cada ficha que o modal abandonava virava uma
+ * navegação extra por esta rota (ver `InterceptedModal.tsx`). Aquilo está
+ * consertado, mas o teto continua alcançável por uma pessoa — voltar/avançar
+ * no histórico, abrir várias fichas em abas — e uma pessoa precisa de uma
+ * frase legível.
+ *
+ * HTML mínimo e embutido, sem passar pelo render do Next: o proxy roda antes do
+ * render de propósito, e chamar o React aqui pagaria justamente o custo que
+ * este freio existe para evitar. Robô continua servido — lê o status e o
+ * `Retry-After`, não o corpo.
+ *
+ * As cores são os literais da identidade (`globals.css`), e não um `var()`: o
+ * CSS do projeto não carrega aqui. As famílias também são de sistema, porque
+ * as fontes do projeto vêm do `next/font` e essa infra não existe nesta
+ * resposta — pedir a Big Shoulders daria um fallback qualquer, não a fonte.
+ */
+const PAGINA_429 = `<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Espere um minuto — FilmPro</title>
+<style>
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+       background:#fdf6e4;color:#531a0f;padding:1.5rem;
+       font-family:ui-sans-serif,system-ui,sans-serif;line-height:1.5}
+  main{max-width:32rem}
+  .rotulo{margin:0;font-size:.75rem;letter-spacing:.16em;text-transform:uppercase;
+          color:rgb(83 26 15 / .72)}
+  h1{margin:.75rem 0 0;font-size:clamp(2rem,7vw,3.25rem);line-height:.95;
+     text-transform:uppercase;font-weight:600;letter-spacing:-.01em}
+  p{margin:1.5rem 0 0;color:rgb(83 26 15 / .72)}
+  a{color:#c52e2e;text-decoration:none;font-weight:600}
+  a:hover,a:focus-visible{text-decoration:underline}
+</style>
+</head>
+<body>
+<main>
+  <p class="rotulo">FilmPro</p>
+  <h1>Espere um minuto</h1>
+  <p>Você abriu muitas fichas seguidas. O limite volta ao normal em um minuto
+  — é só recarregar esta página.</p>
+  <p><a href="/">← Voltar para a busca</a></p>
+</main>
+</body>
+</html>
+`;
+
 export function proxy(request: NextRequest) {
   if (!overLimit(clientIp(request.headers), MAX_POR_MINUTO)) return;
 
   // `Retry-After` não é enfeite: é o que um robô que se comporta lê para
-  // recuar. Texto puro porque, na prática, só robô chega aqui.
-  return new Response(
-    "Muitas fichas seguidas. Espere um minuto e tente de novo.\n",
-    {
-      status: 429,
-      headers: {
-        "Content-Type": "text/plain; charset=utf-8",
-        "Retry-After": "60",
-      },
+  // recuar.
+  return new Response(PAGINA_429, {
+    status: 429,
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "Retry-After": "60",
     },
-  );
+  });
 }
 
 export const config = {
