@@ -1,4 +1,5 @@
 import SearchPanel from "@/components/features/SearchPanel";
+import { backdropMenor } from "@/lib/tmdb";
 import type { Movie } from "@/lib/types";
 
 /**
@@ -43,9 +44,20 @@ export default function Hero({ movie, semanaLabel }: HeroProps) {
       <div className="hero-still">
         {/* eslint-disable-next-line @next/next/no-img-element -- backdrop do TMDB, sem next/image neste projeto */}
         <img
-          src={movie.backdropUrl}
+          src={backdropMenor(movie.backdropUrl, "w1280")}
+          // `srcSet` reaproveitando `backdropMenor`: o n8n assa `w1280` na URL,
+          // e num celular de 412px isso são ~98 KB de imagem que ninguém vê
+          // inteira. `w780` cobre o mobile; `w1280` fica para telas largas.
+          // `sizes="100vw"` é literal — o herói sangra de ponta a ponta.
+          srcSet={`${backdropMenor(movie.backdropUrl, "w780")} 780w, ${backdropMenor(movie.backdropUrl, "w1280")} 1280w`}
+          sizes="100vw"
+          width={1280}
+          height={720}
           alt=""
-          fetchPriority="high"
+          // Sem `fetchPriority="high"` de propósito: o LCP desta tela é o
+          // LETREIRO, não o fundo (que é decorativo — `alt=""`, atrás do
+          // scrim). Os dois competindo em prioridade alta na mesma conexão
+          // com o TMDB serializava o carregamento e empurrava o LCP para 4 s.
           decoding="async"
           className="h-full w-full object-cover"
         />
@@ -65,6 +77,11 @@ export default function Hero({ movie, semanaLabel }: HeroProps) {
             <img
               src={movie.logoUrl}
               alt={movie.title}
+              // Este é o elemento LCP da tela. `fetchPriority="high"` para o
+              // browser buscá-lo já na primeira leva, sem esperar o parser
+              // chegar até aqui — sem isto o Lighthouse cronometra o letreiro
+              // entrando na fila atrás do backdrop.
+              fetchPriority="high"
               // `h-24 w-auto`, não `max-h-24`: o TMDB não manda a dimensão do
               // PNG, então sem altura fixa o `<img>` nasce com 0 de altura e
               // empurra o layout ~116px quando carrega (CLS). Com `h-24` a
