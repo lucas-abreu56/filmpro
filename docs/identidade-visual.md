@@ -193,6 +193,48 @@ O **parallax do still continua descartado** — a porta que esta seção abria
 mudanças acima mexe na altura do wrapper, que era o motivo do recuo, e o efeito
 não era necessário para resolver a legibilidade.
 
+### A ficha sai como entra, e o toque responde (10/09/2026)
+
+**7. Saída animada da ficha.** Ela entrava em 220ms e sumia em 0: `fechar()`
+chamava `router.back()`, o React desmontava o componente, e o nó saía do DOM
+antes de qualquer transição rodar. No celular, onde a ficha ocupa a tela
+inteira, o corte seco lê como falha.
+
+`@keyframes` não resolve saída de `<dialog>`: ao fechar, o elemento deixa a top
+layer e o `display` vira `none` no mesmo quadro. O que resolve é transição com
+os dois lados declarados — `@starting-style` para a entrada,
+`dialog:not([open])` para a saída, e `transition-behavior: allow-discrete` em
+`display` e `overlay` para segurar o elemento visível enquanto anima. Custo 0 KB,
+CSS nativo.
+
+O `Modal.tsx` fecha em dois tempos: `close()` primeiro, `router.back()` no
+`transitionend`. A duração mora só no CSS; o `setTimeout` de 400ms lá é rede de
+segurança, não a fonte da verdade.
+
+Medido no fluxo real (celular, build de produção): **169ms** de saída visível,
+com a rampa de opacidade 1.00 → 0.85 → 0.71 → 0.58 → 0.47 → 0.36 → 0.26 → 0.17
+→ 0.10 → 0.04 → 0.01. Sob `prefers-reduced-motion` a saída cai para 9ms e a
+navegação acontece igual — o `transitionend` ainda dispara, porque o bloco
+global zera a duração em vez de remover a transição.
+
+O Esc passa pelo mesmo caminho: `onCancel` com `preventDefault` devolve o
+fechamento ao componente, para o teclado não pular a animação. Um guarda de
+reentrância impede que Esc e clique fora cheguem juntos e naveguem duas vezes.
+
+**8. O toque tem resposta.** `.fotograma > a:active` recua para `scale(0.985)`
+em 120ms. O bloco de `hover` não vale no celular de propósito (não existe gesto
+de atenção antes do toque) e o `focus-visible` é teclado, então tocar num
+fotograma não dava sinal nenhum — e numa rede lenta a ficha demora a aparecer.
+Nada de opacidade: o fotograma é a imagem do filme, e apagá-la para confirmar
+um toque diz o oposto do que a página quer.
+
+> **Armadilha registrada:** a regra do `:active` precisa vir **antes** do bloco
+> `@media (hover)`. As duas têm a mesma especificidade, e declarar a
+> `transition` depois substitui a anterior inteira — na primeira tentativa isso
+> desligou o grayscale animado, visto a 900px de largura, onde a `Pilha`
+> renderiza com hover disponível. Por isso o bloco de hover repete o
+> `transform` na sua própria `transition`.
+
 ### O gesto central, confirmado
 
 A **coluna que acorda** continua sendo o gesto do produto, agora dentro de um
@@ -217,6 +259,15 @@ TMDB; sob foco a coluna vai de 12,5% para ~28% de largura e a cor volta
   tempo que justifique GSAP (sem timeline, sem `setTimeout` de sequência, sem
   scrub/reverse), e para transição entre rotas o caminho é testar as **View
   Transitions nativas** primeiro (Next 16 + React 19 têm suporte, custo 0 KB).
+
+  > **Atualização (10/09/2026):** para a **saída** da ficha as View Transitions
+  > não foram necessárias. O `<dialog>` vive na top layer, que a doc do Next
+  > não cobre, e o problema era de ciclo de vida (o React desmontava o nó antes
+  > de qualquer transição), não de morfologia entre rotas. Resolvido com CSS
+  > nativo — `@starting-style` + `allow-discrete` — validado num protótipo
+  > isolado antes de entrar no projeto. Ver item 7 acima. O morph do pôster
+  > voando continua sem implementação, e aí sim as View Transitions são o
+  > primeiro caminho a testar.
 - **Parallax no still do herói** — tentado em 08/09/2026 junto com o Lenis e
   recuado: o `.perfuracao` mora no rodapé do `.hero-still` de propósito (a
   costura "tela↔sala", item 2 acima), e qualquer `translate` ou altura extra
@@ -231,7 +282,10 @@ TMDB; sob foco a coluna vai de 12,5% para ~28% de largura e a cor volta
 4. Imagem sobre fundo claro **precisa de moldura**: no escuro o fotograma se
    fundia à página; no creme ele flutua sem um filete de contorno.
 5. `prefers-reduced-motion` corta trailer, colunas do loader, grão animado, a
-   inércia do Lenis (não monta) e a fileira que entra na tela.
+   inércia do Lenis (não monta), a fileira que entra na tela, o recuo do toque
+   e a deriva do still. A saída da ficha vira instantânea (9ms medidos) mas a
+   navegação continua acontecendo: reduzir movimento não pode deixar a pessoa
+   presa numa tela.
 
 ## Procedência
 

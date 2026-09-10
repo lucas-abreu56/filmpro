@@ -227,10 +227,42 @@ body {
 
    (Este bloco já mirou `> button`. Virou `> a` em 03/09/2026, quando o cartão
    deixou de abrir trailer e passou a levar à ficha.) */
+/* ── O recuo do toque ─────────────────────────────────────────────────────
+   O toque não tinha resposta nenhuma. O bloco de `hover` logo abaixo não vale
+   no celular de propósito (não existe gesto de atenção ANTES do toque), e o
+   `focus-visible` é teclado — então tocar num fotograma não dava sinal de que
+   o toque foi registrado, e numa rede lenta a ficha demora a aparecer.
+
+   `:active` é o estado que o toque tem. Um recuo curto, no mesmo vocabulário
+   de câmera do resto, e nada de opacidade: o fotograma é a imagem do filme, e
+   apagá-la para confirmar um toque é o oposto do que a página quer dizer.
+
+   Fica ANTES do bloco de hover, e a `transition` de lá repete o `transform`.
+   As duas regras têm a mesma especificidade, então a última vence: declarar o
+   `transform` depois zerava o `filter` do grayscale. Medido em 900px de
+   largura (onde a `Pilha` renderiza com hover disponível), foi exatamente o
+   que aconteceu na primeira tentativa. */
+.fotograma > a {
+  transition: transform 120ms var(--ease-camera);
+}
+.fotograma > a:active {
+  transform: scale(0.985);
+}
+@media (prefers-reduced-motion: reduce) {
+  .fotograma > a:active {
+    transform: none;
+  }
+}
+
 @media (hover: hover) and (pointer: fine) {
   .fotograma > a {
     filter: grayscale(100%) contrast(1.05);
-    transition: filter 260ms var(--ease-camera);
+    /* `transform` repetido de propósito: uma segunda declaração de
+       `transition` no mesmo seletor substitui a anterior inteira, e sem isto o
+       recuo do `:active` pararia de animar onde há hover. */
+    transition:
+      filter 260ms var(--ease-camera),
+      transform 120ms var(--ease-camera);
   }
   /* `focus-within`, e não `focus-visible`: quem recebe o foco é o link dentro
      do item, e o item em si não é focável. */
@@ -249,6 +281,7 @@ body {
   outline: 2px solid var(--color-papel);
   outline-offset: -3px;
 }
+
 
 /* ── A coluna que acorda ──────────────────────────────────────────────────
    O padrão do República Pureza, adaptado. Duas regras vêm de lá, literais:
@@ -351,27 +384,63 @@ body {
   border: 1px solid var(--color-fio);
 }
 
-/* A ficha entra por cima da tira. A animação vive aqui e não em classe do
-   Tailwind: `animate-in`/`fade-in-0` vêm do plugin tailwindcss-animate, que
-   este projeto não instala — escritas no JSX elas não davam erro, só não
-   faziam nada. O bloco de prefers-reduced-motion logo abaixo já as neutraliza
-   para quem pediu menos movimento. */
-@keyframes veu-entra {
-  from {
+/* A ficha entra por cima da tira, e agora também SAI. A animação vive aqui e
+   não em classe do Tailwind: `animate-in`/`fade-in-0` vêm do plugin
+   tailwindcss-animate, que este projeto não instala — escritas no JSX elas não
+   davam erro, só não faziam nada.
+
+   ── Transição, não `@keyframes` (10/09/2026) ──────────────────────────────
+   Eram keyframes de entrada, e a ficha entrava em 220ms e sumia em 0. No
+   celular, onde ela ocupa a tela inteira, o corte seco lê como falha.
+
+   `@keyframes` não resolve saída de `<dialog>`: quando o elemento fecha, ele
+   deixa a top layer e o `display` vira `none` no mesmo quadro, sem tempo para
+   animar. O que resolve é transição com os dois lados declarados:
+
+     - `@starting-style` dá o estado ANTES de abrir  -> entrada
+     - `dialog:not([open])` dá o estado depois de fechar -> saída
+     - `allow-discrete` em `display` e `overlay` segura o elemento visível na
+       top layer enquanto a transição roda
+
+   Medido num protótipo isolado antes de trazer para cá: 169ms de saída
+   visível depois do `close()`. O `Modal.tsx` fecha primeiro e só navega no
+   `transitionend`, senão o React desmonta o nó antes de qualquer transição.
+
+   A duração mora só aqui. O `Modal.tsx` não a repete: ele espera o evento, e
+   tem um `setTimeout` de 400ms apenas como rede para o caso de a transição não
+   disparar. */
+.veu-ficha {
+  opacity: 1;
+  transition:
+    opacity 180ms ease-out,
+    overlay 180ms allow-discrete,
+    display 180ms allow-discrete;
+}
+.veu-ficha:not([open]) {
+  opacity: 0;
+}
+@starting-style {
+  .veu-ficha[open] {
     opacity: 0;
   }
 }
-@keyframes ficha-entra {
-  from {
+
+.ficha-entra {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition:
+    opacity 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.veu-ficha:not([open]) .ficha-entra {
+  opacity: 0;
+  transform: translateY(8px) scale(0.99);
+}
+@starting-style {
+  .veu-ficha[open] .ficha-entra {
     opacity: 0;
     transform: translateY(8px) scale(0.99);
   }
-}
-.veu-entra {
-  animation: veu-entra 180ms ease-out;
-}
-.ficha-entra {
-  animation: ficha-entra 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* ── A legenda que chega ──────────────────────────────────────────────────

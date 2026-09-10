@@ -47,21 +47,68 @@ export default function Modal({
 
   // `back()` e não `push("/")`: o modal é uma camada sobre a página que estava
   // aberta, e voltar devolve exatamente ela, com a rolagem onde estava.
-  function fechar() {
-    router.back();
-  }
+  //
+  // ── Por que fechar é em dois tempos ────────────────────────────────────────
+  // A ficha entrava em 220ms e sumia em 0: `router.back()` desmonta este
+  // componente, e o nó sai do DOM antes de qualquer transição rodar. No celular,
+  // onde a ficha ocupa a tela inteira, o corte seco lê como falha.
+  //
+  // Então: `close()` primeiro (o `<dialog>` continua no DOM e o CSS anima a
+  // saída na top layer, via `@starting-style` + `transition-behavior:
+  // allow-discrete` em `globals.css`), e só depois `router.back()`.
+  //
+  // O gatilho é o `transitionend` do próprio elemento, não um `setTimeout` com
+  // a duração copiada: duração em dois lugares desincroniza na primeira vez que
+  // alguém mexe no CSS. O `setTimeout` aqui é só rede de segurança para o caso
+  // de a transição não disparar (sem suporte, ou `prefers-reduced-motion`, onde
+  // o bloco global zera a duração e o evento pode não vir).
+  const saindoRef = useRef(false);
+  const fechar = useCallback(() => {
+    if (saindoRef.current) return; // Esc + clique fora podem chegar juntos.
+    saindoRef.current = true;
+
+    const dialog = dialogRef.current;
+    if (!dialog) {
+      router.back();
+      return;
+    }
+
+    let feito = false;
+    const navegar = () => {
+      if (feito) return;
+      feito = true;
+      router.back();
+    };
+
+    dialog.addEventListener("transitionend", navegar, { once: true });
+    // 400ms cobre a transição mais longa declarada (220ms) com folga.
+    setTimeout(navegar, 400);
+
+    if (dialog.open) dialog.close();
+  }, [router]);
 
   return (
     <dialog
       ref={setRefs}
       aria-label={rotulo ? `Ficha de ${rotulo}` : "Ficha do filme"}
-      // `onClose` cobre o Esc, que fecha o diálogo sem passar por `fechar`.
+      // O Esc é tratado em `onCancel`, que dispara ANTES de o navegador
+      // fechar: `preventDefault` devolve o fechamento para o `fechar` daqui,
+      // e assim o Esc ganha a mesma saída animada do botão e do clique fora.
+      //
+      // `onClose` continua como rede: se algo fechar o diálogo por fora deste
+      // componente, a navegação ainda acontece. O guarda `saindoRef` impede
+      // que ele dispare de novo no fluxo normal, onde `fechar` já chamou
+      // `close()`.
+      onCancel={(e) => {
+        e.preventDefault();
+        fechar();
+      }}
       onClose={fechar}
       onClick={(e) => {
         // Só o clique no véu — o conteúdo é filho e tem alvo próprio.
         if (e.target === dialogRef.current) fechar();
       }}
-      className="bg-tinta/80 veu-entra fixed inset-0 z-50 flex min-h-full min-w-full items-center justify-center p-4 backdrop-blur-sm"
+      className="bg-tinta/80 veu-ficha fixed inset-0 z-50 flex min-h-full min-w-full items-center justify-center p-4 backdrop-blur-sm"
     >
       {/* Sem sombra, e com fio de 1 px: a separação vem de contraste, que é a
           regra da referência e já era a do resto do projeto. A cor de fundo é
