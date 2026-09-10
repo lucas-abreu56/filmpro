@@ -242,8 +242,9 @@ frente. O porquê de cada uma dessas escolhas está em
 | Workflows no n8n | 2 publicados: Recomendações (24 nós) e Standalone (6 nós) |
 | Banco | 3 tabelas + 3 views, 68+ filmes gravados |
 | Trailer | 57 de 57 na última conferência (reproduz na ficha técnica) |
-| Acerto de cache | **~490 ms** em produção (151 ms dentro do workflow) |
-| Busca inédita | **~10–20 s** em produção (Gemini 3.1 Flash Lite) |
+| Acerto de cache | **~490 ms** em produção · dentro do workflow: p50 84 ms, p95 1,7 s (n=331, 30 d) |
+| Busca inédita | dentro do workflow: **p50 9,8 s, p95 58,7 s**, máx 83,6 s (n=125, 30 d) — Gemini 3.1 Flash Lite |
+| Acerto de cache (taxa) | **72,6%** das buscas humanas em 30 dias (331 de 456) |
 | Interface | tela inicial, tira de filme e ficha completa no ar |
 | Ficha do filme | **Pronta** (modal interceptado `@modal` + rota standalone `/filme/[tmdbId]`) |
 | `/estatisticas` | pendente |
@@ -257,12 +258,13 @@ A fronteira de fora melhorou ao mover a função da Vercel para São Paulo, ao l
 do n8n: o acerto de cache caiu de ~870 ms para ~490 ms. A região segue o dado,
 não o usuário — o estático já sai da borda mais perto de quem acessa.
 
-**O risco aberto é a busca inédita.** O enriquecimento pelas APIs custa 2,7 s
-fixos — dez buscas no TMDB somam 536 ms. Toda a variação restante é o tempo de
-resposta do LLM, e ela é enorme: entre 6 e 74 segundos para consultas parecidas.
+**O risco aberto é a busca inédita.** O enriquecimento pelas APIs custa ~1,6 s
+(medido em execução real: TMDB busca + detalhes + OMDB). Toda a variação
+restante é o tempo de resposta do LLM, e ela é enorme: numa medição de 30 dias
+(125 buscas frias), **p50 9,8 s mas p95 58,7 s** — acima do teto de 45 s do
+BFF. Não é cauda rara: uma em cada vinte buscas inéditas estoura e vira 504.
 O plano concede 60 s por execução e o BFF aborta aos 45 s, para que o 504 seja
-nosso e em português. A média medida no workflow, 33,4 s, já come três quartos
-desse orçamento.
+nosso e em português.
 
 Isso não se resolve com polling assíncrono — polling move a espera, não a
 encurta. O que resolve é o cache: um acerto volta em segundos em vez de dezenas
