@@ -381,14 +381,50 @@ body {
    a contenção vale mesmo sem a animação scroll-driven. */
 .fileira {
   content-visibility: auto;
-  /* ~800px é a altura real de uma fileira medida (cabeçalho + tira + legenda)
-     no desktop; o `auto` guarda a exata depois do primeiro render, então esse
-     número só governa o quanto o scrollbar se ajusta na primeira rolagem. */
-  contain-intrinsic-size: auto 800px;
+  /* A estimativa precisa ser por desenho, não uma só: no celular a fileira é a
+     `Pilha` do `FilmStrip` — oito fotogramas empilhados, medidos em 4606–4850px
+     em 10/09/2026 (412×915). O valor único de 800px que existia aqui era o do
+     desktop e errava por 6x no celular, e como `content-visibility: auto` usa
+     essa estimativa para dimensionar o que ainda não renderizou, o scrollbar
+     saltava a cada fileira que entrava. O `auto` guarda a altura real depois do
+     primeiro render; o número só governa o antes. */
+  contain-intrinsic-size: auto 4800px;
+}
+@media (min-width: 64rem) {
+  /* ~800px é a altura real da `MesaDeMontagem` (cabeçalho + tira + legenda). */
+  .fileira {
+    contain-intrinsic-size: auto 800px;
+  }
 }
 
 /* A fileira sobe e aparece ao entrar na tela — "cor é recompensa por atenção",
-   agora na escala da seção. Estado de repouso: visível, sem transform. */
+   agora na escala da seção. Estado de repouso: visível, sem transform.
+
+   ── Só da mesa para cima (64rem), e não é preferência ─────────────────────
+   No celular isto produzia um defeito visível: o PRIMEIRO filme de cada
+   fileira aparecia lavado e só normalizava ao rolar mais. Medido em produção
+   em 10/09/2026 (412×915 @2.625), a fileira 2 entrando na tela:
+
+     y=5095  opacidade 0.557  ← primeiro filme visível, lavado
+     y=5195  opacidade 0.869  ← ainda lavado
+     y=5295  opacidade 1.000
+
+   São ~200px de rolagem com o fotograma em opacidade parcial, e o que
+   atravessa por baixo é o `--color-papel` (#fdf6e4) do body — daí o aspecto
+   esbranquiçado, que não vem de filtro nenhum.
+
+   Atinge só o primeiro filme por geometria: `entry` termina quando o topo do
+   elemento alcança o topo da viewport, então numa `Pilha` de ~4800px (5x a
+   tela) a rampa `entry 5% → 40%` inteira se concentra nos primeiros ~400px da
+   seção — exatamente onde o primeiro fotograma vive. Do segundo em diante
+   todos já nascem em `opacity: 1`.
+
+   `64rem` é o mesmo corte que o `FilmStrip` usa (a constante `MESA`) para
+   escolher entre `MesaDeMontagem` e `Pilha`. Acima dele a fileira é uma tira
+   horizontal de ~800px, menor que a viewport, e a animação faz o que foi
+   desenhada para fazer. Abaixo, "fileira" é uma pilha vertical — revelar a
+   pilha inteira de uma vez nunca foi o gesto aprovado em
+   `docs/identidade-visual.md`, item 6. */
 @keyframes fileira-revela {
   from {
     opacity: 0;
@@ -396,7 +432,7 @@ body {
   }
 }
 @supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
+  @media (prefers-reduced-motion: no-preference) and (min-width: 64rem) {
     .fileira-revela {
       animation: fileira-revela linear both;
       animation-timeline: view();
