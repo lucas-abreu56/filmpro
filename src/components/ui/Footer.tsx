@@ -45,7 +45,7 @@ export default function Footer() {
             >
               OMDb
             </a>
-            . A curadoria — e só ela — é escrita por um agente.
+            . A curadoria, e só ela, é escrita por um agente.
           </p>
         </div>
 
