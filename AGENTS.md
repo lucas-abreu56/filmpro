@@ -36,6 +36,35 @@ Siga esta estrutura para manter o documento limpo:
 - **Poda de Código:** Procure ativamente e apague código morto, lógica duplicada ou abstrações inúteis. Manter é tão importante quanto criar.
 - **Design Responsável:** Foque na substância (resolução de problemas e dados reais) em vez de efeitos cosméticos pesados (ex: gradientes excessivos, bibliotecas 3D sem necessidade). O projeto deve ser maduro e performático.
 
+## 21st.dev: referência, nunca dependência
+
+CLI instalada em 10/09/2026 (`npm i -g @21st-dev/cli`, `21st login` — conta
+`lucassoliveiraabreu`). Substitui o MCP que foi usado em 06/09/2026.
+
+**A decisão que vale, tomada em 06/09/2026** (registrada na seção 7 de
+`docs/planos/plano-home-visual.local.md`): o 21st.dev entra como **referência de
+técnica e de geometria**. Nada de lá vira dependência — o projeto tem 4
+dependências e não é uma busca de componente que vai introduzir a quinta.
+Código de lá, se usado, entra **lido, renomeado para o vocabulário do projeto e
+ajustado à identidade** (`docs/identidade-visual.md`). Colar e seguir é como o
+visual genérico entra num projeto que tem identidade própria.
+
+Duas coisas medidas na instalação, que mudam como usar:
+
+- **`search` é ilimitado; `get` é 2 por dia** no plano free (confirmado rodando
+  `usage` antes e depois de um `search`: a quota não se moveu). Portanto: busque
+  à vontade, e gaste `get` só no componente que você já decidiu estudar.
+- **`generate` e `iterate` não estão habilitados** nesta conta. Não chame.
+
+**Pegadinha de script:** busca sem resultado sai com **exit 127** — a CLI ainda
+sofre um `Assertion failed` do libuv ao encerrar no Windows. Em script, 127 é
+lido como "comando não encontrado", o que faria um CI reportar a ferramenta como
+ausente quando ela só não achou nada. **Cheque a saída, não o código de saída.**
+Reproduzido 3× em 10/09/2026.
+
+Em CI ou script, pule o login: `--api-key <chave>`, ou a variável
+`API_KEY_21ST` / `TWENTYFIRST_TOKEN` (a CLI aceita as três formas).
+
 ## Restrição de licença: o projeto é NÃO COMERCIAL
 
 Decidido pelo Lucas em 08/09/2026. O FilmPro é peça de portfólio, e isso não é
