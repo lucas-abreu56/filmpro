@@ -1,0 +1,7 @@
+# Sem isto, o Next transpila para um alvo antigo por padrão e embute polyfill
+# (Array.prototype.at/flat/flatMap, Object.fromEntries/hasOwn, String.trimStart/
+# trimEnd) que nenhum navegador com >0,5% de uso global ainda precisa — medido
+# pelo PageSpeed em 12/09/2026: 13,8 KiB de JS morto no bundle da home.
+# "not dead" já exclui navegadores sem suporte ou atualização há 24 meses.
+defaults
+not dead
