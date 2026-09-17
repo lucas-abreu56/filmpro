@@ -152,7 +152,10 @@ export default function MovieDetail({ movie }: { movie: Movie }) {
               o produto vende. */}
           {movie.reason && (
             <section>
-              <h3 className="text-acento font-display mb-3 text-[11px] tracking-[0.16em] uppercase">
+              {/* `acento-claro`, não `acento`: a ficha vive sobre o
+                  `profundo`, e o acento do papel dá só 3,43:1 aqui. Ver o
+                  token em `globals.css`. */}
+              <h3 className="text-acento-claro font-display mb-3 text-[11px] tracking-[0.16em] uppercase">
                 Por que este filme
               </h3>
               <p className="text-papel/90 text-[15px] leading-relaxed">{movie.reason}</p>

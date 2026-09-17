@@ -18,6 +18,22 @@
   --color-profundo: #250701; /* palco do trailer e do loader. NUNCA em texto */
   --color-acento: #c52e2e; /* uma palavra por tela, no máximo */
 
+  /* O mesmo acento, calibrado para o fundo `profundo`. Mesmo matiz (0°) e
+     mesma saturação (62%); só a luminância sobe, de 48% para 60%.
+
+     Existe porque `#c52e2e` foi escolhido contra o papel creme, onde dá
+     5,12:1, e sobre o profundo cai para 3,43:1 — abaixo dos 4,5:1 que AA pede
+     para texto pequeno. Medido pelo axe em 16/09/2026, no "Por que este filme"
+     do `MovieDetail`, que era o único ponto do projeto usando `text-acento`
+     sobre fundo escuro. `#d85a5a` dá 4,98:1 ali.
+
+     Não dá para uma cor só servir aos dois fundos: clarear para passar no
+     escuro derruba o contraste no claro, e vice-versa. Por isso são dois
+     tokens, como já acontece com `--color-apoio` no `.tema-escuro`.
+
+     Use este sobre `profundo`/`tinta`; use `--color-acento` sobre `papel`. */
+  --color-acento-claro: #d85a5a;
+
   /* Não existe escala de cinza neste sistema: a doc da Awwwocado é explícita
      que hierarquia vem do tamanho do tipo, não da cor. Os apoios saem da
      própria tinta com alpha, para pertencerem à mesma família.
@@ -34,11 +50,26 @@
   /* Rotação cromática: cada coleção que o agente batiza recebe um matiz.
      Dá variedade sem um segundo acento permanente, porque a cor passa a ser
      dirigida por conteúdo. Uso contido — um bloco por coleção. */
-  --color-teal: #aacbc1;
-  --color-azul: #9bb2cd;
-  --color-verde: #cee56e;
-  --color-roxo: #d1abe3;
-  --color-rosa: #e89ed3;
+  /* ── Por que não são mais pastéis ──────────────────────────────────────────
+     Eram, e falhavam todos: sobre o papel creme davam de 1,29:1 (verde) a
+     2,02:1 (azul), contra os 4,5:1 que AA pede para texto pequeno. O rótulo da
+     fileira é o único lugar onde estas cores viram TEXTO, e a 12px, em
+     `#cee56e` sobre creme, ele é praticamente invisível para quem enxerga
+     menos.
+
+     Cada um foi escurecido preservando matiz e saturação — só a luminância
+     desce, então a família de cor é a mesma e a rotação continua lendo como
+     rotação. Medido com o axe em 16/09/2026, e os valores abaixo são o
+     primeiro ponto de cada matiz que cruza 4,5:1.
+
+     Se alguém quiser o pastel de volta, o caminho não é reverter isto: é levar
+     o matiz para o filete/borda (decorativo, sem exigência de contraste) e
+     deixar o texto em `--color-apoio`. */
+  --color-teal: #4a796a; /* 4,60:1 sobre o papel — era #aacbc1, 1,62:1 */
+  --color-azul: #4f749e; /* 4,50:1 — era #9bb2cd, 2,02:1 */
+  --color-verde: #647715; /* 4,65:1 — era #cee56e, 1,29:1 */
+  --color-roxo: #9d4bc3; /* 4,61:1 — era #d1abe3, 1,83:1 */
+  --color-rosa: #c42e99; /* 4,64:1 — era #e89ed3, 1,90:1 */
 
   --ease-camera: cubic-bezier(0.2, 0.7, 0.3, 1);
   --ease-cortina: cubic-bezier(0.76, 0, 0.24, 1);

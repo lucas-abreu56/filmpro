@@ -76,3 +76,16 @@ skills-lock.json
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Artefatos de execução do Playwright: relatório HTML, rastros de falha,
+# capturas. São saída de teste, regerada a cada corrida — o que se versiona é
+# `playwright.config.ts` e `e2e/`.
+/test-results/
+/playwright-report/
+/blob-report/
+/.playwright/
+
+# Estado de autenticação do Playwright (cookies, localStorage, tokens).
+# Prevenção contra vazamento de sessões reais/mockadas em repositório público.
+.auth/
+playwright/.auth/
