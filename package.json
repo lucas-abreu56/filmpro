@@ -8,7 +8,6 @@
     "start": "next start",
     "lint": "eslint",
     "test": "node --test --experimental-strip-types \"src/**/*.test.ts\" \"n8n/**/*.test.js\"",
-    "test:e2e": "playwright test",
     "aquecer": "node --experimental-strip-types --env-file=.env scripts/aquecer-cache.mjs",
     "relatorio": "node --env-file=.env scripts/relatorio.mjs",
     "testes-curador": "node --experimental-strip-types --env-file=.env scripts/testes-curador.mjs"
@@ -21,8 +20,6 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
-    "@axe-core/playwright": "^4.13.0",
-    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
