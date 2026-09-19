@@ -21,15 +21,19 @@ const REVALIDA_HOME_S = 3600;
  * `globals.css` sem nenhum uso — a doc de identidade prometia "um matiz por
  * coleção" e nunca foi feito. Determinístico por `position`, não por índice
  * do array: se o webhook algum dia pular uma posição, a cor não desliza.
- * Aplicado só aqui, no filete do rótulo — nunca no título (h2), que é texto
- * corrido.
+ *
+ * `border-*`, e nunca `text-*`: os cinco matizes são pastéis sobre o papel
+ * creme e dão de 1,29:1 a 2,02:1, longe dos 4,5:1 que AA pede para texto
+ * pequeno (medido com o axe em 16/09/2026). Como filete eles são decorativos
+ * e não têm essa exigência; o rótulo ao lado fica em `text-apoio` (5,66:1).
+ * Ver o bloco dos tokens em `globals.css` para o caminho descartado.
  */
 const CORES_FILEIRA = [
-  "text-teal",
-  "text-azul",
-  "text-verde",
-  "text-roxo",
-  "text-rosa",
+  "border-teal",
+  "border-azul",
+  "border-verde",
+  "border-roxo",
+  "border-rosa",
 ] as const;
 
 /**
@@ -222,7 +226,7 @@ export default async function Home() {
               <section key={secao.position} className="fileira fileira-revela">
                 <header className="mb-6 max-w-5xl">
                   <p
-                    className={`font-display flex items-baseline gap-2 text-xs tracking-[0.16em] uppercase ${cor}`}
+                    className={`text-apoio font-display flex items-baseline gap-2 border-l-2 pl-3 text-xs tracking-[0.16em] uppercase ${cor}`}
                   >
                     <span className="tabular-nums">
                       {String(secao.position).padStart(2, "0")}

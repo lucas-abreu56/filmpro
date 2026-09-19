@@ -47,29 +47,30 @@
   --color-fio: rgb(83 26 15 / 0.18);
   --color-fio-forte: rgb(83 26 15 / 0.42);
 
-  /* Rotação cromática: cada coleção que o agente batiza recebe um matiz.
-     Dá variedade sem um segundo acento permanente, porque a cor passa a ser
-     dirigida por conteúdo. Uso contido — um bloco por coleção. */
-  /* ── Por que não são mais pastéis ──────────────────────────────────────────
-     Eram, e falhavam todos: sobre o papel creme davam de 1,29:1 (verde) a
-     2,02:1 (azul), contra os 4,5:1 que AA pede para texto pequeno. O rótulo da
-     fileira é o único lugar onde estas cores viram TEXTO, e a 12px, em
-     `#cee56e` sobre creme, ele é praticamente invisível para quem enxerga
-     menos.
+  /* ── Pastéis, e só em elemento decorativo ─────────────────────────────────
+     Sobre o papel creme estes matizes dão de 1,29:1 (verde) a 2,02:1 (azul),
+     contra os 4,5:1 que AA pede para texto pequeno. Medido com o axe em
+     16/09/2026, num viewport de celular — em desktop a violação não aparece,
+     porque `.fileira-revela` mantém o rótulo em `opacity: 0` até a pessoa
+     rolar, e o axe não mede elemento invisível.
 
-     Cada um foi escurecido preservando matiz e saturação — só a luminância
-     desce, então a família de cor é a mesma e a rotação continua lendo como
-     rotação. Medido com o axe em 16/09/2026, e os valores abaixo são o
-     primeiro ponto de cada matiz que cruza 4,5:1.
+     A resposta NÃO é escurecer os cinco. Isso foi tentado em 16/09/2026 e
+     revertido em 19/09: para cruzar 4,5:1 o verde-limão precisava virar
+     verde-oliva (`#cee56e` → `#647715`), e a home mudava de caráter para
+     resolver um problema que era de aplicação, não de paleta.
 
-     Se alguém quiser o pastel de volta, o caminho não é reverter isto: é levar
-     o matiz para o filete/borda (decorativo, sem exigência de contraste) e
-     deixar o texto em `--color-apoio`. */
-  --color-teal: #4a796a; /* 4,60:1 sobre o papel — era #aacbc1, 1,62:1 */
-  --color-azul: #4f749e; /* 4,50:1 — era #9bb2cd, 2,02:1 */
-  --color-verde: #647715; /* 4,65:1 — era #cee56e, 1,29:1 */
-  --color-roxo: #9d4bc3; /* 4,61:1 — era #d1abe3, 1,83:1 */
-  --color-rosa: #c42e99; /* 4,64:1 — era #e89ed3, 1,90:1 */
+     A regra passa a ser: **estes matizes nunca são a cor de um texto.** Eles
+     vivem no filete do rótulo da fileira (`border-l`, em `page.tsx`), que é
+     decorativo e não tem exigência de contraste. O texto ao lado fica em
+     `--color-apoio` (5,66:1). A cor continua dirigida por conteúdo — um matiz
+     por coleção —, só não carrega mais a informação sozinha.
+
+     Rotação cromática: cada coleção que o agente batiza recebe um matiz. */
+  --color-teal: #aacbc1;
+  --color-azul: #9bb2cd;
+  --color-verde: #cee56e;
+  --color-roxo: #d1abe3;
+  --color-rosa: #e89ed3;
 
   --ease-camera: cubic-bezier(0.2, 0.7, 0.3, 1);
   --ease-cortina: cubic-bezier(0.76, 0, 0.24, 1);
